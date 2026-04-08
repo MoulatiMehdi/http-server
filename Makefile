@@ -1,4 +1,5 @@
 NAME    = webserv
+CONFIG_FILE = config_file
 
 CXX     = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -g
@@ -29,6 +30,24 @@ SRCS = src/config/Tokenizer.cpp \
 OBJS    = $(SRCS:.cpp=.o)
 
 all: $(NAME)
+
+push: fclean
+	read -p "commit message: " msg; \
+		git add .; \
+		git commit -am "$$msg"; \
+		git push
+
+runq: all
+	./$(NAME) $(CONFIG_FILE)
+
+run: re
+	make clean
+	./$(NAME) $(CONFIG_FILE)
+
+runv: re
+	make clean
+	valgrind ./$(NAME) $(CONFIG_FILE)
+
 
 $(NAME): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $(NAME) $(OBJS)

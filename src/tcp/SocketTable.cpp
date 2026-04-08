@@ -4,7 +4,9 @@ SocketTable::SocketTable() {}
 
 SocketTable::~SocketTable() { clear(); }
 
-void SocketTable::add(Socket *socket) { _sockets.push_back(socket); }
+void SocketTable::add(Socket *socket) {
+	_sockets.push_back(socket);
+}
 
 Socket *SocketTable::operator[](int i) const { return _sockets[i]; }
 
