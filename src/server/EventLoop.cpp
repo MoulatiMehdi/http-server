@@ -81,7 +81,6 @@ void EventLoop::loop() {
 	struct epoll_event events[MAX_EVENTS];
 	int sockIndex;
 
-	std::cout << "size: " << _socketTable.size() << "\n";
 	while (true) {
 		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, ERROR /* time out */);
 		if (nfds == ERROR) exitError("epoll_wait");

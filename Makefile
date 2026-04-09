@@ -8,7 +8,7 @@ INCDIR  = -Iinclude/cgi \
 		  -Iinclude/common \
 		  -Iinclude/config \
 		  -Iinclude/http \
-		  -Iinclude/tcp
+		  -Iinclude/server
 
 SRCS = src/config/Tokenizer.cpp \
 	   src/config/ConfigParserServer.cpp \
@@ -17,13 +17,13 @@ SRCS = src/config/Tokenizer.cpp \
 	   src/config/ConfigParserValidators.cpp \
 	   src/config/ConfigParserLocation.cpp \
 	   src/main.cpp \
-	   src/tcp/ClientTable.cpp \
-	   src/tcp/helper.cpp \
-	   src/tcp/HttpServer.cpp \
-	   src/tcp/EventLoop.cpp \
-	   src/tcp/Socket.cpp \
-	   src/tcp/SocketTable.cpp \
-	   src/tcp/Client.cpp \
+	   src/server/ClientTable.cpp \
+	   src/server/helper.cpp \
+	   src/server/HttpServer.cpp \
+	   src/server/EventLoop.cpp \
+	   src/server/Socket.cpp \
+	   src/server/SocketTable.cpp \
+	   src/server/Client.cpp \
 	   src/common/Logger.cpp
 
 
@@ -47,6 +47,10 @@ run: re
 runv: re
 	make clean
 	valgrind ./$(NAME) $(CONFIG_FILE)
+
+runvfd: re
+	make clean
+	valgrind --track-fds=yes ./$(NAME) $(CONFIG_FILE)
 
 
 $(NAME): $(OBJS)

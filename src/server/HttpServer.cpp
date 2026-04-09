@@ -18,11 +18,9 @@ void HttpServer::init() {
 		s->configureAddress();
 		s->bindSocket();
 		s->startListening();
-
-		std::cout << "1size: " << _socketTable.size() << "\n";
 		_socketTable.add(s);
 		Logger::info("Server: [" + to_stringg(s->getFd()) + "] Listeting on: " +
-					 s->getAddr() +":"+ to_stringg(s->getPort()));
+					 s->getAddr() + ":" + to_stringg(s->getPort()));
 	}
 	Logger::info("Server initialized");
 }
