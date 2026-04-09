@@ -80,12 +80,11 @@ HttpResponse makeFakeRes() {
 
 #define BUFF_SIZE 4096
 ClientStatus Client::onReadable() {
-	(void) _request_complete;
-	(void) _connected_at;
-	(void) _last_response_at;
+	(void)_request_complete;
+	(void)_connected_at;
+	(void)_last_response_at;
 	char buff[BUFF_SIZE];
 	char response[BUFF_SIZE];
-	strncpy(response, "Response\n", 10);
 	int n;
 	int parseState;
 	HttpRequest req;
@@ -96,10 +95,19 @@ ClientStatus Client::onReadable() {
 	// _rbuf.insert(_rbuf.end(), buff, buff + n);
 
 	parseState = parser.tryParse(buff, n, req);
-	(void) parseState;
-
-	// if (req.bad()) response(request.code());
-	//  if (req.good()) return OK;
+	(void)parseState;
+	// {
+	// if (parse.state == good) return OK
+	// else if (parse.state == error) serveError
+	// }
+	//
+	// if (parse.state == complete){
+	// if req.filename.ext == cgi cgi()
+	// else if (file.found) serve static file()
+	// else if (errfile.found) serve
+	// else serve string
+	// }
+	//
 
 	queueResponse(makeFakeRes(), _wrbuf);
 
