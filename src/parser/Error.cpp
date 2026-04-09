@@ -22,6 +22,8 @@ std::string to_string(Error err)
             return "Unsupported Version";
         case error::unsupported_method:
             return "Unsupported Method";
+        case error::unsupported_transfer:
+            return "Unsupported transfer";
         case error::bad_status:
             return "Bad Status";
         case error::bad_field:

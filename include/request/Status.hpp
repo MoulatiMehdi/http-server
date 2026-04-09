@@ -6,7 +6,7 @@
 namespace status
 {
 
-    enum status : unsigned
+    enum Status : unsigned
     {
         unknown = 0,
 
@@ -83,7 +83,7 @@ namespace status
 namespace status_class
 {
 
-    enum status_class : unsigned
+    enum StatusClass : unsigned
     {
         unknown       = 0,
         informational = 1,
@@ -97,12 +97,13 @@ namespace status_class
 
 //
 
-using StatusClass = status_class::status_class;
-using Status      = status::status;
+using StatusClass = status_class::StatusClass;
+using Status      = status::Status;
 
 StatusClass to_status_class(Status v);
 
 const std::string phrase_reason(Status v);
+
 
 std::ostream &operator<<(std::ostream &, Status);
 #endif
