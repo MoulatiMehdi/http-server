@@ -1,6 +1,5 @@
 #ifndef HTTP_REQUEST_HPP
 #define HTTP_REQUEST_HPP
-#include "Status.hpp"
 #include <ostream>
 
 #include "HttpMessage.hpp"
@@ -9,15 +8,15 @@
 
 class HttpRequest : public HttpMessage
 {
+    const std::string EMPTY = "";
+
   public:
     typedef std::map<const std::string, std::string> Headers;
 
   private:
-    size_t      m_content_length;
     std::string m_target; // uri
     Headers     m_headers;
-    Status      m_status;
-    std::string m_body;
+    bool        m_complete;
 
   public:
     HttpRequest();
@@ -26,18 +25,21 @@ class HttpRequest : public HttpMessage
 
     HttpRequest &operator=(const HttpRequest &);
 
-    void set_target(const std::string &uri);
+    HttpRequest::Headers::const_iterator
+    get(const std::string &header_name) const;
+
+    void setComplete(bool val);
+    void set(const std::string &name, const std::string &value);
+
+    bool good() const;
+    bool incomplete() const;
 
     const Headers &headers() const;
     Headers       &headers();
 
-    void setHeader(std::string &name, std::string &value);
-    bool good() const;
-
+    void               setTarget(const std::string &uri);
     const std::string &target() const;
     std::string       &target();
-    const std::string &body() const;
-    std::string       &body();
 };
 
 std::ostream &operator<<(std::ostream &os, const HttpRequest &request);

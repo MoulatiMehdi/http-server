@@ -25,6 +25,7 @@ namespace error
         unsupported_version,
         unsupported_method,
         unsupported_schema,
+        unsupported_transfer,
         stale_parser,
         short_read,
         header_field_name_too_large,

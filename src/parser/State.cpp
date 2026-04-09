@@ -17,7 +17,7 @@ const std::string to_string(state::State s)
         case state::s_req_spaces_before_uri:
             return "sw_spaces_before_uri";
 
-        case state::s_req_after_slash_in_uri:
+        case state::s_req_uri_after_slash:
             return "sw_after_slash_in_uri";
 
         case state::s_req_check_uri:
@@ -58,8 +58,6 @@ const std::string to_string(state::State s)
 
         case state::s_req_almost_done:
             return "sw_spaces_after_digit";
-        case state::s_req_done:
-            return "sw_req_done";
 
         case state::s_hdr_start:
             return "s_hdr_start";
@@ -71,14 +69,8 @@ const std::string to_string(state::State s)
             return "s_hdr_value";
         case state::s_hdr_almost_done:
             return "s_hdr_almost_done";
-        case state::s_hdr_line_done:
-            return "s_hdr_done";
         case state::s_hdr_header_almost_done:
             return "s_hdr_header_almost_done";
-        case state::s_hdr_done:
-            return "s_hdr_done";
-            // case state::s_body_start:
-            //     return "s_body_start";
     }
     return "Unknown";
 }
