@@ -21,12 +21,12 @@ static const std::string generate_name()
 }
 
 HttpMessage::HttpMessage()
-    : m_method(method::Unknown),
+    : m_method(Method::UNKNOWN),
       m_version(HTTP_V10),
       m_content_length(0),
-      m_status(Status::ok),
-      m_body(generate_name()),
-      m_body_file(m_body)
+      m_status(Status::OK),
+      m_body_file_name(generate_name()),
+      m_body_file_ostream(m_body_file_name)
 {
 }
 
@@ -35,8 +35,8 @@ HttpMessage::HttpMessage(const HttpMessage &other)
       m_version(other.m_version),
       m_content_length(other.m_content_length),
       m_status(other.m_status),
-      m_body(generate_name()),
-      m_body_file(m_body)
+      m_body_file_name(generate_name()),
+      m_body_file_ostream(m_body_file_name)
 {
 }
 
@@ -46,8 +46,8 @@ HttpMessage &HttpMessage::operator=(const HttpMessage &other)
     m_version        = other.m_version;
     m_status         = other.m_status;
     m_content_length = other.m_content_length;
-    m_body           = generate_name();
-    m_body_file.open(m_body);
+    m_body_file_name = generate_name();
+    m_body_file_ostream.open(m_body_file_name);
     return *this;
 }
 
@@ -83,12 +83,12 @@ void HttpMessage::setContentLength(size_t size)
 
 const std::string &HttpMessage::body_file_name() const
 {
-    return m_body;
+    return m_body_file_name;
 }
 
 std::string &HttpMessage::body_file_name()
 {
-    return m_body;
+    return m_body_file_name;
 }
 
 unsigned int HttpMessage::version_major() const
@@ -103,7 +103,7 @@ unsigned int HttpMessage::version_minor() const
 
 bool HttpMessage::good() const
 {
-    return m_status == Status::ok;
+    return m_status == Status::OK;
 }
 
 Status HttpMessage::status() const
@@ -118,11 +118,11 @@ void HttpMessage::setStatus(Status code)
 
 std::ofstream &HttpMessage::body_file_ostream()
 {
-    return m_body_file;
+    return m_body_file_ostream;
 }
 
 HttpMessage::~HttpMessage()
 {
-    m_body_file.close();
-    std::remove(m_body.c_str());
+    m_body_file_ostream.close();
+    std::remove(m_body_file_name.c_str());
 };

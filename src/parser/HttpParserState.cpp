@@ -26,7 +26,7 @@ void HttpParserState::processError(HttpRequest &request)
     switch (m_error)
     {
         case error::ok:
-            return request.setStatus(Status::ok);
+            return request.setStatus(Status::OK);
         case Error::bad_request:
         case Error::bad_line_ending:
         case Error::bad_target:
@@ -40,17 +40,17 @@ void HttpParserState::processError(HttpRequest &request)
         case Error::bad_content_length:
         case Error::multiple_content_length:
         case Error::bad_value:
-            return request.setStatus(Status::bad_request);
+            return request.setStatus(Status::BAD_REQUEST);
         case Error::unsupported_version:
-            return request.setStatus(Status::http_version_not_supported);
+            return request.setStatus(Status::HTTP_VERSION_NOT_SUPPORTED);
         case Error::unsupported_method:
-            return request.setStatus(Status::method_not_allowed);
+            return request.setStatus(Status::METHOD_NOT_ALLOWED);
         case Error::unsupported_schema:
         case Error::unsupported_transfer:
-            return request.setStatus(Status::not_implemented);
+            return request.setStatus(Status::NOT_IMPLEMENTED);
         case Error::header_field_name_too_large:
         case Error::header_field_value_too_large:
-            return request.setStatus(Status::request_header_fields_too_large);
+            return request.setStatus(Status::REQUEST_HEADER_FIELDS_TOO_LARGE);
         case Error::stale_parser:
         case Error::short_read:
             break;

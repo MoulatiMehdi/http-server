@@ -13,7 +13,7 @@
 
 HttpRequest::HttpRequest()
     : HttpMessage(),
-      m_target(),
+      m_uri(),
       m_headers(),
       m_complete(false)
 {
@@ -21,7 +21,7 @@ HttpRequest::HttpRequest()
 
 HttpRequest::HttpRequest(const HttpRequest &other)
     : HttpMessage(other),
-      m_target(other.m_target),
+      m_uri(other.m_uri),
       m_headers(other.m_headers),
       m_complete(other.m_complete)
 {
@@ -32,7 +32,7 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &other)
     if (this == &other)
         return *this;
     this->operator=(other);
-    m_target   = other.m_target;
+    m_uri   = other.m_uri;
     m_headers  = other.m_headers;
     m_complete = other.m_complete;
 
@@ -45,26 +45,26 @@ HttpRequest::~HttpRequest()
 
 void HttpRequest::setTarget(const std::string &uri)
 {
-    m_target = uri;
+    m_uri = uri;
 }
 
-const std::string &HttpRequest::target() const
+const std::string &HttpRequest::uri() const
 {
-    return m_target;
+    return m_uri;
 }
 
-std::string &HttpRequest::target()
+std::string &HttpRequest::uri()
 {
-    return m_target;
+    return m_uri;
 }
 
 bool HttpRequest::good() const
 {
-    return m_status == Status::ok;
+    return m_status == Status::OK;
 }
 
 HttpRequest::Headers::const_iterator
-HttpRequest::get(const std::string &header_name) const
+HttpRequest::getHeader(const std::string &header_name) const
 {
     return m_headers.find(header_name);
 }
@@ -79,14 +79,14 @@ HttpRequest::Headers &HttpRequest::headers()
     return m_headers;
 }
 
-void HttpRequest::set(const std::string &name, const std::string &value)
+void HttpRequest::setHeader(const std::string &name, const std::string &value)
 {
     m_headers.insert(Headers::value_type(name, value));
 }
 
-bool HttpRequest::incomplete() const
+bool HttpRequest::complete() const
 {
-    return !m_complete;
+    return m_complete;
 }
 
 void HttpRequest::setComplete(bool val)
@@ -99,7 +99,7 @@ std::ostream &operator<<(std::ostream &os, const HttpRequest &request)
     std::cout << "/********************* HTTP REQUEST LINE "
                  "****************************/"
               << std::endl;
-    os << "\t" << request.method() << " " << request.target() << " " << "HTTP/"
+    os << "\t" << request.method() << " " << request.uri() << " " << "HTTP/"
        << request.version_major() << "." << request.version_minor()
        << std::endl;
     HttpRequest::Headers::const_iterator it  = request.headers().cbegin();

@@ -12,9 +12,10 @@ class HttpRequest : public HttpMessage
 
   public:
     typedef std::map<const std::string, std::string> Headers;
+    typedef HttpRequest::Headers::const_iterator     const_iterator;
 
   private:
-    std::string m_target; // uri
+    std::string m_uri; // uri
     Headers     m_headers;
     bool        m_complete;
 
@@ -25,21 +26,19 @@ class HttpRequest : public HttpMessage
 
     HttpRequest &operator=(const HttpRequest &);
 
-    HttpRequest::Headers::const_iterator
-    get(const std::string &header_name) const;
+    bool good() const;
+    bool complete() const;
+
+    const_iterator     getHeader(const std::string &name) const;
+    const Headers     &headers() const;
+    const std::string &uri() const;
+
+    std::string &uri();
+    Headers     &headers();
 
     void setComplete(bool val);
-    void set(const std::string &name, const std::string &value);
-
-    bool good() const;
-    bool incomplete() const;
-
-    const Headers &headers() const;
-    Headers       &headers();
-
-    void               setTarget(const std::string &uri);
-    const std::string &target() const;
-    std::string       &target();
+    void setTarget(const std::string &uri);
+    void setHeader(const std::string &name, const std::string &value);
 };
 
 std::ostream &operator<<(std::ostream &os, const HttpRequest &request);

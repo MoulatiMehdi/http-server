@@ -7,16 +7,16 @@ namespace method
 {
     enum Method
     {
-        Delete,
-        Get,
-        Post,
-        Unknown
+        DELETE,
+        GET,
+        POST,
+        UNKNOWN
     };
 
 } // namespace method
 
-//
 using method::Method;
+//
 
 const std::string to_string(Method method);
 Method            string_to_method(const std::string &str);
