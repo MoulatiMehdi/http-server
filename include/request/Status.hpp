@@ -8,75 +8,75 @@ namespace status
 
     enum Status : unsigned
     {
-        unknown = 0,
+        UNKNOWN = 0,
 
-        continue_ = 100,
+        CONTINUE = 100,
 
-        switching_protocols = 101,
-        processing          = 102,
-        early_hints         = 103,
+        SWITCHING_PROTOCOLS = 101,
+        PROCESSING          = 102,
+        EARLY_HINTS         = 103,
 
-        ok                            = 200,
-        created                       = 201,
-        accepted                      = 202,
-        non_authoritative_information = 203,
-        no_content                    = 204,
-        reset_content                 = 205,
-        partial_content               = 206,
-        multi_status                  = 207,
-        already_reported              = 208,
-        im_used                       = 226,
+        OK                            = 200,
+        CREATED                       = 201,
+        ACCEPTED                      = 202,
+        NON_AUTHORITATIVE_INFORMATION = 203,
+        NO_CONTENT                    = 204,
+        RESET_CONTENT                 = 205,
+        PARTIAL_CONTENT               = 206,
+        MULTI_STATUS                  = 207,
+        ALREADY_REPORTED              = 208,
+        IM_USED                       = 226,
 
-        multiple_choices   = 300,
-        moved_permanently  = 301,
-        found              = 302,
-        see_other          = 303,
-        not_modified       = 304,
-        use_proxy          = 305,
-        temporary_redirect = 307,
-        permanent_redirect = 308,
+        MULTIPLE_CHOICES   = 300,
+        MOVED_PERMANENTLY  = 301,
+        FOUND              = 302,
+        SEE_OTHER          = 303,
+        NOT_MODIFIED       = 304,
+        USE_PROXY          = 305,
+        TEMPORARY_REDIRECT = 307,
+        PERMANENT_REDIRECT = 308,
 
-        bad_request                     = 400,
-        unauthorized                    = 401,
-        payment_required                = 402,
-        forbidden                       = 403,
-        not_found                       = 404,
-        method_not_allowed              = 405,
-        not_acceptable                  = 406,
-        proxy_authentication_required   = 407,
-        request_timeout                 = 408,
-        conflict                        = 409,
-        gone                            = 410,
-        length_required                 = 411,
-        precondition_failed             = 412,
-        payload_too_large               = 413,
-        uri_too_long                    = 414,
-        unsupported_media_type          = 415,
-        range_not_satisfiable           = 416,
-        expectation_failed              = 417,
-        i_am_a_teapot                   = 418,
-        misdirected_request             = 421,
-        unprocessable_entity            = 422,
-        locked                          = 423,
-        failed_dependency               = 424,
-        too_early                       = 425,
-        upgrade_required                = 426,
-        precondition_required           = 428,
-        too_many_requests               = 429,
-        request_header_fields_too_large = 431,
-        unavailable_for_legal_reasons   = 451,
+        BAD_REQUEST                     = 400,
+        UNAUTHORIZED                    = 401,
+        PAYMENT_REQUIRED                = 402,
+        FORBIDDEN                       = 403,
+        NOT_FOUND                       = 404,
+        METHOD_NOT_ALLOWED              = 405,
+        NOT_ACCEPTABLE                  = 406,
+        PROXY_AUTHENTICATION_REQUIRED   = 407,
+        REQUEST_TIMEOUT                 = 408,
+        CONFLICT                        = 409,
+        GONE                            = 410,
+        LENGTH_REQUIRED                 = 411,
+        PRECONDITION_FAILED             = 412,
+        PAYLOAD_TOO_LARGE               = 413,
+        URI_TOO_LONG                    = 414,
+        UNSUPPORTED_MEDIA_TYPE          = 415,
+        RANGE_NOT_SATISFIABLE           = 416,
+        EXPECTATION_FAILED              = 417,
+        I_AM_A_TEAPOT                   = 418,
+        MISDIRECTED_REQUEST             = 421,
+        UNPROCESSABLE_ENTITY            = 422,
+        LOCKED                          = 423,
+        FAILED_DEPENDENCY               = 424,
+        TOO_EARLY                       = 425,
+        UPGRADE_REQUIRED                = 426,
+        PRECONDITION_REQUIRED           = 428,
+        TOO_MANY_REQUESTS               = 429,
+        REQUEST_HEADER_FIELDS_TOO_LARGE = 431,
+        UNAVAILABLE_FOR_LEGAL_REASONS   = 451,
 
-        internal_server_error           = 500,
-        not_implemented                 = 501,
-        bad_gateway                     = 502,
-        service_unavailable             = 503,
-        gateway_timeout                 = 504,
-        http_version_not_supported      = 505,
-        variant_also_negotiates         = 506,
-        insufficient_storage            = 507,
-        loop_detected                   = 508,
-        not_extended                    = 510,
-        network_authentication_required = 511
+        INTERNAL_SERVER_ERROR           = 500,
+        NOT_IMPLEMENTED                 = 501,
+        BAD_GATEWAY                     = 502,
+        SERVICE_UNAVAILABLE             = 503,
+        GATEWAY_TIMEOUT                 = 504,
+        HTTP_VERSION_NOT_SUPPORTED      = 505,
+        VARIANT_ALSO_NEGOTIATES         = 506,
+        INSUFFICIENT_STORAGE            = 507,
+        LOOP_DETECTED                   = 508,
+        NOT_EXTENDED                    = 510,
+        NETWORK_AUTHENTICATION_REQUIRED = 511
     };
 } // namespace status
 
@@ -85,25 +85,23 @@ namespace status_class
 
     enum StatusClass : unsigned
     {
-        unknown       = 0,
-        informational = 1,
-        successful    = 2,
-        redirection   = 3,
-        client_error  = 4,
-        server_error  = 5,
+        UNKNOWN       = 0,
+        INFORMATIONAL = 1,
+        SUCCESSFUL    = 2,
+        REDIRECTION   = 3,
+        CLIENT_ERROR  = 4,
+        SERVER_ERROR  = 5,
     };
 
 } // namespace status_class
 
 //
 
-using StatusClass = status_class::StatusClass;
-using Status      = status::Status;
+using status::Status;
+using status_class::StatusClass;
 
-StatusClass to_status_class(Status v);
-
+StatusClass       to_status_class(Status v);
 const std::string phrase_reason(Status v);
-
 
 std::ostream &operator<<(std::ostream &, Status);
 #endif

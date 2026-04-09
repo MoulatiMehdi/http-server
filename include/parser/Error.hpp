@@ -34,7 +34,7 @@ namespace error
 } // namespace error
 
 //
-using Error = error::Error;
+using error::Error;
 std::string   to_string(Error error);
 std::ostream &operator<<(std::ostream &os, const Error &error);
 #endif

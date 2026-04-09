@@ -1,5 +1,5 @@
-#ifndef HTTP_PARSER_HEADER_LINE_HPP
-#define HTTP_PARSER_HEADER_LINE_HPP
+#ifndef HTTP_PARSER_HEADERS_HPP
+#define HTTP_PARSER_HEADERS_HPP
 #include "HttpParserState.hpp"
 #include "HttpRequest.hpp"
 
@@ -21,7 +21,7 @@ class HttpParserHeaders : virtual public HttpParserState
     void processHeaderLine(HttpRequest &request);
     void processHeaders(HttpRequest &request);
 
-    private:
+  private:
     void handle_content_length(HttpRequest &request);
     void handle_transfer_encoding(HttpRequest &request);
 };

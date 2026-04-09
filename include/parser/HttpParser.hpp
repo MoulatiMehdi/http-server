@@ -17,8 +17,8 @@ class HttpParser : HttpParserRequestLine, HttpParserHeaders, HttpParserBody
     ~HttpParser();
 
     void clear();
-    using HttpParserState::good;
     using HttpParserState::error;
+    using HttpParserState::good;
     using HttpParserState::state;
 
     void parse(HttpRequest &request, const char *c_str, size_t len);

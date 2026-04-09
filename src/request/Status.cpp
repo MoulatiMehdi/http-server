@@ -6,136 +6,136 @@ const std::string phrase_reason(Status v)
     switch (v)
     {
         // 1xx
-        case Status::continue_:
+        case Status::CONTINUE:
             return "Continue";
-        case Status::switching_protocols:
+        case Status::SWITCHING_PROTOCOLS:
             return "Switching Protocols";
-        case Status::processing:
+        case Status::PROCESSING:
             return "Processing";
-        case Status::early_hints:
+        case Status::EARLY_HINTS:
             return "Early Hints";
 
         // 2xx
-        case Status::ok:
+        case Status::OK:
             return "OK";
-        case Status::created:
+        case Status::CREATED:
             return "Created";
-        case Status::accepted:
+        case Status::ACCEPTED:
             return "Accepted";
-        case Status::non_authoritative_information:
+        case Status::NON_AUTHORITATIVE_INFORMATION:
             return "Non-Authoritative Information";
-        case Status::no_content:
+        case Status::NO_CONTENT:
             return "No Content";
-        case Status::reset_content:
+        case Status::RESET_CONTENT:
             return "Reset Content";
-        case Status::partial_content:
+        case Status::PARTIAL_CONTENT:
             return "Partial Content";
-        case Status::multi_status:
+        case Status::MULTI_STATUS:
             return "Multi-Status";
-        case Status::already_reported:
+        case Status::ALREADY_REPORTED:
             return "Already Reported";
-        case Status::im_used:
+        case Status::IM_USED:
             return "IM Used";
 
         // 3xx
-        case Status::multiple_choices:
+        case Status::MULTIPLE_CHOICES:
             return "Multiple Choices";
-        case Status::moved_permanently:
+        case Status::MOVED_PERMANENTLY:
             return "Moved Permanently";
-        case Status::found:
+        case Status::FOUND:
             return "Found";
-        case Status::see_other:
+        case Status::SEE_OTHER:
             return "See Other";
-        case Status::not_modified:
+        case Status::NOT_MODIFIED:
             return "Not Modified";
-        case Status::use_proxy:
+        case Status::USE_PROXY:
             return "Use Proxy";
-        case Status::temporary_redirect:
+        case Status::TEMPORARY_REDIRECT:
             return "Temporary Redirect";
-        case Status::permanent_redirect:
+        case Status::PERMANENT_REDIRECT:
             return "Permanent Redirect";
 
         // 4xx
-        case Status::bad_request:
+        case Status::BAD_REQUEST:
             return "Bad Request";
-        case Status::unauthorized:
+        case Status::UNAUTHORIZED:
             return "Unauthorized";
-        case Status::payment_required:
+        case Status::PAYMENT_REQUIRED:
             return "Payment Required";
-        case Status::forbidden:
+        case Status::FORBIDDEN:
             return "Forbidden";
-        case Status::not_found:
+        case Status::NOT_FOUND:
             return "Not Found";
-        case Status::method_not_allowed:
+        case Status::METHOD_NOT_ALLOWED:
             return "Method Not Allowed";
-        case Status::not_acceptable:
+        case Status::NOT_ACCEPTABLE:
             return "Not Acceptable";
-        case Status::proxy_authentication_required:
+        case Status::PROXY_AUTHENTICATION_REQUIRED:
             return "Proxy Authentication Required";
-        case Status::request_timeout:
+        case Status::REQUEST_TIMEOUT:
             return "Request Timeout";
-        case Status::conflict:
+        case Status::CONFLICT:
             return "Conflict";
-        case Status::gone:
+        case Status::GONE:
             return "Gone";
-        case Status::length_required:
+        case Status::LENGTH_REQUIRED:
             return "Length Required";
-        case Status::precondition_failed:
+        case Status::PRECONDITION_FAILED:
             return "Precondition Failed";
-        case Status::payload_too_large:
+        case Status::PAYLOAD_TOO_LARGE:
             return "Payload Too Large";
-        case Status::uri_too_long:
+        case Status::URI_TOO_LONG:
             return "URI Too Long";
-        case Status::unsupported_media_type:
+        case Status::UNSUPPORTED_MEDIA_TYPE:
             return "Unsupported Media Type";
-        case Status::range_not_satisfiable:
+        case Status::RANGE_NOT_SATISFIABLE:
             return "Range Not Satisfiable";
-        case Status::expectation_failed:
+        case Status::EXPECTATION_FAILED:
             return "Expectation Failed";
-        case Status::i_am_a_teapot:
+        case Status::I_AM_A_TEAPOT:
             return "I'm a teapot";
-        case Status::misdirected_request:
+        case Status::MISDIRECTED_REQUEST:
             return "Misdirected Request";
-        case Status::unprocessable_entity:
+        case Status::UNPROCESSABLE_ENTITY:
             return "Unprocessable Entity";
-        case Status::locked:
+        case Status::LOCKED:
             return "Locked";
-        case Status::failed_dependency:
+        case Status::FAILED_DEPENDENCY:
             return "Failed Dependency";
-        case Status::too_early:
+        case Status::TOO_EARLY:
             return "Too Early";
-        case Status::upgrade_required:
+        case Status::UPGRADE_REQUIRED:
             return "Upgrade Required";
-        case Status::precondition_required:
+        case Status::PRECONDITION_REQUIRED:
             return "Precondition Required";
-        case Status::too_many_requests:
+        case Status::TOO_MANY_REQUESTS:
             return "Too Many Requests";
-        case Status::request_header_fields_too_large:
+        case Status::REQUEST_HEADER_FIELDS_TOO_LARGE:
             return "Request Header Fields Too Large";
-        case Status::unavailable_for_legal_reasons:
+        case Status::UNAVAILABLE_FOR_LEGAL_REASONS:
             return "Unavailable For Legal Reasons";
         // 5xx
-        case Status::internal_server_error:
+        case Status::INTERNAL_SERVER_ERROR:
             return "Internal Server Error";
-        case Status::not_implemented:
+        case Status::NOT_IMPLEMENTED:
             return "Not Implemented";
-        case Status::bad_gateway:
+        case Status::BAD_GATEWAY:
             return "Bad Gateway";
-        case Status::service_unavailable:
+        case Status::SERVICE_UNAVAILABLE:
             return "Service Unavailable";
-        case Status::gateway_timeout:
+        case Status::GATEWAY_TIMEOUT:
             return "Gateway Timeout";
-        case Status::http_version_not_supported:
+        case Status::HTTP_VERSION_NOT_SUPPORTED:
             return "HTTP Version Not Supported";
-        case Status::variant_also_negotiates:
+        case Status::VARIANT_ALSO_NEGOTIATES:
             return "Variant Also Negotiates";
-        case Status::insufficient_storage:
+        case Status::INSUFFICIENT_STORAGE:
             return "Insufficient Storage";
-        case Status::loop_detected:
+        case Status::LOOP_DETECTED:
             return "Loop Detected";
-        case Status::not_extended:
+        case Status::NOT_EXTENDED:
             return "Not Extended";
-        case Status::network_authentication_required:
+        case Status::NETWORK_AUTHENTICATION_REQUIRED:
             return "Network Authentication Required";
 
         default:
@@ -149,19 +149,19 @@ StatusClass to_status_class(unsigned v)
     switch (v / 100)
     {
         case 1:
-            return status_class::informational;
+            return StatusClass::INFORMATIONAL;
         case 2:
-            return status_class::successful;
+            return StatusClass::SUCCESSFUL;
         case 3:
-            return status_class::redirection;
+            return StatusClass::REDIRECTION;
         case 4:
-            return status_class::client_error;
+            return StatusClass::CLIENT_ERROR;
         case 5:
-            return status_class::server_error;
+            return StatusClass::SERVER_ERROR;
         default:
             break;
     }
-    return status_class::unknown;
+    return StatusClass::UNKNOWN;
 }
 
 std::ostream &operator<<(std::ostream &os, Status v)

@@ -17,7 +17,7 @@ void HttpParserRequestLine::processRequestLine(HttpRequest &request)
 {
     Method method = string_to_method(m_method);
 
-    if (method == Method::Unknown)
+    if (method == Method::UNKNOWN)
     {
         setError(error::unsupported_method);
         return;
@@ -31,7 +31,7 @@ void HttpParserRequestLine::processRequestLine(HttpRequest &request)
         setError(error::unsupported_version);
         return;
     }
-    m_discard_body = request.method() != method::Post;
+    m_discard_body = request.method() != Method::POST;
 }
 
 HttpParserRequestLine::~HttpParserRequestLine()

@@ -6,7 +6,6 @@
 #include <sstream>
 #include <string>
 
-#define MAX_BODY_SIZE 4096
 
 HttpParserHeaders::HttpParserHeaders()
     : HttpParserState(),
@@ -28,12 +27,13 @@ void HttpParserHeaders::processHeaderLine(HttpRequest &request)
             m_header_value.erase(i, m_header_value.size() - i);
         }
     }
-    request.set(m_header_name, m_header_value);
+    request.setHeader(m_header_name, m_header_value);
 }
 
 void HttpParserHeaders::handle_transfer_encoding(HttpRequest &request)
 {
-    HttpRequest::Headers::const_iterator it1 = request.get("transfer-encoding");
+    HttpRequest::Headers::const_iterator it1 =
+        request.getHeader("transfer-encoding");
 
     if (it1 == request.headers().end())
     {
@@ -53,7 +53,8 @@ void HttpParserHeaders::handle_transfer_encoding(HttpRequest &request)
 
 void HttpParserHeaders::handle_content_length(HttpRequest &request)
 {
-    HttpRequest::Headers::const_iterator it2 = request.get("content-length");
+    HttpRequest::Headers::const_iterator it2 =
+        request.getHeader("content-length");
 
     if (it2 == request.headers().end())
         return setError(error::bad_request);

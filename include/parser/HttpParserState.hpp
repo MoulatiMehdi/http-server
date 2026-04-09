@@ -2,8 +2,8 @@
 #define HTTP_PARSER_STATE_HPP
 
 #include "Error.hpp"
-#include "HttpRequest.hpp"
 #include "State.hpp"
+#include "HttpRequest.hpp"
 
 class HttpParserState
 {
