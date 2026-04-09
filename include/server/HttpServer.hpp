@@ -2,6 +2,7 @@
 #define HTTPSERVER_HPP
 
 #include "ClientTable.hpp"
+#include "Config.hpp"
 #include "EventLoop.hpp"
 
 #include <iostream>
@@ -14,6 +15,7 @@ class HttpServer {
 	// Socket _socket;
 	// ClientTable _table; // eventLoop owns these
 	SocketTable _socketTable;
+	Config _config;
 	const std::string &_configPath;
 	EventLoop _eventLoop;
 

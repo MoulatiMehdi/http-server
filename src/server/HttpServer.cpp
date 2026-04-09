@@ -7,13 +7,12 @@ HttpServer::HttpServer(const std::string &path)
 
 void HttpServer::init() {
 	ConfigParser parser;
-	Config config;
 
-	config = parser.parseFile(_configPath);
+	_config = parser.parseFile(_configPath);
 	// if (config.bad())
 	// 	throw; // ??
-	for (size_t i = 0; i < config.servers.size(); ++i) {
-		Socket *s = new Socket(config.servers[i].listen_port);
+	for (size_t i = 0; i < _config.servers.size(); ++i) {
+		Socket *s = new Socket(_config.servers[i]);
 		s->configureSocket();
 		s->configureAddress();
 		s->bindSocket();

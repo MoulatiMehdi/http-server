@@ -1,6 +1,7 @@
 #include "Socket.hpp"
 
-Socket::Socket(int port) : _port(port) {
+Socket::Socket(const ServerConfig &servConf)
+	: _servConf(servConf), _port(servConf.listen_port) {
 	_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (_fd < 0) exitError("socket");
 }
@@ -34,6 +35,7 @@ void Socket::startListening() {
 	if (listen(_fd, QUEUE_SIZE) < 0) exitError("listen");
 }
 
+const ServerConfig &Socket::getServConf() { return _servConf; }
 int Socket::getFd() { return _fd; }
 std::string Socket::getAddr() { return std::string(inet_ntoa(_addr.sin_addr)); }
 int Socket::getPort() { return _port; }

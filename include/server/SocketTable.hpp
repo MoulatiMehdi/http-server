@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "Socket.hpp"
+#include "Config.hpp"
 
 typedef std::vector<Socket *> SocketVec;
 

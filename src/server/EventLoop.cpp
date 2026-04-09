@@ -56,13 +56,14 @@ void EventLoop::handleNewConnections(Socket *sock) {
 	int cliFd;
 	struct sockaddr_in cliAddr;
 	socklen_t len = sizeof(cliAddr);
+	const ServerConfig &servConf = sock->getServConf();
 
 	while (true) {
 		cliFd = accept(sock->getFd(), (struct sockaddr *)&cliAddr, &len);
 		if (cliFd == -1) return;
 
 		make_non_blocking(cliFd);
-		_cliTable.add(cliFd);
+		_cliTable.add(servConf, cliFd);
 		epollAdd(cliFd, EPOLLIN);
 		Logger::info("Client: " + std::string(inet_ntoa(cliAddr.sin_addr)) +
 					 ":" + to_stringg(ntohs(cliAddr.sin_port)) + " through " +
@@ -86,8 +87,7 @@ void EventLoop::loop() {
 		if (nfds == ERROR) exitError("epoll_wait");
 		for (int n = 0; n < nfds; ++n) {
 			sockIndex = _sockTable.getSocket(events[n].data.fd);
-			if (sockIndex >= 0)
-				handleNewConnections(_sockTable[sockIndex]);
+			if (sockIndex >= 0) handleNewConnections(_sockTable[sockIndex]);
 			else processClients(events[n]);
 		}
 	}

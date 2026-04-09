@@ -1,4 +1,5 @@
 #include "SocketTable.hpp"
+#include "Config.hpp"
 
 SocketTable::SocketTable() {}
 

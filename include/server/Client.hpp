@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <vector>
+#include "Config.hpp"
 #include "Logger.hpp"
 #include "helper.hpp"
 
@@ -10,6 +11,7 @@ enum ClientStatus { OK, WANT_WRITE, DONE_WRITE, DISCONNECT };
 
 class Client {
    private:
+	const ServerConfig &_servConf;
 	int fd;
 	std::vector<u_int8_t> _wrbuf;
 
@@ -19,7 +21,7 @@ class Client {
 	bool hasDataToWrite() const;
 
    public:
-	Client(int fd);
+	Client(const ServerConfig &servConf, int fd);
 	~Client();
 
 	ClientStatus onReadable();

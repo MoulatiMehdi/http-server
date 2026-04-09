@@ -3,18 +3,19 @@
 
 #include <map>
 #include "Client.hpp"
+#include "Config.hpp"
 
 typedef std::map<int, Client *> ClientMap;
 
 class ClientTable {
    private:
-	ClientMap clients;
+	ClientMap _clients;
 
    public:
 	ClientTable();
 	~ClientTable();
 
-	void add(int fd);
+	void add(const ServerConfig &servConf, int fd);
 	ClientMap::iterator remove(int fd);
 	// ClientMap &getAll();
 	Client *get(int fd);
