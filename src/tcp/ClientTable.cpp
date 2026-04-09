@@ -25,8 +25,6 @@ Client *ClientTable::get(int fd) {
 	return NULL;
 }
 
-ClientMap &ClientTable::getAll() { return clients; }
-
 size_t ClientTable::size() {
 	return clients.size();
 }

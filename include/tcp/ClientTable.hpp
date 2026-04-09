@@ -16,7 +16,7 @@ class ClientTable {
 
 	void add(int fd);
 	ClientMap::iterator remove(int fd);
-	ClientMap &getAll();
+	// ClientMap &getAll();
 	Client *get(int fd);
 	size_t size();
 	void clear();

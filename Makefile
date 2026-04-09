@@ -19,7 +19,7 @@ SRCS = src/config/Tokenizer.cpp \
 	   src/main.cpp \
 	   src/tcp/ClientTable.cpp \
 	   src/tcp/helper.cpp \
-	   src/tcp/TcpServer.cpp \
+	   src/tcp/HttpServer.cpp \
 	   src/tcp/EventLoop.cpp \
 	   src/tcp/Socket.cpp \
 	   src/tcp/SocketTable.cpp \

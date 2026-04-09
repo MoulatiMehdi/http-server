@@ -4,10 +4,6 @@ EventLoop::EventLoop(SocketTable &_socketTable) : _sockTable(_socketTable) {
 	_epollfd = epoll_create1(0);
 	if (_epollfd == ERROR) exitError("epoll_create");
 	std::cout << _socketTable.size() << std::endl;
-	for (size_t i = 0; i < _socketTable.size(); ++i) {
-		Logger::info("fd" + to_stringg(_socketTable[i]->getFd()));
-		epollAdd(_socketTable[i]->getFd(), EPOLLIN);
-	}
 }
 
 EventLoop::~EventLoop() { close(_epollfd); }
@@ -56,21 +52,28 @@ void EventLoop::processClients(struct epoll_event &ev) {
 	}
 }
 
-void EventLoop::handleNewConnections(int socktFd) {
+void EventLoop::handleNewConnections(Socket *sock) {
 	int cliFd;
 	struct sockaddr_in cliAddr;
 	socklen_t len = sizeof(cliAddr);
 
-	while ((cliFd = accept(socktFd, (struct sockaddr *)&cliAddr, &len)) >= 0) {
+	while (true) {
+		cliFd = accept(sock->getFd(), (struct sockaddr *)&cliAddr, &len);
+		if (cliFd == -1) return;
+
 		make_non_blocking(cliFd);
 		_cliTable.add(cliFd);
 		epollAdd(cliFd, EPOLLIN);
-		Logger::info("client " + to_stringg(cliFd) + ": connected");
+		Logger::info("Client: " + std::string(inet_ntoa(cliAddr.sin_addr)) +
+					 ":" + to_stringg(ntohs(cliAddr.sin_port)) + " through " +
+					 sock->getAddr() + ":" + to_stringg(sock->getPort()));
 	}
 }
 
-SocketTable &EventLoop::getSockTable() { return _sockTable; }
-ClientTable &EventLoop::getCliTable() { return _cliTable; }
+void EventLoop::addSockets() {
+	for (size_t i = 0; i < _sockTable.size(); ++i)
+		epollAdd(_sockTable[i]->getFd(), EPOLLIN);
+}
 
 // TODO: ihajji: 9lab 3la kifach maxfd
 void EventLoop::loop() {
@@ -81,12 +84,11 @@ void EventLoop::loop() {
 	std::cout << "size: " << _socketTable.size() << "\n";
 	while (true) {
 		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, ERROR /* time out */);
-		std::cout << "Hello\n";
 		if (nfds == ERROR) exitError("epoll_wait");
 		for (int n = 0; n < nfds; ++n) {
 			sockIndex = _sockTable.getSocket(events[n].data.fd);
 			if (sockIndex >= 0)
-				handleNewConnections(_sockTable[sockIndex]->getFd());
+				handleNewConnections(_sockTable[sockIndex]);
 			else processClients(events[n]);
 		}
 	}

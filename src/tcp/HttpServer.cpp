@@ -1,11 +1,11 @@
-#include "TcpServer.hpp"
+#include "HttpServer.hpp"
 #include "Config.hpp"
 #include "ConfigParser.hpp"
 
-TcpServer::TcpServer(const std::string &path)
+HttpServer::HttpServer(const std::string &path)
 	: _configPath(path), _eventLoop(_socketTable) {}
 
-void TcpServer::init() {
+void HttpServer::init() {
 	ConfigParser parser;
 	Config config;
 
@@ -21,16 +21,14 @@ void TcpServer::init() {
 
 		std::cout << "1size: " << _socketTable.size() << "\n";
 		_socketTable.add(s);
-		Logger::info("Server: [" + to_stringg(s->getFd()) +
-					 "] Listeting on: "
-					 /* + to_stringg(s->getAddr()) TODO: implement*/
-					 + to_stringg(s->getPort()));
+		Logger::info("Server: [" + to_stringg(s->getFd()) + "] Listeting on: " +
+					 s->getAddr() +":"+ to_stringg(s->getPort()));
 	}
 	Logger::info("Server initialized");
 }
 
-void TcpServer::run() {
+void HttpServer::run() {
 	Logger::info("Server running");
-	std::cout << "size: " << _socketTable.size() << "\n";
+	_eventLoop.addSockets();
 	_eventLoop.loop();
 }

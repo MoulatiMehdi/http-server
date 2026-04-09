@@ -1,5 +1,5 @@
-#ifndef TCPSERVER_HPP
-#define TCPSERVER_HPP
+#ifndef HTTPSERVER_HPP
+#define HTTPSERVER_HPP
 
 #include "ClientTable.hpp"
 #include "EventLoop.hpp"
@@ -9,7 +9,7 @@
 #include "Socket.hpp"
 #include "helper.hpp"
 
-class TcpServer {
+class HttpServer {
    private:
 	// Socket _socket;
 	// ClientTable _table; // eventLoop owns these
@@ -18,7 +18,7 @@ class TcpServer {
 	EventLoop _eventLoop;
 
    public:
-	TcpServer(const std::string &path);
+	HttpServer(const std::string &path);
 
 	void init();
 	void run();

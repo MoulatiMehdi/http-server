@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Number of times to run the telnet client
-NUM_RUNS=10000
+NUM_RUNS=100
 
 # Messages to send
 messages=("Hello, Server!" "How are you?" "This is a test." "Thanks for the response!" "Goodbye!")

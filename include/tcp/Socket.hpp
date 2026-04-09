@@ -31,6 +31,7 @@ class Socket {
 	void startListening();
 	int acceptClient();
 	int getFd();
+	std::string getAddr();
 	int getPort();
 };
 #endif

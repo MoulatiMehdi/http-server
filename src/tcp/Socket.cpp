@@ -34,15 +34,6 @@ void Socket::startListening() {
 	if (listen(_fd, QUEUE_SIZE) < 0) exitError("listen");
 }
 
-// int Socket::acceptClient() {
-// 	struct sockaddr_in client_addr;
-// 	socklen_t len = sizeof(client_addr);
-//
-// 	int client_fd = accept(_fd, (struct sockaddr *)&client_addr, &len);
-//
-// 	if (client_fd < 0) return -1;
-// 	return client_fd;
-// }
-//
 int Socket::getFd() { return _fd; }
+std::string Socket::getAddr() { return std::string(inet_ntoa(_addr.sin_addr)); }
 int Socket::getPort() { return _port; }

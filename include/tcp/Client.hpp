@@ -11,7 +11,6 @@ enum ClientStatus { OK, WANT_WRITE, DONE_WRITE, DISCONNECT };
 class Client {
    private:
 	int fd;
-	// std::vector<u_int8_t> _rbuf;
 	std::vector<u_int8_t> _wrbuf;
 
 	time_t _connected_at;

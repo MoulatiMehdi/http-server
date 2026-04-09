@@ -2,6 +2,7 @@
 #include <iostream>
 #include "Config.hpp"
 #include "ConfigParser.hpp"
+#include "HttpServer.hpp"
 
 void printConfig(const Config &config) {
 	for (std::size_t s = 0; s < config.servers.size(); s++) {
@@ -60,7 +61,6 @@ void printConfig(const Config &config) {
 	}
 }
 
-#include "TcpServer.hpp"
 int main(int ac, char **av) {
 	if (ac != 2) {
 		std::cout << "Invalide arguments" << std::endl;
@@ -79,7 +79,7 @@ int main(int ac, char **av) {
 	// 	return 1;
 	// }
 
-	TcpServer server(av[1]); // TODO: rename to HttpServer
+	HttpServer server(av[1]); // TODO: rename to HttpServer
 
 	// try catch
 	server.init();

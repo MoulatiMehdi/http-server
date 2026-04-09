@@ -23,7 +23,7 @@ class EventLoop {
 	ClientTable _cliTable;
 	int _epollfd;
 
-	void handleNewConnections(int sockFd);
+	void handleNewConnections(Socket *sock);
 	void processClients(struct epoll_event &ev);
 	void disconnectClient(int fd);
 	void epollMod(int fd, uint32_t events);
@@ -34,8 +34,7 @@ class EventLoop {
 	EventLoop(SocketTable &_socketTable);
 	~EventLoop();
 
-	SocketTable &getSockTable();
-	ClientTable &getCliTable();
+	void addSockets();
 	void loop();
 };
 
