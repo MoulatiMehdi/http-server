@@ -1,6 +1,7 @@
 #include "HttpParser.hpp"
 
 #include "HttpRequest.hpp"
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 
@@ -10,15 +11,18 @@ int main()
     HttpParser  parser;
     {
         std::string tokens[] = {
-            "GET /        HTTP/1.0\r\n",
+            "POST /        HTTP/1.0\r\n",
             "CONTENT-LENGTH",
-            ": 100\r",
+            ": 10   \r",
             "\n",
+            // "Transfer-encoding:       chunked     \r\n",
             "CONTENT-TYPE",
             ": application/json\r",
             "\n",
             "",
-            "type-encoding:\r\nhello:world\r\n\r\nthanks yout for every think"
+            "type-encoding:\r\nhello:world\r\n",
+            "\r\n",
+            "thank you\r\n0\r\n\r\nt for every think"
         };
         const int size = sizeof(tokens) / sizeof(tokens[0]);
 
@@ -35,5 +39,7 @@ int main()
         std::cout << to_string(parser.error()) << std::endl;
         std::cout << to_string(parser.state()) << std::endl;
     }
+    getchar();
+
     return 0;
 }
