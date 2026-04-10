@@ -1,10 +1,12 @@
 #include "Client.hpp"
 
 Client::Client(const ServerConfig &servConf, int fd)
-	: _servConf(servConf), fd(fd), _connected_at(time(NULL)) {}
+	: _fd(fd) /*, _servConf(servConf)  , _connected_at(time(NULL)) */ {
+	(void)servConf;
+}
 
 Client::~Client() {
-	if (fd >= 0) close(fd);
+	if (_fd >= 0) close(_fd);
 }
 
 // /*  hardcode*/
@@ -12,22 +14,7 @@ Client::~Client() {
 // #include <string>
 // #include <vector>
 //
-// struct HttpRequest {
-// 	std::string method;
-// 	std::string path;
-// 	std::string version;
-// 	std::map<std::string, std::string> headers;
-// 	std::vector<u_int8_t> body;
-// };
 //
-// struct HttpResponse {
-// 	int status_code;
-// 	std::string status_msg;
-// 	std::map<std::string, std::string> headers;
-// 	std::vector<u_int8_t> body;
-//
-// 	HttpResponse() : status_code(200), status_msg("OK") {}
-// };
 //
 // enum ParserState { MALFORMED = -2, INCOMPLETE = -1 };
 // HttpRequest makeFakeReq() {
@@ -77,14 +64,51 @@ Client::~Client() {
 // 	res.body.insert(res.body.end(), body.begin(), body.end());
 // 	return res;
 // }
+
+struct HttpRequest {
+	std::string method;
+	std::string path;
+	std::string version;
+	std::map<std::string, std::string> headers;
+	std::vector<u_int8_t> body;
+};
+struct HttpResponse {
+	int status_code;
+	std::string status_msg;
+	std::map<std::string, std::string> headers;
+	std::vector<u_int8_t> body;
+
+	HttpResponse() : status_code(200), status_msg("OK") {}
+};
+struct RouterResult {
+	bool cgi;
+	std::string cgi_path;	// if cgi == true
+	HttpResponse response;	// if cgi == false
+};
 // /*  hardcode*/
 
 #define BUFF_SIZE 4096
+void hardcode(RouterResult &rres, HttpResponse &res, HttpRequest &req) {
+	req.method = "GET";
+	req.path = "/index.html";
+	req.version = "HTTP/1.1";
+	req.headers["Host"] = "localhost:8080";
+	req.headers["Connection"] = "keep-alive";
+
+	std::string body = "Hello from webserve\n";
+	res.status_code = 200;
+	res.status_msg = "OK";
+	res.headers["Content-Type"] = "text/html";
+	res.body.insert(res.body.end(), body.begin(), body.end());
+
+	rres.cgi = false;
+	rres.response = res;
+}
 ClientStatus Client::onReadable() {
 	// TCP layer (you) - onReadable()
 	int n;
 	char buff[BUFF_SIZE];
-	n = read(fd, buff, sizeof(buff));
+	n = read(_fd, buff, sizeof(buff));
 	if (n == 0 || n == ERROR) return DISCONNECT;
 
 	// int consumed = _parser.tryParse(_rbuf, _request);
@@ -94,8 +118,15 @@ ClientStatus Client::onReadable() {
 	// hand off to router, get response back
 	// RouterResult result = _router.handle(_request, _servConf);
 
-	// if (result.isCgi()) return initCgi(result);	 // starts pipe/fork machinery
+	// if (result.isCgi()) return initCgi(result);	 // starts pipe/fork
 	// queueResponse(result.response());
+	//
+	//
+	//
+	RouterResult rres;
+	HttpResponse res;
+	HttpRequest req;
+	hardcode(rres, res, req);
 	return WANT_WRITE;
 }
 
@@ -103,7 +134,7 @@ ClientStatus Client::onWritable() {
 	int n;
 
 	if (hasDataToWrite()) {
-		n = write(fd, _wrbuf.data(), _wrbuf.size());
+		n = write(_fd, _wrbuf.data(), _wrbuf.size());
 		if (n <= 0) return DISCONNECT;
 
 		_wrbuf.erase(_wrbuf.begin(), _wrbuf.begin() + n);

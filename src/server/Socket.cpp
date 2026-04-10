@@ -1,7 +1,7 @@
 #include "Socket.hpp"
 
-Socket::Socket(const ServerConfig &servConf)
-	: _servConf(servConf), _port(servConf.listen_port) {
+Socket::Socket(const ServerConfig &servConf, const ListenConfig &listenConf)
+	: _servConf(servConf), _listenConf(listenConf), _port(listenConf.port) {
 	_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (_fd < 0) exitError("socket");
 }

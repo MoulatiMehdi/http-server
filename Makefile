@@ -6,16 +6,16 @@ CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -g
 
 INCDIR  = -Iinclude/cgi \
 		  -Iinclude/common \
-		  -Iinclude/Config \
+		  -Iinclude/config \
 		  -Iinclude/http \
 		  -Iinclude/server
 
-SRCS = src/Config/Tokenizer.cpp \
-	   src/Config/ConfigParserServer.cpp \
-	   src/Config/ConfigParser.cpp \
-	   src/Config/ConfigParserUtils.cpp \
-	   src/Config/ConfigParserValidators.cpp \
-	   src/Config/ConfigParserLocation.cpp \
+SRCS = src/config/Tokenizer.cpp \
+	   src/config/ConfigParserServer.cpp \
+	   src/config/ConfigParser.cpp \
+	   src/config/ConfigParserUtils.cpp \
+	   src/config/ConfigParserValidators.cpp \
+	   src/config/ConfigParserLocation.cpp \
 	   src/main.cpp \
 	   src/server/ClientTable.cpp \
 	   src/server/helper.cpp \

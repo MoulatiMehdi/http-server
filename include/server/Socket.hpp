@@ -16,13 +16,14 @@
 class Socket {
    private:
 	const ServerConfig &_servConf;
+	const ListenConfig &_listenConf;
 	int _fd;
 	int _port;
 	struct sockaddr_in _addr;
 	// ref to Config
 
    public:
-	Socket(const ServerConfig &servConf);
+	Socket(const ServerConfig &servConf, const ListenConfig &listen);
 	Socket(const Socket &);
 	Socket &operator=(const Socket &);
 	~Socket();

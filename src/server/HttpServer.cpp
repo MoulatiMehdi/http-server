@@ -5,6 +5,19 @@
 HttpServer::HttpServer(const std::string &path)
 	: _configPath(path), _eventLoop(_socketTable) {}
 
+void HttpServer::createSockets(const ServerConfig &servConf) {
+	for (size_t j = 0; j < servConf.listens.size(); ++j) {
+		Socket *s = new Socket(servConf, servConf.listens[j]);
+		s->configureSocket();
+		s->configureAddress();
+		s->bindSocket();
+		s->startListening();
+		_socketTable.add(s);
+		Logger::info("Socket: [" + to_stringg(s->getFd()) + "] Listeting on: " +
+					 s->getAddr() + ":" + to_stringg(s->getPort()));
+	}
+}
+
 void HttpServer::init() {
 	ConfigParser parser;
 
@@ -12,14 +25,8 @@ void HttpServer::init() {
 	// if (config.bad())
 	// 	throw; // ??
 	for (size_t i = 0; i < _config.servers.size(); ++i) {
-		Socket *s = new Socket(_config.servers[i]);
-		s->configureSocket();
-		s->configureAddress();
-		s->bindSocket();
-		s->startListening();
-		_socketTable.add(s);
-		Logger::info("Server: [" + to_stringg(s->getFd()) + "] Listeting on: " +
-					 s->getAddr() + ":" + to_stringg(s->getPort()));
+		Logger::info("Virtual server [" + to_stringg(i) + "]:\n");
+		createSockets(_config.servers[i]);
 	}
 	Logger::info("Server initialized");
 }
