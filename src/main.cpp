@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <string>
 
 int main()
 {
@@ -15,31 +16,37 @@ int main()
             "CONTENT-LENGTH",
             ": 10   \r",
             "\n",
-            // "Transfer-encoding:       chunked     \r\n",
+            "Transfer-encoding:       chunked     \r\n",
             "CONTENT-TYPE",
             ": application/json\r",
             "\n",
             "",
             "type-encoding:\r\nhello:world\r\n",
-            "\r\n",
-            "thank you\r\n0\r\n\r\nt for every think"
+            "\r\n10\r\n",
+            "0123456789abcdef\r\n0\r\n\r\nPOST /  HTTP/1.0\r\ncontent-length: ",
+            "0\r\n\r\n"
         };
         const int size = sizeof(tokens) / sizeof(tokens[0]);
 
         for (int i = 0; i < size; i++)
         {
             parser.parse(request, tokens[i].c_str(), tokens[i].size());
+            if (request.complete())
+            {
+                std::cout << request << std::endl;
+                std::cout << parser << std::endl;
+                parser.clear();
+                request.clear();
+            }
+            if (!request.good())
+            {
+                std::cout << request << std::endl;
+                std::cout << parser << std::endl;
+
+                return -1;
+            }
         }
     }
-
-    if (parser.good())
-        std::cout << request << std::endl;
-    else
-    {
-        std::cout << to_string(parser.error()) << std::endl;
-        std::cout << to_string(parser.state()) << std::endl;
-    }
-    getchar();
 
     return 0;
 }
