@@ -4,62 +4,7 @@
 #include "ConfigParser.hpp"
 #include "HttpServer.hpp"
 
-void printConfig(const Config &config) {
-	for (std::size_t s = 0; s < config.servers.size(); s++) {
-		const ServerConfig &srv = config.servers[s];
-		std::cout << "server [" << s << "] {\n";
-		std::cout << "  listen:              " << srv.listen_host << ":"
-				  << srv.listen_port << "\n";
-		std::cout << "  root:                " << srv.root << "\n";
-		std::cout << "  client_max_body:     " << srv.client_max_body_size
-				  << "\n";
-
-		std::cout << "  server_names:        ";
-		for (std::size_t i = 0; i < srv.server_names.size(); i++)
-			std::cout << srv.server_names[i] << " ";
-		std::cout << "\n";
-
-		std::cout << "  index:               ";
-		for (std::size_t i = 0; i < srv.index.size(); i++)
-			std::cout << srv.index[i] << " ";
-		std::cout << "\n";
-
-		for (std::map<int, std::string>::const_iterator it =
-				 srv.error_pages.begin();
-			 it != srv.error_pages.end(); it++)
-			std::cout << "  error_page:          " << it->first << " -> "
-					  << it->second << "\n";
-
-		for (std::size_t l = 0; l < srv.locations.size(); l++) {
-			const LocationConfig &loc = srv.locations[l];
-			std::cout << "  location [" << loc.path << "] {\n";
-			std::cout << "    root:              " << loc.root << "\n";
-			std::cout << "    autoindex:         "
-					  << (loc.autoindex ? "on" : "off") << "\n";
-			std::cout << "    client_max_body:   " << loc.client_max_body_size
-					  << "\n";
-			std::cout << "    cgi_extension:     " << loc.cgi_extension << "\n";
-			std::cout << "    cgi_path:          " << loc.cgi_path << "\n";
-			std::cout << "    upload_dir:        " << loc.upload_dir << "\n";
-
-			std::cout << "    allowed_methods:   ";
-			for (std::size_t i = 0; i < loc.allowed_methods.size(); i++)
-				std::cout << loc.allowed_methods[i] << " ";
-			std::cout << "\n";
-
-			std::cout << "    index:             ";
-			for (std::size_t i = 0; i < loc.index.size(); i++)
-				std::cout << loc.index[i] << " ";
-			std::cout << "\n";
-
-			if (loc.redirect_code)
-				std::cout << "    return:            " << loc.redirect_code
-						  << " " << loc.redirect_url << "\n";
-			std::cout << "  }\n";
-		}
-		std::cout << "}\n";
-	}
-}
+void printConfig(const Config& config);
 
 int main(int ac, char **av) {
 	if (ac != 2) {
@@ -67,22 +12,178 @@ int main(int ac, char **av) {
 		std::cout << "  Usage: ./webserv <config_file>" << std::endl;
 		return 1;
 	}
-
-	// try {
-	// 	ConfigParser parser;
-	// 	Config config;
-	// 	config = parser.parseFile(av[1]);
-	// 	printConfig(config);
-	// 	return 0;
-	// } catch (const std::exception &e) {
-	// 	// std::cerr << e.what() << std::endl;
-	// 	return 1;
-	// }
-
-	HttpServer server(av[1]); // TODO: rename to HttpServer
+	
+    HttpServer server(av[1]); // TODO: rename to HttpServer
 
 	// try catch
 	server.init();
 	server.run();
 	return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+
+static void printStringVector(const std::vector<std::string>& v) {
+    if (v.empty()) {
+        std::cout << "(none)";
+        return;
+    }
+    for (std::size_t i = 0; i < v.size(); ++i) {
+        if (i)
+            std::cout << ", ";
+        std::cout << v[i];
+    }
+}
+
+static void printCgiMap(const std::map<std::string, std::string>& cgi) {
+    if (cgi.empty()) {
+        std::cout << "      CGI:                (none)\n";
+        return;
+    }
+
+    std::cout << "      CGI:\n";
+    for (std::map<std::string, std::string>::const_iterator it = cgi.begin();
+         it != cgi.end(); ++it) {
+        std::cout << "        - " << it->first << "  ->  " << it->second << "\n";
+    }
+}
+
+void printConfig(const Config& config) {
+    std::cout << "\n";
+    std::cout << "============================================================\n";
+    std::cout << "                 PARSED CONFIGURATION DUMP                  \n";
+    std::cout << "============================================================\n";
+
+    if (config.servers.empty()) {
+        std::cout << "No servers found.\n";
+        std::cout << "============================================================\n";
+        return;
+    }
+
+    for (std::size_t s = 0; s < config.servers.size(); ++s) {
+        const ServerConfig& srv = config.servers[s];
+
+        std::cout << "\n";
+        std::cout << "------------------------------------------------------------\n";
+        std::cout << "SERVER #" << s << "\n";
+        std::cout << "------------------------------------------------------------\n";
+
+        // Listen
+        std::cout << "  LISTEN:\n";
+        if (srv.listens.empty()) {
+            std::cout << "    (none)\n";
+        } else {
+            for (std::size_t i = 0; i < srv.listens.size(); ++i) {
+                std::cout << "    - " << srv.listens[i].host
+                          << ":" << srv.listens[i].port << "\n";
+            }
+        }
+
+        // Basic server info
+        std::cout << "  ROOT:                  "
+                  << (srv.root.empty() ? "(none)" : srv.root) << "\n";
+
+        std::cout << "  INDEX:                 ";
+        printStringVector(srv.index);
+        std::cout << "\n";
+
+        std::cout << "  SERVER NAMES:          ";
+        printStringVector(srv.server_names);
+        std::cout << "\n";
+
+        std::cout << "  CLIENT MAX BODY SIZE:  "
+                  << srv.client_max_body_size << "\n";
+
+        // Error pages
+        std::cout << "  ERROR PAGES:\n";
+        if (srv.error_pages.empty()) {
+            std::cout << "    (none)\n";
+        } else {
+            for (std::map<int, std::string>::const_iterator it = srv.error_pages.begin();
+                 it != srv.error_pages.end(); ++it) {
+                std::cout << "    - " << it->first << "  ->  " << it->second << "\n";
+            }
+        }
+
+        // Locations
+        std::cout << "  LOCATIONS:\n";
+        if (srv.locations.empty()) {
+            std::cout << "    (none)\n";
+            continue;
+        }
+
+        for (std::size_t l = 0; l < srv.locations.size(); ++l) {
+            const LocationConfig& loc = srv.locations[l];
+
+            std::cout << "\n";
+            std::cout << "    ........................................................\n";
+            std::cout << "    LOCATION #" << l
+                      << "   PATH: " << (loc.path.empty() ? "(empty)" : loc.path) << "\n";
+            std::cout << "    ........................................................\n";
+
+            std::cout << "      Allowed methods:    ";
+            printStringVector(loc.allowed_methods);
+            std::cout << "\n";
+
+            std::cout << "      Root:               "
+                      << (loc.root.empty() ? "(inherit/none)" : loc.root) << "\n";
+
+            std::cout << "      Index:              ";
+            printStringVector(loc.index);
+            std::cout << "\n";
+
+            std::cout << "      Autoindex:          "
+                      << (loc.autoindex ? "on" : "off") << "\n";
+
+            std::cout << "      Upload enabled:     "
+                      << (loc.upload_enabled ? "yes" : "no") << "\n";
+
+            std::cout << "      Upload dir:         "
+                      << (loc.upload_dir.empty() ? "(none)" : loc.upload_dir) << "\n";
+
+            std::cout << "      Client max body:    ";
+            if (loc.client_max_body_size == 0)
+                std::cout << "(inherit)";
+            else
+                std::cout << loc.client_max_body_size;
+            std::cout << "\n";
+
+            std::cout << "      Redirect:           ";
+            if (loc.redirect_code == 0)
+                std::cout << "(none)";
+            else
+                std::cout << loc.redirect_code << " -> " << loc.redirect_url;
+            std::cout << "\n";
+
+            printCgiMap(loc.cgi);
+        }
+    }
+
+    std::cout << "\n";
+    std::cout << "============================================================\n";
 }

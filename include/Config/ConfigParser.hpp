@@ -48,8 +48,7 @@ private:
     void            parseServerDirective(ServerConfig& server);
 
     // parseServerHandlers
-    void handleListenPort(ServerConfig& server);
-    void handleListenHost(ServerConfig& server);
+    void handleListen(ServerConfig& server);
     void handleServerName(ServerConfig& server);
     void handleRoot(ServerConfig& server);
     void handleIndex(ServerConfig& server);
@@ -64,8 +63,7 @@ private:
     void handleLocAutoindex(LocationConfig& loc);
     void handleLocUploadDir(LocationConfig& loc);
     void handleLocClientMaxBody(LocationConfig& loc);
-    void handleLocCgiExtension(LocationConfig& loc);
-    void handleLocCgiPath(LocationConfig& loc);
+    void handleLocCgi(LocationConfig& loc);
 
 public:
     Config parseFile(const std::string& path);

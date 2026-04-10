@@ -1,13 +1,13 @@
 #include "ConfigParser.hpp"
 #include <cstdlib>
+
 // static members
-const std::string ConfigParser::serverDirective[] = { "listen_port", "listen_host", "server_name",
+const std::string ConfigParser::serverDirective[] = { "listen", "server_name",
                                         "root", "index", "client_max_body_size",
                                         "error_page" };
 
 const ConfigParser::serverHandlers ConfigParser::serverEntry[] = {
-            &ConfigParser::handleListenPort,
-            &ConfigParser::handleListenHost,
+            &ConfigParser::handleListen,
             &ConfigParser::handleServerName,
             &ConfigParser::handleRoot,
             &ConfigParser::handleIndex,
@@ -50,38 +50,100 @@ void ConfigParser::parseServerDirective(ServerConfig& server) {
     throwError("unknown server directive '" + _tokens[_i].value + "'");
 }
 
-void ConfigParser::handleListenPort(ServerConfig& server) {
+
+void ConfigParser::handleListen(ServerConfig& server) {
     advance();
     if (_tokens[_i].type != TOK_WORD)
-        throwError("listen_port: expected 'port'");
+        throwError("listen: expected address or port");
 
-    for (std::size_t i = 0; i < _tokens[_i].value.size(); i++)
-        if (!std::isdigit(_tokens[_i].value[i]))
-            throwError("listen_port: port must be numeric");
+    const std::string value = _tokens[_i].value;
+    ListenConfig listen;
 
-    std::size_t port = std::strtoul(_tokens[_i].value.c_str(), NULL, 10);
-    if (port > 65535)
-        throwError("listen_port: port out of rang");
+    std::size_t colonPos = value.find(':');
+
+    // case 1: only port -> listen 8080;
+    if (colonPos == std::string::npos) {
+        for (std::size_t j = 0; j < value.size(); ++j) {
+            if (!std::isdigit(value[j]))
+                throwError("listen: port must be numeric");
+        }
+        if (value.empty())
+            throwError("listen: empty port");
+
+        std::size_t port = std::strtoul(value.c_str(), NULL, 10);
+        if (port > 65535)
+            throwError("listen: port out of range");
+
+        listen.host = "0.0.0.0";
+        listen.port = static_cast<int>(port);
+    }
+    // case 2: host:port -> listen 127.0.0.1:8080;
+    else {
+        if (value.find(':', colonPos + 1) != std::string::npos)
+            throwError("listen: invalid format");
+
+        const std::string host = value.substr(0, colonPos);
+        const std::string portStr = value.substr(colonPos + 1);
+
+        if (host.empty())
+            throwError("listen: host must not be empty");
+        if (portStr.empty())
+            throwError("listen: port must not be empty");
+
+        if (!isValidIPv4(host) && !isValidHostname(host))
+            throwError("listen: invalid host");
+
+        for (std::size_t j = 0; j < portStr.size(); ++j) {
+            if (!std::isdigit(portStr[j]))
+                throwError("listen: port must be numeric");
+        }
+
+        std::size_t port = std::strtoul(portStr.c_str(), NULL, 10);
+        if (port > 65535)
+            throwError("listen: port out of range");
+
+        listen.host = host;
+        listen.port = static_cast<int>(port);
+    }
+
     advance();
-    expect(TOK_SEMICOLON, "listen_port: expected ';' after " + _tokens[_i].value, true);
-    server.listen_port = port;
+    expect(TOK_SEMICOLON, "listen: expected ';' after " + value, true);
+
+    server.listens.push_back(listen);
 }
 
-void ConfigParser::handleListenHost(ServerConfig& server) {
-    advance();
-    if (_tokens[_i].type != TOK_WORD)
-        throwError("listen_host: expected 'host'");
-    
-    const std::string host = _tokens[_i].value;
-    if (host.empty())
-        throwError("listen_host: host must not be empty");
-
-    if (!isValidHostname(host) && !isValidIPv4(host))
-        throwError("listen_host: invalid host");
-    advance();
-    expect(TOK_SEMICOLON, "listen_host: expected ';' after " + host, true);
-    server.listen_host = host;
-}
+// void ConfigParser::handleListenPort(ServerConfig& server) {
+//     advance();
+//     if (_tokens[_i].type != TOK_WORD)
+//         throwError("listen_port: expected 'port'");
+//
+//     for (std::size_t i = 0; i < _tokens[_i].value.size(); i++)
+//         if (!std::isdigit(_tokens[_i].value[i]))
+//             throwError("listen_port: port must be numeric");
+//
+//     std::size_t port = std::strtoul(_tokens[_i].value.c_str(), NULL, 10);
+//     if (port > 65535)
+//         throwError("listen_port: port out of rang");
+//     advance();
+//     expect(TOK_SEMICOLON, "listen_port: expected ';' after " + _tokens[_i].value, true);
+//     server.listen_port = port;
+// }
+//
+// void ConfigParser::handleListenHost(ServerConfig& server) {
+//     advance();
+//     if (_tokens[_i].type != TOK_WORD)
+//         throwError("listen_host: expected 'host'");
+//
+//     const std::string host = _tokens[_i].value;
+//     if (host.empty())
+//         throwError("listen_host: host must not be empty");
+//
+//     if (!isValidHostname(host) && !isValidIPv4(host))
+//         throwError("listen_host: invalid host");
+//     advance();
+//     expect(TOK_SEMICOLON, "listen_host: expected ';' after " + host, true);
+//     server.listen_host = host;
+// }
 
 void ConfigParser::handleServerName(ServerConfig& server) {
     advance();
