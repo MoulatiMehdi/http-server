@@ -4,11 +4,13 @@
 #include <map>
 #include "Client.hpp"
 #include "Config.hpp"
+#define MAX_FD FD_SETSIZE
 
 typedef std::map<int, Client *> ClientMap;
 
 class ClientTable {
    private:
+	   // Client *_clientFdTable[MAX_FD];
 	ClientMap _clients;
 
    public:

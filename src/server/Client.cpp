@@ -1,6 +1,7 @@
 #include "Client.hpp"
 
-Client::Client(const ServerConfig &servConf, int fd) : _servConf(servConf), fd(fd), _connected_at(time(NULL)) {}
+Client::Client(const ServerConfig &servConf, int fd)
+	: _servConf(servConf), fd(fd), _connected_at(time(NULL)) {}
 
 Client::~Client() {
 	if (fd >= 0) close(fd);
@@ -80,39 +81,21 @@ Client::~Client() {
 
 #define BUFF_SIZE 4096
 ClientStatus Client::onReadable() {
-	(void)_request_complete;
-	(void)_connected_at;
-	(void)_last_response_at;
-	(void) _servConf;
+	// TCP layer (you) - onReadable()
+	int n;
 	char buff[BUFF_SIZE];
-	(void) buff;
-	// char response[BUFF_SIZE];
-	// int n;
-	// int parseState;
-	// HttpRequest req;
-	// HttpParser parser;
+	n = read(fd, buff, sizeof(buff));
+	if (n == 0 || n == ERROR) return DISCONNECT;
 
-	// n = read(fd, buff, sizeof(buff));
-	// if (n == 0 || n == ERROR) return DISCONNECT;
-	// _rbuf.insert(_rbuf.end(), buff, buff + n);
+	// int consumed = _parser.tryParse(_rbuf, _request);
+	// if (consumed == -2) return serveError(400);
+	// if (consumed == -1) return OK;	// incomplete, wait
 
-	// parseState = parser.tryParse(buff, n, req);
-	// (void)parseState;
-	// {
-	// if (parse.state == good) return OK
-	// else if (parse.state == error) serveError
-	// }
-	//
-	// if (parse.state == complete){
-	// if req.filename.ext == cgi cgi()
-	// else if (file.found) serve static file()
-	// else if (errfile.found) serve
-	// else serve string
-	// }
-	//
+	// hand off to router, get response back
+	// RouterResult result = _router.handle(_request, _servConf);
 
-	// queueResponse(makeFakeRes(), _wrbuf);
-
+	// if (result.isCgi()) return initCgi(result);	 // starts pipe/fork machinery
+	// queueResponse(result.response());
 	return WANT_WRITE;
 }
 

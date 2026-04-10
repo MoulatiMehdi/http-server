@@ -11,13 +11,13 @@ enum ClientStatus { OK, WANT_WRITE, DONE_WRITE, DISCONNECT };
 
 class Client {
    private:
-	const ServerConfig &_servConf;
 	int fd;
+	const ServerConfig &_servConf;
 	std::vector<u_int8_t> _wrbuf;
 
-	time_t _connected_at;
-	time_t _last_response_at;
-	bool _request_complete;
+	// time_t _connected_at;
+	// time_t _last_response_at;
+	// bool _request_complete;
 	bool hasDataToWrite() const;
 
    public:
