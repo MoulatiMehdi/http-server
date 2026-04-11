@@ -16,6 +16,8 @@ SRCS = src/config/Tokenizer.cpp \
 	   src/config/ConfigParserUtils.cpp \
 	   src/config/ConfigParserValidators.cpp \
 	   src/config/ConfigParserLocation.cpp \
+	   src/config/ConfigParserListen.cpp \
+	   src/config/ConfigParserServerDirectives.cpp \
 	   src/config/ConfigParserSharedDirectives.cpp \
 	   src/main.cpp \
 	   src/server/ClientTable.cpp \
