@@ -1,202 +1,183 @@
 #include "ConfigParser.hpp"
 #include <cstdlib>
 
-// static members
-const std::string ConfigParser::serverDirective[] = { "listen", "server_name",
-                                        "root", "index", "client_max_body_size",
-                                        "error_page" };
+// static
 
-const ConfigParser::serverHandlers ConfigParser::serverEntry[] = {
-            &ConfigParser::handleListen,
-            &ConfigParser::handleServerName,
-            &ConfigParser::handleRoot,
-            &ConfigParser::handleIndex,
-            &ConfigParser::handleClientMaxBody,
-            &ConfigParser::handleErrorPage
+const std::string ConfigParser::locationDirective[] = {
+    "allowed_methods",
+    "return",
+    "root",
+    "index",
+    "autoindex",
+    "upload_dir",
+    "client_max_body_size",
+    "cgi"
 };
 
-const std::size_t ConfigParser::serverDirCount = 
-           sizeof(ConfigParser::serverEntry) / sizeof(ConfigParser::serverEntry[0]);
-// --------
+const ConfigParser::locationHandlers ConfigParser::locationEntry[] = {
+    &ConfigParser::handleLocAllowMethods,
+    &ConfigParser::handleLocReturn, // !
+    &ConfigParser::handleLocRoot,
+    &ConfigParser::handleLocIndex,
+    &ConfigParser::handleLocAutoindex,
+    &ConfigParser::handleLocUploadDir,
+    &ConfigParser::handleLocClientMaxBody,
+    &ConfigParser::handleLocCgi
+};
 
-ServerConfig ConfigParser::parseServerBlock() {
-    expect("server", "expected 'server' at top-level", true);
-    expect(TOK_LBRACE, "expected '{' after 'server'", true);
+const std::size_t ConfigParser::locationDirCount =
+    sizeof(ConfigParser::locationEntry) / sizeof(ConfigParser::locationEntry[0]);
 
-    ServerConfig server;
+// -----
 
+LocationConfig ConfigParser::parseLocationBlock() {
+    advance();
+    expect(TOK_WORD, "expected location path", false);
+    // const std::string path = _tokens[_i].value;
+    // std::cout << path << std::endl;
+    // while(true) ;
+    if (isValidPath(_tokens[_i].value) == false)
+        throwError("location: path must start with '/'");
+    LocationConfig location;
+    location.path = _tokens[_i].value;
+    advance();
+    
+    expect(TOK_LBRACE, "expected '{' after location's path", true);
     while(_tokens[_i].type != TOK_RBRACE) {
         if (_tokens[_i].type == TOK_EOF)
             throw std::runtime_error("unexpected EOF inside server block");
-        if (_tokens[_i].value == "location") {
-            server.locations.push_back(parseLocationBlock());
-            continue ;
-        }
-        parseServerDirective(server);
+        parseLocationDirective(location);
     }
-    expect(TOK_RBRACE, "expected '}' at the end of 'server' block", true);
-    if (_tokens[_i + 1].type == TOK_EOF)
-        _i++;
-    return server;
+    expect(TOK_RBRACE, "expected '}' after 'location' block", true);
+    return location;
 }
 
-void ConfigParser::parseServerDirective(ServerConfig& server) { 
-    for (std::size_t i = 0; i < serverDirCount; i++) {
-        if (_tokens[_i].value == serverDirective[i]) {
-            (this->*serverEntry[i])(server);
+void ConfigParser::parseLocationDirective(LocationConfig& location) { // Template!
+    for (std::size_t i = 0; i < locationDirCount; i++) {
+        if (_tokens[_i].value == locationDirective[i]) {
+            (this->*locationEntry[i])(location);
             return ;
         }
     }
-    throwError("unknown server directive '" + _tokens[_i].value + "'");
+    throwError("unknown location directive '" + _tokens[_i].value + "'");
 }
 
-
-void ConfigParser::handleListen(ServerConfig& server) {
+void ConfigParser::handleLocAllowMethods(LocationConfig& loc) {
     advance();
     if (_tokens[_i].type != TOK_WORD)
-        throwError("listen: expected address or port");
+        throwError("allowed_methods: expected at least one method");
 
-    const std::string value = _tokens[_i].value;
-    ListenConfig listen;
-
-    std::size_t colonPos = value.find(':');
-
-    // case 1: only port -> listen 8080;
-    if (colonPos == std::string::npos) {
-        for (std::size_t j = 0; j < value.size(); ++j) {
-            if (!std::isdigit(value[j]))
-                throwError("listen: port must be numeric");
-        }
-        if (value.empty())
-            throwError("listen: empty port");
-
-        std::size_t port = std::strtoul(value.c_str(), NULL, 10);
-        if (port > 65535)
-            throwError("listen: port out of range");
-
-        listen.host = "0.0.0.0";
-        listen.port = static_cast<int>(port);
-    }
-    // case 2: host:port -> listen 127.0.0.1:8080;
-    else {
-        if (value.find(':', colonPos + 1) != std::string::npos)
-            throwError("listen: invalid format");
-
-        const std::string host = value.substr(0, colonPos);
-        const std::string portStr = value.substr(colonPos + 1);
-
-        if (host.empty())
-            throwError("listen: host must not be empty");
-        if (portStr.empty())
-            throwError("listen: port must not be empty");
-
-        if (!isValidIPv4(host) && !isValidHostname(host))
-            throwError("listen: invalid host");
-
-        for (std::size_t j = 0; j < portStr.size(); ++j) {
-            if (!std::isdigit(portStr[j]))
-                throwError("listen: port must be numeric");
-        }
-
-        std::size_t port = std::strtoul(portStr.c_str(), NULL, 10);
-        if (port > 65535)
-            throwError("listen: port out of range");
-
-        listen.host = host;
-        listen.port = static_cast<int>(port);
-    }
-
-    advance();
-    expect(TOK_SEMICOLON, "listen: expected ';' after " + value, true);
-
-    server.listens.push_back(listen);
-}
-
-void ConfigParser::handleServerName(ServerConfig& server) {
-    advance();
-    if (_tokens[_i].type != TOK_WORD)
-        throwError("server_name: expected at least one hostname");
     while (_tokens[_i].type == TOK_WORD) {
-        if (!isValidHostname(_tokens[_i].value))
-            throwError("server_name: invalid hostname '" + _tokens[_i].value + "'");
-        server.server_names.push_back(_tokens[_i].value);
+        std::string m = _tokens[_i].value;
+        if (m != "GET" && m != "POST" && m != "DELETE")
+            throwError("allowed_methods: only GET/POST/DELETE allowed");
+        loc.allowed_methods.push_back(m);
         advance();
     }
-    expect(TOK_SEMICOLON, "server_name: expected ';' after " + server.server_names.back(), true);
+    expect(TOK_SEMICOLON, "allowed_methods: expected ';' after " + loc.allowed_methods.back(), true);
 }
 
-void ConfigParser::handleRoot(ServerConfig& server) {
+// return <code> <url>
+void ConfigParser::handleLocReturn(LocationConfig& loc) {
     advance();
-
     if (_tokens[_i].type != TOK_WORD)
-        throwError("root: expected a path");
-
-    if (_tokens[_i].value[0] != '/')
-        throwError("root: path must be absolute (start with '/')");
-
-    server.root = _tokens[_i].value;
+        throwError("return: expected status code");
+    const std::string codeStr = _tokens[_i].value; // there a function that check code in serverv funcs
+    for (std::size_t i = 0; i < codeStr.size(); ++i)
+        if (!std::isdigit(static_cast<unsigned char>(codeStr[i])))
+            throwError("return: code must be numeric");
+    int code = std::atoi(codeStr.c_str());
+    if (code < 300 || code > 399)
+        throwError("return: code must be 3xx");
     advance();
-    expect(TOK_SEMICOLON, "root: expected ';' after " + server.root, true);
+    if (_tokens[_i].type != TOK_WORD)
+        throwError("return: expected redirect url");
+    loc.redirect_code = code;
+    loc.redirect_url = _tokens[_i].value;
+    advance();
+    expect(TOK_SEMICOLON, "return: expected ';' after " + loc.redirect_url, true);
 }
 
-void ConfigParser::handleIndex(ServerConfig& server) {
+void ConfigParser::handleLocRoot(LocationConfig& loc) { // template with server
+    advance();
+    if (_tokens[_i].type != TOK_WORD)
+        throwError("root: expected path");
+    const std::string path = _tokens[_i].value;
+    // if (!isValidRootPath(path))
+    //     throwError("root: invalid path");
+    loc.root = path;
+    advance();
+    expect(TOK_SEMICOLON, "root: expected ';' after " + loc.root, true);
+}
+
+void ConfigParser::handleLocIndex(LocationConfig& loc) {
     advance();
     if (_tokens[_i].type != TOK_WORD)
         throwError("index: expected at least one index file");
     while (_tokens[_i].type == TOK_WORD) {
-        server.index.push_back(_tokens[_i].value);
+        loc.index.push_back(_tokens[_i].value);
         advance();
     }
-    expect(TOK_SEMICOLON, "index: expected ';' after " + server.index.back(), true);
-    // advance();
+    expect(TOK_SEMICOLON, "index: expected ';' after " + loc.index.back(), true);
 }
 
-void ConfigParser::handleClientMaxBody(ServerConfig& server) {
+// autoindex on|off
+void ConfigParser::handleLocAutoindex(LocationConfig& loc) {
+    advance();
+    if (_tokens[_i].type != TOK_WORD)
+        throwError("autoindex: expected on|off");
+    const std::string val = _tokens[_i].value;
+    if (val == "on") loc.autoindex = true;
+    else if (val == "off") loc.autoindex = false;
+    else throwError("autoindex: must be on or off");
+    advance();
+    expect(TOK_SEMICOLON, "autoindex: expected ';' after " + val, true);
+}
+
+// upload_dir <path>
+void ConfigParser::handleLocUploadDir(LocationConfig& loc) {
+    advance();
+    if (_tokens[_i].type != TOK_WORD)
+        throwError("upload_dir: expected path");
+    const std::string path = _tokens[_i].value;
+    // if (!isValidRootPath(path))   // make one function for all of them
+    //     throwError("upload_dir: invalid path");
+    loc.upload_dir = path;
+    advance();
+    expect(TOK_SEMICOLON, "upload_dir: expected ';' after " + loc.upload_dir, true);
+}
+
+// client_max_body_size <size>[k|m|g]
+void ConfigParser::handleLocClientMaxBody(LocationConfig& loc) { // copied from server
     advance();
     if (_tokens[_i].type != TOK_WORD)
         throwError("client_max_body_size: expected a size value");
 
     std::string raw = _tokens[_i].value;
-    std::size_t bytes = parseSize(raw);
+    std::size_t bytes = parseSize(raw); // check it from server
 
-    server.client_max_body_size = bytes;
-
+    loc.client_max_body_size = bytes;
     advance();
     expect(TOK_SEMICOLON, "client_max_body_size: expected ';' after " + raw, true);
 }
 
-
-void ConfigParser::handleErrorPage(ServerConfig& server) {
-    
-    std::vector<std::size_t> codes;
-    std::string path;
-    
+void ConfigParser::handleLocCgi(LocationConfig& loc) { // cgi .py /usr/bin/python3;
     advance();
     if (_tokens[_i].type != TOK_WORD)
-        throwError("error_pages: expected <code> and <path>");
-    
-    while (true) {
-        if (_tokens[_i].type != TOK_WORD)
-            throwError("error_pages: expected <code>");
-        if (isAllDigit(_tokens[_i].value)) {
-            std::size_t code = std::strtoul(_tokens[_i].value.c_str(), NULL, 10);
-            if (code < 100 || code > 599)
-                throwError("error_pages: invalid code");
-            codes.push_back(code);
-            advance();
-            continue ;
-        }
-        if (isValidPath(_tokens[_i].value)) {
-            path = _tokens[_i].value;
-            advance();
-            break ;
-        }
-        else
-            throwError("error_pages: expected <codes> and <path>");
-    }
-    if (codes.size() < 1)
-        throwError("error_pages: expected <code>");
-    expect(TOK_SEMICOLON, "error_pages: expected ';' after " + path, true);
-    for (std::size_t i = 0; i < codes.size(); i++)
-        server.error_pages[codes[i]] = path;
+        throwError("cgi: expected extension");
+    std::string ext = _tokens[_i].value;
+    if (ext[0] != '.') // should I check if it exactly .ph || .php ?
+        throwError("cgi: extension must start with '.'");
+
+    advance();
+    if (_tokens[_i].type != TOK_WORD)
+        throwError("cgi: expected executable path");
+    std::string exec = _tokens[_i].value;
+    if (!isValidPath(exec))
+        throwError("cgi: invalid executable path");
+
+    loc.cgi[ext] = exec;
+
+    advance();
+    expect(TOK_SEMICOLON, "cgi: expected ';'", true);
 }
