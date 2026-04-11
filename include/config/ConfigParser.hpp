@@ -67,6 +67,9 @@ private:
 
 public:
     Config parseFile(const std::string& path);
+
+    // debugging
+    void  printConfig(const Config& config);
 };
 
 #endif

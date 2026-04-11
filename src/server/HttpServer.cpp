@@ -22,8 +22,10 @@ void HttpServer::init() {
 	ConfigParser parser;
 
 	_config = parser.parseFile(_configPath);
+    parser.printConfig(_config);
 	// if (config.bad())
 	// 	throw; // ??
+
 	for (size_t i = 0; i < _config.servers.size(); ++i) {
 		Logger::info("Virtual server [" + to_stringg(i) + "]:\n");
 		createSockets(_config.servers[i]);
