@@ -47,13 +47,18 @@ private:
     void            parseLocationDirective(LocationConfig& location);
     void            parseServerDirective(ServerConfig& server);
 
+    // Shared Directives
+    std::string parseRootValue();
+    std::size_t parseClientMaxBodyValue();
+    std::vector<std::string> parseIndexValues();
+
     // parseServerHandlers
-    void handleListen(ServerConfig& server);
-    void handleServerName(ServerConfig& server);
-    void handleRoot(ServerConfig& server);
-    void handleIndex(ServerConfig& server);
-    void handleClientMaxBody(ServerConfig& server);
-    void handleErrorPage(ServerConfig& server);
+    void handleServListen(ServerConfig& server);
+    void handleServServerName(ServerConfig& server);
+    void handleServRoot(ServerConfig& server);
+    void handleServIndex(ServerConfig& server);
+    void handleServClientMaxBody(ServerConfig& server);
+    void handleServErrorPage(ServerConfig& server);
 
     // parseLocationDirective
     void handleLocAllowMethods(LocationConfig& loc);

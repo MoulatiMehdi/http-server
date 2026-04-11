@@ -7,12 +7,12 @@ const std::string ConfigParser::serverDirective[] = { "listen", "server_name",
                                         "error_page" };
 
 const ConfigParser::serverHandlers ConfigParser::serverEntry[] = {
-            &ConfigParser::handleListen,
-            &ConfigParser::handleServerName,
-            &ConfigParser::handleRoot,
-            &ConfigParser::handleIndex,
-            &ConfigParser::handleClientMaxBody,
-            &ConfigParser::handleErrorPage
+            &ConfigParser::handleServListen,
+            &ConfigParser::handleServServerName,
+            &ConfigParser::handleServRoot,
+            &ConfigParser::handleServIndex,
+            &ConfigParser::handleServClientMaxBody,
+            &ConfigParser::handleServErrorPage
 };
 
 const std::size_t ConfigParser::serverDirCount = 
@@ -51,7 +51,7 @@ void ConfigParser::parseServerDirective(ServerConfig& server) {
 }
 
 
-void ConfigParser::handleListen(ServerConfig& server) {
+void ConfigParser::handleServListen(ServerConfig& server) {
     advance();
     if (_tokens[_i].type != TOK_WORD)
         throwError("listen: expected address or port");
@@ -112,40 +112,7 @@ void ConfigParser::handleListen(ServerConfig& server) {
     server.listens.push_back(listen);
 }
 
-// void ConfigParser::handleListenPort(ServerConfig& server) {
-//     advance();
-//     if (_tokens[_i].type != TOK_WORD)
-//         throwError("listen_port: expected 'port'");
-//
-//     for (std::size_t i = 0; i < _tokens[_i].value.size(); i++)
-//         if (!std::isdigit(_tokens[_i].value[i]))
-//             throwError("listen_port: port must be numeric");
-//
-//     std::size_t port = std::strtoul(_tokens[_i].value.c_str(), NULL, 10);
-//     if (port > 65535)
-//         throwError("listen_port: port out of rang");
-//     advance();
-//     expect(TOK_SEMICOLON, "listen_port: expected ';' after " + _tokens[_i].value, true);
-//     server.listen_port = port;
-// }
-//
-// void ConfigParser::handleListenHost(ServerConfig& server) {
-//     advance();
-//     if (_tokens[_i].type != TOK_WORD)
-//         throwError("listen_host: expected 'host'");
-//
-//     const std::string host = _tokens[_i].value;
-//     if (host.empty())
-//         throwError("listen_host: host must not be empty");
-//
-//     if (!isValidHostname(host) && !isValidIPv4(host))
-//         throwError("listen_host: invalid host");
-//     advance();
-//     expect(TOK_SEMICOLON, "listen_host: expected ';' after " + host, true);
-//     server.listen_host = host;
-// }
-
-void ConfigParser::handleServerName(ServerConfig& server) {
+void ConfigParser::handleServServerName(ServerConfig& server) {
     advance();
     if (_tokens[_i].type != TOK_WORD)
         throwError("server_name: expected at least one hostname");
@@ -158,48 +125,20 @@ void ConfigParser::handleServerName(ServerConfig& server) {
     expect(TOK_SEMICOLON, "server_name: expected ';' after " + server.server_names.back(), true);
 }
 
-void ConfigParser::handleRoot(ServerConfig& server) {
-    advance();
-
-    if (_tokens[_i].type != TOK_WORD)
-        throwError("root: expected a path");
-
-    if (_tokens[_i].value[0] != '/')
-        throwError("root: path must be absolute (start with '/')");
-
-    server.root = _tokens[_i].value;
-    advance();
-    expect(TOK_SEMICOLON, "root: expected ';' after " + server.root, true);
+void ConfigParser::handleServRoot(ServerConfig& server) {
+    server.root = parseRootValue();
 }
 
-void ConfigParser::handleIndex(ServerConfig& server) {
-    advance();
-    if (_tokens[_i].type != TOK_WORD)
-        throwError("index: expected at least one index file");
-    while (_tokens[_i].type == TOK_WORD) {
-        server.index.push_back(_tokens[_i].value);
-        advance();
-    }
-    expect(TOK_SEMICOLON, "index: expected ';' after " + server.index.back(), true);
-    // advance();
+void ConfigParser::handleServIndex(ServerConfig& server) {
+    server.index = parseIndexValues();
 }
 
-void ConfigParser::handleClientMaxBody(ServerConfig& server) {
-    advance();
-    if (_tokens[_i].type != TOK_WORD)
-        throwError("client_max_body_size: expected a size value");
-
-    std::string raw = _tokens[_i].value;
-    std::size_t bytes = parseSize(raw);
-
-    server.client_max_body_size = bytes;
-
-    advance();
-    expect(TOK_SEMICOLON, "client_max_body_size: expected ';' after " + raw, true);
+void ConfigParser::handleServClientMaxBody(ServerConfig& server) {
+    server.client_max_body_size = parseClientMaxBodyValue();
 }
 
 
-void ConfigParser::handleErrorPage(ServerConfig& server) {
+void ConfigParser::handleServErrorPage(ServerConfig& server) {
     
     std::vector<std::size_t> codes;
     std::string path;

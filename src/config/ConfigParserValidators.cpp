@@ -82,15 +82,6 @@ bool ConfigParser::isAllDigit(const std::string& num) {
 }
 
 bool ConfigParser::isValidPath(const std::string& path) {
-    if (path[0] != '/') // allow forms like "./path"! 
-        return false;
-    for (std::size_t i = 1; i < path.size(); i++) {
-        char c = path[i];
-        if (!(std::isalnum(c) || c == '/' || c == '-' || c == '_' || c == '.'))
-            return false;
-        if (c == '.' && i + 1 < path.size() && path[i + 1] == '.')
-            return false;
-    }
-    return true;
+    return !path.empty() && path[0] == '/';
 }
 

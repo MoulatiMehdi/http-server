@@ -32,13 +32,13 @@ void ConfigParser::expect(const TokenType type, const std::string& msg, bool adv
         advance();
 }
 
-std::string ConfigParser::toString(std::size_t n) {
+std::string ConfigParser::toString(std::size_t n) { // make it static!
     std::ostringstream ss;
     ss << n;
     return ss.str();
 }
 
-// debug.... remove later
+// for debug.... remove later
 
 #include <iostream>
 #include <string>

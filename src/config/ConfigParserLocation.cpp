@@ -98,27 +98,12 @@ void ConfigParser::handleLocReturn(LocationConfig& loc) {
     expect(TOK_SEMICOLON, "return: expected ';' after " + loc.redirect_url, true);
 }
 
-void ConfigParser::handleLocRoot(LocationConfig& loc) { // template with server
-    advance();
-    if (_tokens[_i].type != TOK_WORD)
-        throwError("root: expected path");
-    const std::string path = _tokens[_i].value;
-    // if (!isValidRootPath(path))
-    //     throwError("root: invalid path");
-    loc.root = path;
-    advance();
-    expect(TOK_SEMICOLON, "root: expected ';' after " + loc.root, true);
+void ConfigParser::handleLocRoot(LocationConfig& loc) {
+    loc.root = parseRootValue();
 }
 
 void ConfigParser::handleLocIndex(LocationConfig& loc) {
-    advance();
-    if (_tokens[_i].type != TOK_WORD)
-        throwError("index: expected at least one index file");
-    while (_tokens[_i].type == TOK_WORD) {
-        loc.index.push_back(_tokens[_i].value);
-        advance();
-    }
-    expect(TOK_SEMICOLON, "index: expected ';' after " + loc.index.back(), true);
+    loc.index = parseIndexValues();
 }
 
 // autoindex on|off
@@ -149,16 +134,7 @@ void ConfigParser::handleLocUploadDir(LocationConfig& loc) {
 
 // client_max_body_size <size>[k|m|g]
 void ConfigParser::handleLocClientMaxBody(LocationConfig& loc) { // copied from server
-    advance();
-    if (_tokens[_i].type != TOK_WORD)
-        throwError("client_max_body_size: expected a size value");
-
-    std::string raw = _tokens[_i].value;
-    std::size_t bytes = parseSize(raw); // check it from server
-
-    loc.client_max_body_size = bytes;
-    advance();
-    expect(TOK_SEMICOLON, "client_max_body_size: expected ';' after " + raw, true);
+    loc.client_max_body_size = parseClientMaxBodyValue();
 }
 
 void ConfigParser::handleLocCgi(LocationConfig& loc) { // cgi .py /usr/bin/python3;
