@@ -176,9 +176,9 @@ void HttpParserBody::parse_body_length(HttpRequest &request, Buffer &buffer)
 {
     const size_t content_length = request.content_length();
 
-    if (content_length > m_buff.size() && !buffer.empty())
+    if (content_length > m_cache.size() && !buffer.empty())
     {
-        size_t size = std::min(content_length - m_buff.size(), buffer.size());
+        size_t size = std::min(content_length - m_cache.size(), buffer.size());
         if (request.body().append(buffer.current(), size) < 0)
             return setError(ParserError::bad_request);
         buffer.consume(size);

@@ -36,7 +36,7 @@ class HttpParserState
     bool         m_discard_body;
     bool         m_chunked;
     Phase        m_phase;
-    std::string  m_buff;
+    std::string  m_cache;
 
     void processError(HttpRequest &request);
     void setError(ParserError err);

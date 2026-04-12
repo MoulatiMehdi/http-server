@@ -30,7 +30,7 @@ void HttpParser::parseBuffer(HttpRequest &request)
     if (request.complete())
         return;
 
-    Buffer buffer(m_buff);
+    Buffer buffer(m_cache);
     while (!buffer.empty())
     {
         switch (m_phase)
@@ -46,7 +46,7 @@ void HttpParser::parseBuffer(HttpRequest &request)
                 if (m_complete)
                 {
                     request.setComplete(true);
-                    m_buff.erase(0, buffer.capacity() - buffer.size());
+                    m_cache.erase(0, buffer.capacity() - buffer.size());
                     return;
                 }
                 break;
@@ -54,7 +54,7 @@ void HttpParser::parseBuffer(HttpRequest &request)
         if (!good())
             return;
     }
-    m_buff.clear();
+    m_cache.clear();
 }
 
 void HttpParser::parse(HttpRequest &request, const char *c_str, size_t len)
@@ -62,7 +62,7 @@ void HttpParser::parse(HttpRequest &request, const char *c_str, size_t len)
     parseBuffer(request);
     if (request.complete())
     {
-        m_buff.append(c_str, len);
+        m_cache.append(c_str, len);
         return;
     }
     Buffer buffer(c_str, len);
@@ -83,16 +83,16 @@ void HttpParser::parse(HttpRequest &request, const char *c_str, size_t len)
                     request.setComplete(true);
                     if (!buffer.empty())
                     {
-                        m_buff.append(buffer.current(), buffer.size());
+                        m_cache.append(buffer.current(), buffer.size());
                         buffer.consume(buffer.size());
                     }
                     return;
                 }
                 break;
         }
+        if (!good())
+            return;
     }
-    if (!request.good())
-        return;
 }
 
 HttpParser::~HttpParser()
