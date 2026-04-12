@@ -1,3 +1,5 @@
+#ifndef PARSER_ERROR_HPP
+#define PARSER_ERROR_HPP
 #ifndef ERROR_HPP
 #define ERROR_HPP
 
@@ -6,7 +8,7 @@
 namespace error
 {
 
-    enum Error
+    enum ParserError
     {
         ok = 0,
         bad_request,
@@ -24,7 +26,6 @@ namespace error
         multiple_content_length,
         unsupported_version,
         unsupported_method,
-        unsupported_schema,
         unsupported_transfer,
         stale_parser,
         short_read,
@@ -34,7 +35,8 @@ namespace error
 } // namespace error
 
 //
-using error::Error;
-std::string   to_string(Error error);
-std::ostream &operator<<(std::ostream &os, const Error &error);
+using ParserError = error::ParserError;
+std::string   to_string(ParserError error);
+std::ostream &operator<<(std::ostream &os, const ParserError &error);
+#endif
 #endif

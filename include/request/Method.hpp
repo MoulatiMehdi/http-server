@@ -16,7 +16,6 @@ namespace method
 } // namespace method
 
 using method::Method;
-//
 
 const std::string to_string(Method method);
 Method            string_to_method(const std::string &str);

@@ -1,9 +1,15 @@
 #include "HttpRequest.hpp"
+#include "HttpMessage.hpp"
+#include "Method.hpp"
 #include "Status.hpp"
 #include <cctype>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <ostream>
+#include <sstream>
 #include <string>
 #include <sys/types.h>
 #include <utility>
@@ -13,16 +19,16 @@
 
 HttpRequest::HttpRequest()
     : HttpMessage(),
+      m_method(Method::UNKNOWN),
       m_uri(),
-      m_headers(),
       m_complete(false)
 {
 }
 
 HttpRequest::HttpRequest(const HttpRequest &other)
     : HttpMessage(other),
+      m_method(other.m_method),
       m_uri(other.m_uri),
-      m_headers(other.m_headers),
       m_complete(other.m_complete)
 {
 }
@@ -32,18 +38,28 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &other)
     if (this == &other)
         return *this;
     this->operator=(other);
-    m_uri   = other.m_uri;
-    m_headers  = other.m_headers;
+    m_method   = other.m_method;
+    m_uri      = other.m_uri;
     m_complete = other.m_complete;
 
     return *this;
+}
+
+Method HttpRequest::method() const
+{
+    return m_method;
+}
+
+void HttpRequest::setMethod(Method method)
+{
+    m_method = method;
 }
 
 HttpRequest::~HttpRequest()
 {
 }
 
-void HttpRequest::setTarget(const std::string &uri)
+void HttpRequest::setUri(const std::string &uri)
 {
     m_uri = uri;
 }
@@ -63,12 +79,6 @@ bool HttpRequest::good() const
     return m_status == Status::OK;
 }
 
-HttpRequest::Headers::const_iterator
-HttpRequest::getHeader(const std::string &header_name) const
-{
-    return m_headers.find(header_name);
-}
-
 const HttpRequest::Headers &HttpRequest::headers() const
 {
     return m_headers;
@@ -77,11 +87,6 @@ const HttpRequest::Headers &HttpRequest::headers() const
 HttpRequest::Headers &HttpRequest::headers()
 {
     return m_headers;
-}
-
-void HttpRequest::setHeader(const std::string &name, const std::string &value)
-{
-    m_headers.insert(Headers::value_type(name, value));
 }
 
 bool HttpRequest::complete() const
@@ -94,43 +99,114 @@ void HttpRequest::setComplete(bool val)
     m_complete = val;
 }
 
+void HttpRequest::clear()
+{
+    HttpMessage::clear();
+    m_complete = false;
+    m_uri.clear();
+    m_method = Method::UNKNOWN;
+}
+
+static const int WIDTH     = 42;
+static const int KEY_WIDTH = 20;
+
+static void print_top(const std::string &title)
+{
+    std::cout << "┌";
+    int pad   = WIDTH - title.size();
+    int left  = pad / 2;
+    int right = pad - left;
+
+    while (left > 0)
+    {
+        std::cout << "─";
+        left--;
+    }
+    std::cout << " " << title << " ";
+    while (right > 0)
+    {
+        std::cout << "─";
+        right--;
+    }
+    std::cout << "┐\n";
+}
+
+static void print_separator(const std::string &title)
+{
+    std::cout << "├";
+    int pad   = WIDTH - title.size();
+    int left  = pad / 2;
+    int right = pad - left;
+
+    while (left > 0)
+    {
+        std::cout << "─";
+        left--;
+    }
+    std::cout << " " << title << " ";
+    while (right > 0)
+    {
+        std::cout << "─";
+        right--;
+    }
+    std::cout << "┤\n";
+}
+
+static void print_row(const std::string &key, const std::string &value)
+{
+    std::cout << "│ " << std::left << std::setw(KEY_WIDTH) << key << "│ "
+              << std::left << std::setw(WIDTH - KEY_WIDTH - 1) << value
+              << "│\n";
+}
+
+static void print_row(const std::string &value)
+{
+    std::cout << "│" << std::left << std::setw(WIDTH + 2) << value << "│\n";
+}
+
+static void print_bottom()
+{
+    std::cout << "└";
+    int left = WIDTH + 2;
+    while (left > 0)
+    {
+        std::cout << "─";
+        left--;
+    }
+    std::cout << "┘\n";
+}
+
 std::ostream &operator<<(std::ostream &os, const HttpRequest &request)
 {
-    std::cout << "/********************* HTTP REQUEST LINE "
-                 "****************************/"
-              << std::endl;
-    os << "\t" << request.method() << " " << request.uri() << " " << "HTTP/"
-       << request.version_major() << "." << request.version_minor()
-       << std::endl;
+    std::ostringstream oss("HTTP/", std::_S_app);
+
+    oss << request.version_major() << "." << request.version_minor();
+
+    print_top("Request Line");
+    print_row("Method", to_string(request.method()));
+    print_row("Target", request.uri());
+    print_row("Version", oss.str());
+    print_row("", "");
+    print_separator("Header Line");
+    print_row("", "");
     HttpRequest::Headers::const_iterator it  = request.headers().cbegin();
     HttpRequest::Headers::const_iterator end = request.headers().cend();
-    std::cout << "/********************* HTTP HEADERS "
-                 "****************************/"
-              << std::endl;
     while (it != end)
     {
-        os << "\t" << "'" << it->first << "' : '" << it->second << "'"
-           << std::endl;
+        print_row(it->first, it->second);
         it++;
     }
-    std::cout << "/********************* HTTP BODY "
-                 "****************************/"
-              << std::endl;
+    print_row("", "");
+    print_separator("Body");
+    std::ifstream ifs(request.body().path());
 
-    int fd = open(request.body_file_name().c_str(), O_RDONLY);
-
-    if (fd < 0)
+    char buffer[WIDTH];
+    while (ifs.getline(buffer, WIDTH))
     {
-        std::perror("open");
-        return os;
+        ifs.read(buffer, WIDTH);
+        print_row(buffer);
     }
-    char    buff[1024];
-    ssize_t size = 0;
+    print_bottom();
 
-    while ((size = read(fd, buff, 1024)) > 0)
-    {
-        std::cout.write(buff, size);
-    }
-    std::cout.flush();
     return os;
 }
