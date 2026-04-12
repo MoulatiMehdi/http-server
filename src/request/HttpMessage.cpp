@@ -1,54 +1,45 @@
 #include "HttpMessage.hpp"
-#include "Method.hpp"
+#include "BodyStorage.hpp"
 #include "Status.hpp"
 #include <bits/types/struct_timeval.h>
 #include <cstring>
-#include <iostream>
-#include <ostream>
-#include <sstream>
 #include <string>
 #include <sys/time.h>
 
-static const std::string generate_name()
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-
-    std::ostringstream iss;
-
-    iss << "/tmp/nginx/" << tv.tv_sec << "." << tv.tv_usec;
-    return iss.str();
-}
-
 HttpMessage::HttpMessage()
-    : m_method(Method::UNKNOWN),
-      m_version(HTTP_V10),
+    : m_version(HTTP_V10),
+      m_headers(),
       m_content_length(0),
-      m_status(Status::OK),
-      m_body_file_name(generate_name()),
-      m_body_file_ostream(m_body_file_name)
+      m_status(Status::OK)
 {
 }
 
 HttpMessage::HttpMessage(const HttpMessage &other)
-    : m_method(other.m_method),
-      m_version(other.m_version),
+    : m_version(other.m_version),
       m_content_length(other.m_content_length),
       m_status(other.m_status),
-      m_body_file_name(generate_name()),
-      m_body_file_ostream(m_body_file_name)
+      m_headers(other.m_headers)
 {
 }
 
 HttpMessage &HttpMessage::operator=(const HttpMessage &other)
 {
-    m_method         = other.m_method;
     m_version        = other.m_version;
     m_status         = other.m_status;
     m_content_length = other.m_content_length;
-    m_body_file_name = generate_name();
-    m_body_file_ostream.open(m_body_file_name);
+    m_headers        = other.m_headers;
     return *this;
+}
+
+void HttpMessage::setHeader(const std::string &name, const std::string &value)
+{
+    m_headers.insert(Headers::value_type(name, value));
+}
+
+HttpMessage::const_iterator
+HttpMessage::getHeader(const std::string &header_name) const
+{
+    return m_headers.find(header_name);
 }
 
 unsigned int HttpMessage::version() const
@@ -56,19 +47,9 @@ unsigned int HttpMessage::version() const
     return m_version;
 }
 
-Method HttpMessage::method() const
-{
-    return m_method;
-}
-
 void HttpMessage::setVersion(unsigned int major, unsigned int minor)
 {
     m_version = major * 1000 + minor;
-}
-
-void HttpMessage::setMethod(Method method)
-{
-    m_method = method;
 }
 
 size_t HttpMessage::content_length() const
@@ -81,14 +62,14 @@ void HttpMessage::setContentLength(size_t size)
     m_content_length = size;
 }
 
-const std::string &HttpMessage::body_file_name() const
+BodyStorage &HttpMessage::body()
 {
-    return m_body_file_name;
+    return m_body;
 }
 
-std::string &HttpMessage::body_file_name()
+const BodyStorage &HttpMessage::body() const
 {
-    return m_body_file_name;
+    return m_body;
 }
 
 unsigned int HttpMessage::version_major() const
@@ -116,13 +97,24 @@ void HttpMessage::setStatus(Status code)
     m_status = code;
 }
 
-std::ofstream &HttpMessage::body_file_ostream()
+HttpMessage::Headers &HttpMessage::headers()
 {
-    return m_body_file_ostream;
+    return m_headers;
 }
 
-HttpMessage::~HttpMessage()
+const HttpMessage::Headers &HttpMessage::headers() const
 {
-    m_body_file_ostream.close();
-    std::remove(m_body_file_name.c_str());
+    return m_headers;
+}
+
+void HttpMessage::clear()
+{
+    m_headers.clear();
+    m_status         = Status::OK;
+    m_content_length = 0;
+    m_version        = HTTP_V10;
+    m_body.clear();
+}
+
+HttpMessage::~HttpMessage() {
 };

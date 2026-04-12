@@ -1,19 +1,22 @@
 #ifndef HTTP_MESSAGE_HPP
 #define HTTP_MESSAGE_HPP
 
-#include "Method.hpp"
+#include "BodyStorage.hpp"
 #include "Status.hpp"
-#include <fstream>
+#include <map>
 
 class HttpMessage
 {
+  public:
+    typedef std::multimap<const std::string, std::string> Headers;
+    typedef Headers::const_iterator                       const_iterator;
+
   protected:
-    unsigned int  m_version;
-    Method        m_method;
-    size_t        m_content_length;
-    Status        m_status;
-    std::string   m_body_file_name;
-    std::ofstream m_body_file_ostream;
+    unsigned int m_version;
+    Headers      m_headers;
+    Status       m_status;
+    size_t       m_content_length;
+    BodyStorage  m_body;
 
   public:
     static const unsigned int HTTP_V11 = 1001;
@@ -28,23 +31,24 @@ class HttpMessage
     virtual bool complete() const = 0;
     bool         good() const;
 
-    unsigned int version_major() const;
-    unsigned int version_minor() const;
-    unsigned int version() const;
-    Method       method() const;
-    size_t       content_length() const;
-    Status       status() const;
+    unsigned int   version_major() const;
+    unsigned int   version_minor() const;
+    unsigned int   version() const;
+    size_t         content_length() const;
+    Status         status() const;
+    const_iterator getHeader(const std::string &name) const;
+    const Headers &headers() const;
+
+    Headers           &headers();
+    BodyStorage       &body();
+    const BodyStorage &body() const;
 
     void setVersion(unsigned int major, unsigned int minor = 0);
-    void setMethod(Method method);
     void setContentLength(size_t size);
     void setStatus(Status code);
+    void setHeader(const std::string &name, const std::string &value);
+    void clear();
 
     HttpMessage &operator=(const HttpMessage &other);
-
-    const std::string &body_file_name() const;
-    std::string       &body_file_name();
-
-    std::ofstream &body_file_ostream();
 };
 #endif

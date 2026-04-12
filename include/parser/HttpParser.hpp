@@ -8,8 +8,13 @@
 #include "HttpRequest.hpp"
 #include <cstddef>
 
-class HttpParser : HttpParserRequestLine, HttpParserHeaders, HttpParserBody
+class HttpParser :
+    public HttpParserRequestLine,
+    public HttpParserHeaders,
+    public HttpParserBody
 {
+    void parseBuffer(HttpRequest &request);
+
   public:
     HttpParser();
     HttpParser(const HttpParser &other);
@@ -17,16 +22,9 @@ class HttpParser : HttpParserRequestLine, HttpParserHeaders, HttpParserBody
     ~HttpParser();
 
     void clear();
-    using HttpParserState::error;
     using HttpParserState::good;
-    using HttpParserState::state;
 
     void parse(HttpRequest &request, const char *c_str, size_t len);
-    void processRequest(HttpRequest &request, Action &action);
-
-  private:
-    using Handler = Action (HttpParser::*)(u_char);
-    static Handler handlers[30];
 };
 
 #endif

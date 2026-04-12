@@ -1,8 +1,9 @@
 
 #include "HttpParserBody.hpp"
-#include "Error.hpp"
+#include "Buffer.hpp"
 #include "HttpParserState.hpp"
 #include "HttpRequest.hpp"
+#include "ParserError.hpp"
 #include <climits>
 #include <cstddef>
 
@@ -11,66 +12,52 @@
 
 HttpParserBody::HttpParserBody()
     : HttpParserState(),
-      m_body_size(0),
-      m_buff(),
-      m_chunk_max_size(0),
-      m_chunk_value(),
-      m_chunk_state(ChunkState::sw_chunk_start)
+      m_chunk_size(0),
+      m_chunk_max_size(0)
 {
 }
 
-void HttpParserBody::parse_body(
-    HttpRequest &request, const char *str, size_t len
-)
+void HttpParserBody::parse_body(HttpRequest &request, Buffer &buffer)
 {
     size_t size = 0;
 
     if (m_chunked)
-        size = parse_body_chunk(request, str, len);
+        parse_body_chunk(request, buffer);
     else if (request.content_length() > 0)
-        size = parse_body_length(request, str, len);
+        parse_body_length(request, buffer);
     else
         m_complete = true;
-    if (m_complete)
-    {
-        if (size < len)
-            m_buff.append(&str[size], len - size);
-    }
 }
 
-size_t HttpParserBody::parse_body_chunk(
-    HttpRequest &request, const char *str, size_t len
-)
+void HttpParserBody::parse_body_chunk(HttpRequest &request, Buffer &buffer)
 {
 
-    for (int i = 0; i < len; i++)
+    while (!buffer.empty())
     {
-        const char ch = str[i];
+        const char ch = buffer.getc();
         const char c  = ch | 0x20;
 
-        switch (m_chunk_state)
+        switch (m_state)
         {
-            case sw_chunk_start:
+            case SW_CHUNK_START:
                 if (ch >= '0' && ch <= '9')
                 {
-                    m_chunk_state    = sw_chunk_size;
+                    m_state          = SW_CHUNK_SIZE;
                     m_chunk_max_size = ch - '0';
                     break;
                 }
                 if (c >= 'a' && c <= 'f')
                 {
-                    m_chunk_state    = sw_chunk_size;
+                    m_state          = SW_CHUNK_SIZE;
                     m_chunk_max_size = c - 'a' + 10;
                     break;
                 }
 
-                setError(error::bad_request);
-                return 0;
-            case sw_chunk_size:
+                return setError(ParserError::bad_request);
+            case SW_CHUNK_SIZE:
                 if (m_chunk_max_size > LONG_MAX / 16)
                 {
-                    setError(error::bad_request);
-                    return 0;
+                    return setError(ParserError::bad_request);
                 }
                 if (ch >= '0' && ch <= '9')
                 {
@@ -87,14 +74,13 @@ size_t HttpParserBody::parse_body_chunk(
                     switch (ch)
                     {
                         case CR:
-                            m_chunk_state = sw_last_chunk_size_almost_done;
+                            m_state = SW_LAST_CHUNK_SIZE_ALMOST_DONE;
                             break;
                         case LF:
-                            m_chunk_state = sw_last_chunk_data_almost_done;
+                            m_state = SW_LAST_CHUNK_DATA_ALMOST_DONE;
                             break;
                         default:
-                            setError(error::bad_request);
-                            return 0;
+                            return setError(ParserError::bad_request);
                     }
                     break;
                 }
@@ -102,123 +88,108 @@ size_t HttpParserBody::parse_body_chunk(
                 switch (ch)
                 {
                     case CR:
-                        m_chunk_state = sw_chunk_size_almost_done;
+                        m_state = SW_CHUNK_SIZE_ALMOST_DONE;
                         break;
                     case LF:
-                        m_chunk_state = sw_chunk_data;
+                        m_state = SW_CHUNK_DATA;
                         break;
                     default:
-                        setError(error::bad_request);
-                        return 0;
+                        return setError(ParserError::bad_request);
                 }
 
                 break;
-            case sw_chunk_size_almost_done:
+            case SW_CHUNK_SIZE_ALMOST_DONE:
                 if (ch == LF)
                 {
-                    m_chunk_state = sw_chunk_data;
+                    m_state = SW_CHUNK_DATA;
                     break;
                 }
-                setError(error::bad_request);
-                return 0;
-            case sw_chunk_data:
-                if (!m_discard_body)
-                {
-                    request.body_file_ostream() << ch;
-                }
+                return setError(ParserError::bad_request);
+            case SW_CHUNK_DATA:
+                if (request.body().append(ch) < 0)
+                    return setError(ParserError::bad_request);
+
                 m_chunk_size++;
                 if (m_chunk_size == m_chunk_max_size)
                 {
-                    m_body_size += m_chunk_size;
-                    if (!m_discard_body)
-                        request.body_file_ostream().flush();
-                    m_chunk_state    = sw_after_data;
+                    m_state          = SW_AFTER_DATA;
                     m_chunk_max_size = 0;
                     m_chunk_size     = 0;
                 }
                 break;
 
-            case sw_after_data:
+            case SW_AFTER_DATA:
                 switch (ch)
                 {
                     case CR:
-                        m_chunk_state = sw_after_data_almost_done;
+                        m_state = SW_AFTER_DATA_ALMOST_DONE;
                         break;
                     case LF:
-                        m_chunk_state = sw_chunk_start;
+                        m_state = SW_CHUNK_START;
                         break;
                     default:
-                        setError(error::bad_request);
-                        return 0;
+                        return setError(ParserError::bad_request);
                 }
                 break;
 
-            case sw_after_data_almost_done:
+            case SW_AFTER_DATA_ALMOST_DONE:
                 if (ch == LF)
                 {
-                    m_chunk_state = sw_chunk_start;
+                    m_state = SW_CHUNK_START;
                     break;
                 }
-                setError(error::bad_request);
-                return 0;
+                return setError(ParserError::bad_request);
 
-            case sw_last_chunk_size_almost_done:
+            case SW_LAST_CHUNK_SIZE_ALMOST_DONE:
                 if (ch == LF)
                 {
-                    m_chunk_state = sw_last_chunk_data_almost_done;
+                    m_state = SW_LAST_CHUNK_DATA_ALMOST_DONE;
                     break;
                 }
-                setError(error::bad_request);
-                return 0;
+                return setError(ParserError::bad_request);
 
-            case sw_last_chunk_data_almost_done:
+            case SW_LAST_CHUNK_DATA_ALMOST_DONE:
                 switch (ch)
                 {
                     case CR:
-                        m_chunk_state = sw_body_almost_done;
+                        m_state = SW_BODY_ALMOST_DONE;
                         break;
                     case LF:
-                        return i + 1;
+                        return;
                     default:
-                        setError(error::bad_request);
-                        return 0;
+                        return setError(ParserError::bad_request);
                 }
                 break;
 
-            case sw_body_almost_done:
+            case SW_BODY_ALMOST_DONE:
                 if (ch == LF)
                 {
                     m_complete = true;
-                    return i + 1;
+                    return;
                 }
-                setError(error::bad_request);
-                return 0;
+                return setError(ParserError::bad_request);
         }
     }
-    return len;
 }
 
-size_t HttpParserBody::parse_body_length(
-    HttpRequest &request, const char *str, size_t len
-)
+void HttpParserBody::parse_body_length(HttpRequest &request, Buffer &buffer)
 {
-    size_t         size           = 0;
-    std::ofstream &ofs            = request.body_file_ostream();
-    const size_t   content_length = request.content_length();
+    const size_t content_length = request.content_length();
 
-    if (content_length > m_body_size && len > 0)
+    if (content_length > m_buff.size() && !buffer.empty())
     {
-        size = std::min(content_length - m_body_size, len);
-        if (!m_discard_body)
-        {
-            ofs.write(str, size);
-            ofs.flush();
-        }
-        m_body_size += size;
+        size_t size = std::min(content_length - m_buff.size(), buffer.size());
+        if (request.body().append(buffer.current(), size) < 0)
+            return setError(ParserError::bad_request);
+        buffer.consume(size);
     }
-    m_complete = request.content_length() == m_body_size;
+    m_complete = request.content_length() == request.body().size();
+}
 
-    return size;
+void HttpParserBody::clear()
+{
+    m_chunk_max_size = 0;
+    m_chunk_size     = 0;
 }
 
 HttpParserBody::~HttpParserBody()

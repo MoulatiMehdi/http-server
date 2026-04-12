@@ -3,20 +3,14 @@
 #include <ostream>
 
 #include "HttpMessage.hpp"
-#include <map>
+#include "Method.hpp"
 #include <string>
 
 class HttpRequest : public HttpMessage
 {
-    const std::string EMPTY = "";
-
-  public:
-    typedef std::map<const std::string, std::string> Headers;
-    typedef HttpRequest::Headers::const_iterator     const_iterator;
-
   private:
     std::string m_uri; // uri
-    Headers     m_headers;
+    Method      m_method;
     bool        m_complete;
 
   public:
@@ -29,16 +23,17 @@ class HttpRequest : public HttpMessage
     bool good() const;
     bool complete() const;
 
-    const_iterator     getHeader(const std::string &name) const;
+    Method             method() const;
     const Headers     &headers() const;
     const std::string &uri() const;
+    void               clear();
 
     std::string &uri();
     Headers     &headers();
 
+    void setMethod(Method method);
     void setComplete(bool val);
-    void setTarget(const std::string &uri);
-    void setHeader(const std::string &name, const std::string &value);
+    void setUri(const std::string &uri);
 };
 
 std::ostream &operator<<(std::ostream &os, const HttpRequest &request);

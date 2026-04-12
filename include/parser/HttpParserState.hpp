@@ -1,47 +1,52 @@
 #ifndef HTTP_PARSER_STATE_HPP
 #define HTTP_PARSER_STATE_HPP
 
-#include "Error.hpp"
-#include "State.hpp"
 #include "HttpRequest.hpp"
+#include "ParserError.hpp"
+#include <ostream>
 
 class HttpParserState
 {
   private:
     HttpParserState(HttpParserState &other);
     HttpParserState &operator=(HttpParserState &other);
-    Error            m_error;
+    ParserError      m_error;
 
   protected:
     enum Action
     {
-        PA_DONE = 0,
+        PA_OK = 0,
         PA_CONTINUE,
+        PA_DONE,
         PA_ERROR,
-        PA_REQUEST_LINE_DONE,
-        PA_HEADER_LINE_DONE,
-        PA_HEADER_DONE,
-        PA_BODY_DONE,
     };
 
-    using u_char = unsigned char;
+    enum Phase
+    {
+        P_REQUEST_LINE = 0,
+        P_HEADERS,
+        P_BODY,
+    };
 
     HttpParserState();
     ~HttpParserState();
 
-    State m_state;
-
-    bool m_invalid_header;
-    bool m_complete;
-    bool m_discard_body;
-    bool m_chunked;
+    unsigned int m_state;
+    bool         m_complete;
+    bool         m_discard_body;
+    bool         m_chunked;
+    Phase        m_phase;
+    std::string  m_buff;
 
     void processError(HttpRequest &request);
-    void setError(Error err);
+    void setError(ParserError err);
+    void clear();
 
   public:
-    bool  good() const;
-    Error error() const;
-    State state() const;
+    bool good() const;
+    friend std::ostream &
+    operator<<(std::ostream &os, const HttpParserState &hps);
 };
+
+std::ostream &operator<<(std::ostream &os, const HttpParserState &hps);
 #endif
