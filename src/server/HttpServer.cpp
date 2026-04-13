@@ -16,6 +16,7 @@ void HttpServer::createSockets(const ServerConfig &servConf) {
 		Logger::info("Socket: [" + to_stringg(s->getFd()) + "] Listeting on: " +
 					 s->getAddr() + ":" + to_stringg(s->getPort()));
 	}
+	std::cout << "\n";
 }
 
 void HttpServer::init() {
@@ -27,7 +28,7 @@ void HttpServer::init() {
 	// 	throw; // ??
 
 	for (size_t i = 0; i < _config.servers.size(); ++i) {
-		Logger::info("Virtual server [" + to_stringg(i) + "]:\n");
+		Logger::info("Virtual server [" + to_stringg(i) + "]:");
 		createSockets(_config.servers[i]);
 	}
 	Logger::info("Server initialized");

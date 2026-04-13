@@ -38,32 +38,6 @@ Client::~Client() {
 // 	}
 // };
 // // TODO: make it inside client.hpp
-// void queueResponse(const HttpResponse &res, std::vector<u_int8_t> &_wrbuf) {
-// 	std::ostringstream head;
-//
-// 	head << "HTTP/1.0 " << res.status_code << " " << res.status_msg << "\r\n";
-// 	for (std::map<std::string, std::string>::const_iterator it =
-// 			 res.headers.begin();
-// 		 it != res.headers.end(); ++it)
-// 		head << it->first << ": " << it->second << "\r\n";
-// 	head << "Content-Length: " << res.body.size() << "\r\n";
-// 	head << "\r\n";
-//
-// 	std::string headStr = head.str();
-// 	_wrbuf.insert(_wrbuf.end(), headStr.begin(), headStr.end());
-// 	_wrbuf.insert(_wrbuf.end(), res.body.begin(), res.body.end());
-// }
-//
-// HttpResponse makeFakeRes() {
-// 	HttpResponse res;
-// 	res.status_code = 200;
-// 	res.status_msg = "OK";
-// 	res.headers["Content-Type"] = "text/plain";
-//
-// 	std::string body = "Hello from webserve\n";
-// 	res.body.insert(res.body.end(), body.begin(), body.end());
-// 	return res;
-// }
 
 struct HttpRequest {
 	std::string method;
@@ -85,10 +59,24 @@ struct RouterResult {
 	std::string cgi_path;	// if cgi == true
 	HttpResponse response;	// if cgi == false
 };
-// /*  hardcode*/
 
-#define BUFF_SIZE 4096
-void hardcode(RouterResult &rres, HttpResponse &res, HttpRequest &req) {
+void queueResponse(const HttpResponse &res, std::vector<u_int8_t> &_wrbuf) {
+	std::ostringstream head;
+
+	head << "HTTP/1.0 " << res.status_code << " " << res.status_msg << "\r\n";
+	for (std::map<std::string, std::string>::const_iterator it =
+			 res.headers.begin();
+		 it != res.headers.end(); ++it)
+		head << it->first << ": " << it->second << "\r\n";
+	head << "Content-Length: " << res.body.size() << "\r\n";
+	head << "\r\n";
+
+	std::string headStr = head.str();
+	_wrbuf.insert(_wrbuf.end(), headStr.begin(), headStr.end());
+	_wrbuf.insert(_wrbuf.end(), res.body.begin(), res.body.end());
+}
+
+void hardcode(RouterResult &rres, HttpResponse &res, HttpRequest &req, std::string buff) {
 	req.method = "GET";
 	req.path = "/index.html";
 	req.version = "HTTP/1.1";
@@ -96,6 +84,7 @@ void hardcode(RouterResult &rres, HttpResponse &res, HttpRequest &req) {
 	req.headers["Connection"] = "keep-alive";
 
 	std::string body = "Hello from webserve\n";
+	body += "You have sent: " + buff + "\n";
 	res.status_code = 200;
 	res.status_msg = "OK";
 	res.headers["Content-Type"] = "text/html";
@@ -104,8 +93,10 @@ void hardcode(RouterResult &rres, HttpResponse &res, HttpRequest &req) {
 	rres.cgi = false;
 	rres.response = res;
 }
+// /*  hardcode*/
+
+#define BUFF_SIZE 4096
 ClientStatus Client::onReadable() {
-	// TCP layer (you) - onReadable()
 	int n;
 	char buff[BUFF_SIZE];
 	n = read(_fd, buff, sizeof(buff));
@@ -126,7 +117,8 @@ ClientStatus Client::onReadable() {
 	RouterResult rres;
 	HttpResponse res;
 	HttpRequest req;
-	hardcode(rres, res, req);
+	hardcode(rres, res, req, buff);
+	queueResponse(rres.response, _wrbuf);
 	return WANT_WRITE;
 }
 
