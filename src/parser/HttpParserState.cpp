@@ -142,7 +142,7 @@ HttpParserState::HttpParserState()
       m_chunked(false),
       m_discard_body(false),
       m_phase(P_REQUEST_LINE),
-      m_buff()
+      m_cache()
 {
 }
 
@@ -224,9 +224,9 @@ std::ostream &operator<<(std::ostream &os, const HttpParserState &hps)
         std::cout << "State      : " << hps.m_state << std::endl;
     std::cout << "Buffer     : '";
 
-    for (int i = 0; i < hps.m_buff.size(); i++)
+    for (int i = 0; i < hps.m_cache.size(); i++)
     {
-        std::cout << ascii_repr[hps.m_buff[i]];
+        std::cout << ascii_repr[hps.m_cache[i]];
     }
     std::cout << "'" << std::endl;
 
