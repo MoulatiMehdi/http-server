@@ -6,47 +6,47 @@ std::string to_string(ParserError err)
 {
     switch (err)
     {
-        case ParserError::bad_target:
+        case error::bad_target:
             return "Bad Target";
-        case ParserError::bad_method:
+        case error::bad_method:
             return "Bad Method";
-        case ParserError::bad_request:
+        case error::bad_request:
             return "Bad Request";
-        case ParserError::bad_version:
+        case error::bad_version:
             return "Bad Version";
-        case ParserError::bad_line_ending:
+        case error::bad_line_ending:
             return "Bad Line Ending";
-        case ParserError::unsupported_version:
+        case error::unsupported_version:
             return "Unsupported Version";
-        case ParserError::unsupported_method:
+        case error::unsupported_method:
             return "Unsupported Method";
-        case ParserError::unsupported_transfer:
+        case error::unsupported_transfer:
             return "Unsupported transfer";
-        case ParserError::bad_status:
+        case error::bad_status:
             return "Bad Status";
-        case ParserError::bad_field:
+        case error::bad_field:
             return "Bad Field";
-        case ParserError::bad_reason:
+        case error::bad_reason:
             return "Bad Reason";
-        case ParserError::bad_value:
+        case error::bad_value:
             return "Bad value";
-        case ParserError::bad_content_length:
+        case error::bad_content_length:
             return "Bad content length";
-        case ParserError::multiple_content_length:
+        case error::multiple_content_length:
             return "multiple_content_length";
-        case ParserError::stale_parser:
+        case error::stale_parser:
             return "stale parser";
-        case ParserError::short_read:
+        case error::short_read:
             return "bad_transfer_encoding";
-        case ParserError::header_field_name_too_large:
+        case error::header_field_name_too_large:
             return "header_field_name_too_large";
-        case ParserError::header_field_value_too_large:
+        case error::header_field_value_too_large:
             return "header_field_value_too_large";
-        case ParserError::bad_header_name:
+        case error::bad_header_name:
             return "bad_header_name";
-        case ParserError::bad_header_value:
+        case error::bad_header_value:
             return "bad_header_value";
-        case ParserError::ok:
+        case error::ok:
             return "OK";
     }
 }

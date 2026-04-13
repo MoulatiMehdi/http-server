@@ -10,19 +10,10 @@
 #include <cstring>
 
 HttpParser::HttpParser()
-    : HttpParserRequestLine(),
-      HttpParserState(),
+    : HttpParserState(),
+      HttpParserRequestLine(),
       HttpParserBody()
 {
-}
-
-void HttpParser::clear()
-{
-
-    HttpParserBody::clear();
-
-    HttpParserRequestLine::clear();
-    HttpParserState::clear();
 }
 
 void HttpParser::parseBuffer(HttpRequest &request)

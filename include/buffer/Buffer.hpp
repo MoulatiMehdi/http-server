@@ -7,8 +7,8 @@ class Buffer
 {
   private:
     const char *m_ptr;
-    size_t      m_size;
     size_t      m_read_pos;
+    size_t      m_size;
 
   public:
     Buffer();

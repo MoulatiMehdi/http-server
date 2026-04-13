@@ -25,9 +25,6 @@ class HttpParserHeaders : virtual public HttpParserState
   protected:
     HttpParserHeaders();
 
-    std::string m_header_name;
-    std::string m_header_value;
-
     Action hdr_start(u_char ch);
     Action hdr_name(u_char ch);
     Action hdr_space_before_value(u_char ch);
@@ -38,7 +35,6 @@ class HttpParserHeaders : virtual public HttpParserState
     void parseHeaders(HttpRequest &request, Buffer &buff);
     void processHeaderLine(HttpRequest &request);
     void processHeaders(HttpRequest &request);
-    void clear();
 
   private:
     void handle_content_length(HttpRequest &request);

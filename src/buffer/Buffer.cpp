@@ -13,7 +13,7 @@ Buffer::Buffer(const char *str, size_t len)
 {
 }
 
-Buffer::Buffer(std::string& str)
+Buffer::Buffer(std::string &str)
     : m_ptr(str.c_str()),
       m_read_pos(0),
       m_size(str.size())

@@ -24,42 +24,45 @@ HttpParserRequestLine::Handler HttpParserRequestLine::handlers[] = {
     &HttpParserRequestLine::req_almost_done,
 };
 
-HttpParserRequestLine::HttpParserRequestLine()
-    : HttpParserState(),
-      m_major(0),
-      m_minor(0),
-      m_method(),
-      m_target()
+HttpParserRequestLine::HttpParserRequestLine() : HttpParserState()
 {
 }
 
 void HttpParserRequestLine::processRequestLine(HttpRequest &request)
 {
-    Method method = string_to_method(m_method);
-
-    if (method == Method::UNKNOWN)
-    {
-        setError(ParserError::unsupported_method);
-        return;
-    }
-
-    request.setMethod(method);
-    request.setUri(m_target);
+    request.setUri(m_buff);
+    m_buff.clear();
     request.setVersion(m_major, m_minor);
     if (request.version() == 9)
     {
-        setError(ParserError::unsupported_version);
+        setError(error::unsupported_version);
         return;
     }
-    m_discard_body = request.method() != Method::POST;
+    m_discard_body = request.method() != method::POST;
 }
 
-void HttpParserRequestLine::clear()
+void HttpParserRequestLine::parseRequestLine(HttpRequest &request, Buffer &buff)
 {
-    m_method.clear();
-    m_target.clear();
-    m_minor = 0;
-    m_major = 0;
+    while (!buff.empty())
+    {
+        char   ch     = buff.getc();
+        Action action = (this->*handlers[m_state])(request, ch);
+
+        switch (action)
+        {
+            case PA_ERROR:
+                processError(request);
+                return;
+            case PA_DONE:
+                processRequestLine(request);
+                m_phase = P_HEADERS;
+                m_state = 0;
+                return;
+            case PA_CONTINUE:
+            case PA_OK:
+                break;
+        }
+    }
 }
 
 HttpParserRequestLine::~HttpParserRequestLine()

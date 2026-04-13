@@ -10,16 +10,12 @@
 #define CR '\r'
 #define LF '\n'
 
-HttpParserBody::HttpParserBody()
-    : HttpParserState(),
-      m_chunk_size(0),
-      m_chunk_max_size(0)
+HttpParserBody::HttpParserBody() : HttpParserState()
 {
 }
 
 void HttpParserBody::parse_body(HttpRequest &request, Buffer &buffer)
 {
-    size_t size = 0;
 
     if (m_chunked)
         parse_body_chunk(request, buffer);
@@ -53,11 +49,11 @@ void HttpParserBody::parse_body_chunk(HttpRequest &request, Buffer &buffer)
                     break;
                 }
 
-                return setError(ParserError::bad_request);
+                return setError(error::bad_request);
             case SW_CHUNK_SIZE:
                 if (m_chunk_max_size > LONG_MAX / 16)
                 {
-                    return setError(ParserError::bad_request);
+                    return setError(error::bad_request);
                 }
                 if (ch >= '0' && ch <= '9')
                 {
@@ -80,7 +76,7 @@ void HttpParserBody::parse_body_chunk(HttpRequest &request, Buffer &buffer)
                             m_state = SW_LAST_CHUNK_DATA_ALMOST_DONE;
                             break;
                         default:
-                            return setError(ParserError::bad_request);
+                            return setError(error::bad_request);
                     }
                     break;
                 }
@@ -94,7 +90,7 @@ void HttpParserBody::parse_body_chunk(HttpRequest &request, Buffer &buffer)
                         m_state = SW_CHUNK_DATA;
                         break;
                     default:
-                        return setError(ParserError::bad_request);
+                        return setError(error::bad_request);
                 }
 
                 break;
@@ -104,10 +100,10 @@ void HttpParserBody::parse_body_chunk(HttpRequest &request, Buffer &buffer)
                     m_state = SW_CHUNK_DATA;
                     break;
                 }
-                return setError(ParserError::bad_request);
+                return setError(error::bad_request);
             case SW_CHUNK_DATA:
                 if (request.body().append(ch) < 0)
-                    return setError(ParserError::bad_request);
+                    return setError(error::bad_request);
 
                 m_chunk_size++;
                 if (m_chunk_size == m_chunk_max_size)
@@ -128,7 +124,7 @@ void HttpParserBody::parse_body_chunk(HttpRequest &request, Buffer &buffer)
                         m_state = SW_CHUNK_START;
                         break;
                     default:
-                        return setError(ParserError::bad_request);
+                        return setError(error::bad_request);
                 }
                 break;
 
@@ -138,7 +134,7 @@ void HttpParserBody::parse_body_chunk(HttpRequest &request, Buffer &buffer)
                     m_state = SW_CHUNK_START;
                     break;
                 }
-                return setError(ParserError::bad_request);
+                return setError(error::bad_request);
 
             case SW_LAST_CHUNK_SIZE_ALMOST_DONE:
                 if (ch == LF)
@@ -146,7 +142,7 @@ void HttpParserBody::parse_body_chunk(HttpRequest &request, Buffer &buffer)
                     m_state = SW_LAST_CHUNK_DATA_ALMOST_DONE;
                     break;
                 }
-                return setError(ParserError::bad_request);
+                return setError(error::bad_request);
 
             case SW_LAST_CHUNK_DATA_ALMOST_DONE:
                 switch (ch)
@@ -157,7 +153,7 @@ void HttpParserBody::parse_body_chunk(HttpRequest &request, Buffer &buffer)
                     case LF:
                         return;
                     default:
-                        return setError(ParserError::bad_request);
+                        return setError(error::bad_request);
                 }
                 break;
 
@@ -167,7 +163,7 @@ void HttpParserBody::parse_body_chunk(HttpRequest &request, Buffer &buffer)
                     m_complete = true;
                     return;
                 }
-                return setError(ParserError::bad_request);
+                return setError(error::bad_request);
         }
     }
 }
@@ -180,16 +176,10 @@ void HttpParserBody::parse_body_length(HttpRequest &request, Buffer &buffer)
     {
         size_t size = std::min(content_length - m_cache.size(), buffer.size());
         if (request.body().append(buffer.current(), size) < 0)
-            return setError(ParserError::bad_request);
+            return setError(error::bad_request);
         buffer.consume(size);
     }
     m_complete = request.content_length() == request.body().size();
-}
-
-void HttpParserBody::clear()
-{
-    m_chunk_max_size = 0;
-    m_chunk_size     = 0;
 }
 
 HttpParserBody::~HttpParserBody()

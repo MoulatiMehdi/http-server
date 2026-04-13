@@ -15,7 +15,7 @@ class HttpMessage
     unsigned int m_version;
     Headers      m_headers;
     Status       m_status;
-    size_t       m_content_length;
+    ssize_t       m_content_length;
     BodyStorage  m_body;
 
   public:
@@ -24,7 +24,8 @@ class HttpMessage
     static const unsigned int HTTP_V09 = 9;
 
     HttpMessage();
-    HttpMessage(const HttpMessage &other);
+    // HttpMessage &operator=(const HttpMessage &other);
+    // HttpMessage(const HttpMessage &other);
 
     virtual ~HttpMessage() = 0;
 
@@ -34,7 +35,7 @@ class HttpMessage
     unsigned int   version_major() const;
     unsigned int   version_minor() const;
     unsigned int   version() const;
-    size_t         content_length() const;
+    ssize_t         content_length() const;
     Status         status() const;
     const_iterator getHeader(const std::string &name) const;
     const Headers &headers() const;
@@ -49,6 +50,5 @@ class HttpMessage
     void setHeader(const std::string &name, const std::string &value);
     void clear();
 
-    HttpMessage &operator=(const HttpMessage &other);
 };
 #endif
