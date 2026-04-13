@@ -21,7 +21,7 @@ $(NAME) : $(OBJS) | $(BUILD_DIR)
 
 $(BUILD_DIR)/%.o: %.cpp
 	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -g $(DEPS) -c $< -o $@
+	$(CC) $(CXXFLAGS) $(DEPS) -c $< -o $@
 
 $(BUILD_DIR):
 	mkdir -p $@
