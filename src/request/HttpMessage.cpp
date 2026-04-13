@@ -9,27 +9,29 @@
 HttpMessage::HttpMessage()
     : m_version(HTTP_V10),
       m_headers(),
+      m_status(status::OK),
       m_content_length(0),
-      m_status(Status::OK)
+      m_body()
 {
 }
 
-HttpMessage::HttpMessage(const HttpMessage &other)
-    : m_version(other.m_version),
-      m_content_length(other.m_content_length),
-      m_status(other.m_status),
-      m_headers(other.m_headers)
-{
-}
-
-HttpMessage &HttpMessage::operator=(const HttpMessage &other)
-{
-    m_version        = other.m_version;
-    m_status         = other.m_status;
-    m_content_length = other.m_content_length;
-    m_headers        = other.m_headers;
-    return *this;
-}
+// HttpMessage::HttpMessage(const HttpMessage &other)
+//     : m_version(other.m_version),
+//       m_headers(other.m_headers),
+//       m_status(other.m_status),
+//       m_content_length(other.m_content_length),
+//       m_body()
+// {
+// }
+//
+// HttpMessage &HttpMessage::operator=(const HttpMessage &other)
+// {
+//     m_version        = other.m_version;
+//     m_status         = other.m_status;
+//     m_content_length = other.m_content_length;
+//     m_headers        = other.m_headers;
+//     return *this;
+// }
 
 void HttpMessage::setHeader(const std::string &name, const std::string &value)
 {
@@ -52,7 +54,7 @@ void HttpMessage::setVersion(unsigned int major, unsigned int minor)
     m_version = major * 1000 + minor;
 }
 
-size_t HttpMessage::content_length() const
+ssize_t HttpMessage::content_length() const
 {
     return m_content_length;
 }
@@ -84,7 +86,7 @@ unsigned int HttpMessage::version_minor() const
 
 bool HttpMessage::good() const
 {
-    return m_status == Status::OK;
+    return m_status == status::OK;
 }
 
 Status HttpMessage::status() const
@@ -110,11 +112,10 @@ const HttpMessage::Headers &HttpMessage::headers() const
 void HttpMessage::clear()
 {
     m_headers.clear();
-    m_status         = Status::OK;
+    m_status         = status::OK;
     m_content_length = 0;
     m_version        = HTTP_V10;
     m_body.clear();
 }
 
-HttpMessage::~HttpMessage() {
-};
+HttpMessage::~HttpMessage() {};

@@ -3,6 +3,7 @@
 #include "ParserError.hpp"
 #include <iostream>
 #include <string>
+#include <sys/types.h>
 
 const char *ascii_repr[128] = {
     "\\0",
@@ -136,11 +137,11 @@ const char *ascii_repr[128] = {
 };
 
 HttpParserState::HttpParserState()
-    : m_error(ParserError::ok),
+    : m_error(error::ok),
       m_state(0),
       m_complete(false),
-      m_chunked(false),
       m_discard_body(false),
+      m_chunked(false),
       m_phase(P_REQUEST_LINE),
       m_cache()
 {
@@ -159,46 +160,46 @@ void HttpParserState::processError(HttpRequest &request)
 {
     switch (m_error)
     {
-        case ParserError::ok:
-            return request.setStatus(Status::OK);
-        case ParserError::bad_request:
-        case ParserError::bad_line_ending:
-        case ParserError::bad_target:
-        case ParserError::bad_version:
-        case ParserError::bad_method:
-        case ParserError::bad_status:
-        case ParserError::bad_reason:
-        case ParserError::bad_field:
-        case ParserError::bad_header_name:
-        case ParserError::bad_header_value:
-        case ParserError::bad_content_length:
-        case ParserError::multiple_content_length:
-        case ParserError::bad_value:
-            return request.setStatus(Status::BAD_REQUEST);
-        case ParserError::unsupported_version:
-            return request.setStatus(Status::HTTP_VERSION_NOT_SUPPORTED);
-        case ParserError::unsupported_method:
-            return request.setStatus(Status::METHOD_NOT_ALLOWED);
-        case ParserError::unsupported_transfer:
-            return request.setStatus(Status::NOT_IMPLEMENTED);
-        case ParserError::header_field_name_too_large:
-        case ParserError::header_field_value_too_large:
-            return request.setStatus(Status::REQUEST_HEADER_FIELDS_TOO_LARGE);
-        case ParserError::stale_parser:
-        case ParserError::short_read:
+        case error::ok:
+            return request.setStatus(status::OK);
+        case error::bad_request:
+        case error::bad_line_ending:
+        case error::bad_target:
+        case error::bad_version:
+        case error::bad_method:
+        case error::bad_status:
+        case error::bad_reason:
+        case error::bad_field:
+        case error::bad_header_name:
+        case error::bad_header_value:
+        case error::bad_content_length:
+        case error::multiple_content_length:
+        case error::bad_value:
+            return request.setStatus(status::BAD_REQUEST);
+        case error::unsupported_version:
+            return request.setStatus(status::HTTP_VERSION_NOT_SUPPORTED);
+        case error::unsupported_method:
+            return request.setStatus(status::METHOD_NOT_ALLOWED);
+        case error::unsupported_transfer:
+            return request.setStatus(status::NOT_IMPLEMENTED);
+        case error::header_field_name_too_large:
+        case error::header_field_value_too_large:
+            return request.setStatus(status::REQUEST_HEADER_FIELDS_TOO_LARGE);
+        case error::stale_parser:
+        case error::short_read:
             break;
     }
 }
 
 void HttpParserState::setError(ParserError err)
 {
-    if (m_error == ParserError::ok)
+    if (m_error == error::ok)
         m_error = err;
 }
 
 bool HttpParserState::good() const
 {
-    return m_error == ParserError::ok;
+    return m_error == error::ok;
 }
 
 void HttpParserState::clear()
@@ -206,7 +207,7 @@ void HttpParserState::clear()
     m_state        = 0;
     m_phase        = P_REQUEST_LINE;
     m_complete     = false;
-    m_error        = ParserError::ok;
+    m_error        = error::ok;
     m_discard_body = false;
     m_chunked      = false;
 }
@@ -224,9 +225,9 @@ std::ostream &operator<<(std::ostream &os, const HttpParserState &hps)
         std::cout << "State      : " << hps.m_state << std::endl;
     std::cout << "Buffer     : '";
 
-    for (int i = 0; i < hps.m_cache.size(); i++)
+    for (size_t i = 0; i < hps.m_cache.size(); i++)
     {
-        std::cout << ascii_repr[hps.m_cache[i]];
+        std::cout << ascii_repr[(size_t)hps.m_cache[i]];
     }
     std::cout << "'" << std::endl;
 

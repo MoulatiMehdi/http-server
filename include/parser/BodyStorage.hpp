@@ -13,8 +13,8 @@ class BodyStorage
   private:
     static const std::string m_dir;
     int                      m_fd;
-    ssize_t                  m_size;
     std::string              m_path;
+    ssize_t                  m_size;
 
   public:
     BodyStorage();

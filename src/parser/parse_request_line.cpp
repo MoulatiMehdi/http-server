@@ -6,7 +6,7 @@
 
 static bool is_usual(u_char ch)
 {
-    static uint32_t usual[] = {
+    static unsigned int usual[] = {
         0x00000000, /* 0000 0000 0000 0000  0000 0000 0000 0000 */
                     /* ?>=< ;:98 7654 3210  /.-, +*)( '&%$ #"!  */
         0x7fff37d6, /* 0111 1111 1111 1111  0011 0111 1101 0110 */
@@ -32,65 +32,73 @@ static bool is_control(u_char ch)
     return ch < 0x20 || ch == 0x7f;
 }
 
-HttpParserRequestLine::Action HttpParserRequestLine::req_start(u_char ch)
+HttpParserRequestLine::Action
+HttpParserRequestLine::req_start(HttpRequest &, u_char ch)
 {
     if (ch == CR || ch == LF)
         return PA_CONTINUE;
 
     if (!is_valid_method_char(ch))
     {
-        setError(ParserError::bad_method);
+        setError(error::bad_method);
         return PA_ERROR;
     }
 
-    m_method += ch;
-    m_state   = SW_METHOD;
+    m_buff  += ch;
+    m_state  = SW_METHOD;
     return PA_CONTINUE;
 }
 
-HttpParserRequestLine::Action HttpParserRequestLine::req_method(u_char ch)
+HttpParserRequestLine::Action
+HttpParserRequestLine::req_method(HttpRequest &request, u_char ch)
 {
     if (ch == ' ')
     {
+        request.setMethod(m_buff);
+        if (request.method() == method::UNKNOWN)
+        {
+            setError(error::unsupported_method);
+            return PA_ERROR;
+        }
+        m_buff.clear();
         m_state = SW_SPACES_BEFORE_URI;
         return PA_CONTINUE;
     }
 
     if (!is_valid_method_char(ch))
     {
-        setError(ParserError::bad_method);
+        setError(error::bad_method);
         return PA_ERROR;
     }
-
-    m_method += ch;
+    m_buff += ch;
     return PA_CONTINUE;
 }
 
 HttpParserRequestLine::Action
-HttpParserRequestLine::req_spaces_before_uri(u_char ch)
+HttpParserRequestLine::req_spaces_before_uri(HttpRequest &, u_char ch)
 {
     if (ch == '/')
     {
-        m_target += ch;
-        m_state   = SW_URI_AFTER_SLASH;
+        m_buff  += ch;
+        m_state  = SW_URI_AFTER_SLASH;
         return PA_CONTINUE;
     }
 
     if (ch != ' ')
     {
-        setError(ParserError::bad_request);
+        setError(error::bad_request);
         return PA_ERROR;
     }
     return PA_CONTINUE;
 }
 
 HttpParserRequestLine::Action
-HttpParserRequestLine::req_uri_after_slash(u_char ch)
+HttpParserRequestLine::req_uri_after_slash(HttpRequest &, u_char ch)
 {
     if (is_usual(ch))
     {
-        m_target += ch;
-        m_state   = SW_CHECK_URI;
+        m_buff  += ch;
+        m_state  = SW_CHECK_URI;
         return PA_CONTINUE;
     }
 
@@ -111,40 +119,41 @@ HttpParserRequestLine::req_uri_after_slash(u_char ch)
         case '/':
         case '?':
         case '#':
-            m_target += ch;
-            m_state   = SW_URI;
+            m_buff  += ch;
+            m_state  = SW_URI;
             return PA_CONTINUE;
         case '+':
-            m_target += ch;
+            m_buff += ch;
             return PA_CONTINUE;
         default:
             if (is_control(ch))
             {
-                setError(ParserError::bad_request);
+                setError(error::bad_request);
                 return PA_ERROR;
             }
-            m_target += ch;
-            m_state   = SW_CHECK_URI;
+            m_buff  += ch;
+            m_state  = SW_CHECK_URI;
             return PA_CONTINUE;
     }
 }
 
-HttpParserRequestLine::Action HttpParserRequestLine::req_check_uri(u_char ch)
+HttpParserRequestLine::Action
+HttpParserRequestLine::req_check_uri(HttpRequest &, u_char ch)
 {
     if (is_usual(ch))
     {
-        m_target += ch;
+        m_buff += ch;
         return PA_CONTINUE;
     }
 
     switch (ch)
     {
         case '/':
-            m_target += ch;
-            m_state   = SW_URI_AFTER_SLASH;
+            m_buff  += ch;
+            m_state  = SW_URI_AFTER_SLASH;
             return PA_CONTINUE;
         case '.':
-            m_target += ch;
+            m_buff += ch;
             return PA_CONTINUE;
         case ' ':
             m_state = SW_HTTP_09;
@@ -159,28 +168,29 @@ HttpParserRequestLine::Action HttpParserRequestLine::req_check_uri(u_char ch)
         case '%':
         case '?':
         case '#':
-            m_target += ch;
-            m_state   = SW_URI;
+            m_buff  += ch;
+            m_state  = SW_URI;
             return PA_CONTINUE;
         case '+':
-            m_target += ch;
+            m_buff += ch;
             return PA_CONTINUE;
         default:
             if (is_control(ch))
             {
-                setError(ParserError::bad_request);
+                setError(error::bad_request);
                 return PA_ERROR;
             }
-            m_target += ch;
+            m_buff += ch;
             return PA_CONTINUE;
     }
 }
 
-HttpParserRequestLine::Action HttpParserRequestLine::req_uri(u_char ch)
+HttpParserRequestLine::Action
+HttpParserRequestLine::req_uri(HttpRequest &, u_char ch)
 {
     if (is_usual(ch))
     {
-        m_target += ch;
+        m_buff += ch;
         return PA_CONTINUE;
     }
 
@@ -197,20 +207,21 @@ HttpParserRequestLine::Action HttpParserRequestLine::req_uri(u_char ch)
             m_minor = 9;
             return PA_DONE;
         case '#':
-            m_target += ch;
+            m_buff += ch;
             return PA_CONTINUE;
         default:
             if (is_control(ch))
             {
-                setError(ParserError::bad_request);
+                setError(error::bad_request);
                 return PA_ERROR;
             }
-            m_target += ch;
+            m_buff += ch;
             return PA_CONTINUE;
     }
 }
 
-HttpParserRequestLine::Action HttpParserRequestLine::req_http_09(u_char ch)
+HttpParserRequestLine::Action
+HttpParserRequestLine::req_http_09(HttpRequest &, u_char ch)
 {
     switch (ch)
     {
@@ -227,49 +238,53 @@ HttpParserRequestLine::Action HttpParserRequestLine::req_http_09(u_char ch)
             m_state = SW_HTTP_H;
             return PA_CONTINUE;
         default:
-            setError(ParserError::bad_request);
+            setError(error::bad_request);
             return PA_ERROR;
     }
 }
 
-HttpParserRequestLine::Action HttpParserRequestLine::req_http_H(u_char ch)
+HttpParserRequestLine::Action
+HttpParserRequestLine::req_http_H(HttpRequest &, u_char ch)
 {
     if (ch != 'T')
     {
-        setError(ParserError::bad_request);
+        setError(error::bad_request);
         return PA_ERROR;
     }
     m_state = SW_HTTP_HT;
     return PA_CONTINUE;
 }
 
-HttpParserRequestLine::Action HttpParserRequestLine::req_http_HT(u_char ch)
+HttpParserRequestLine::Action
+HttpParserRequestLine::req_http_HT(HttpRequest &, u_char ch)
 {
     if (ch != 'T')
     {
-        setError(ParserError::bad_request);
+        setError(error::bad_request);
         return PA_ERROR;
     }
     m_state = SW_HTTP_HTT;
     return PA_CONTINUE;
 }
 
-HttpParserRequestLine::Action HttpParserRequestLine::req_http_HTT(u_char ch)
+HttpParserRequestLine::Action
+HttpParserRequestLine::req_http_HTT(HttpRequest &, u_char ch)
 {
     if (ch != 'P')
     {
-        setError(ParserError::bad_request);
+        setError(error::bad_request);
         return PA_ERROR;
     }
     m_state = SW_HTTP_HTTP;
     return PA_CONTINUE;
 }
 
-HttpParserRequestLine::Action HttpParserRequestLine::req_http_HTTP(u_char ch)
+HttpParserRequestLine::Action
+HttpParserRequestLine::req_http_HTTP(HttpRequest &, u_char ch)
 {
     if (ch != '/')
     {
-        setError(ParserError::bad_request);
+        setError(error::bad_request);
         return PA_ERROR;
     }
     m_state = SW_FIRST_MAJOR_DIGIT;
@@ -277,11 +292,11 @@ HttpParserRequestLine::Action HttpParserRequestLine::req_http_HTTP(u_char ch)
 }
 
 HttpParserRequestLine::Action
-HttpParserRequestLine::req_first_major_digit(u_char ch)
+HttpParserRequestLine::req_first_major_digit(HttpRequest &, u_char ch)
 {
     if (ch < '1' || ch > '9')
     {
-        setError(ParserError::bad_request);
+        setError(error::bad_request);
         return PA_ERROR;
     }
 
@@ -289,7 +304,7 @@ HttpParserRequestLine::req_first_major_digit(u_char ch)
 
     if (m_major > 1)
     {
-        setError(ParserError::bad_version);
+        setError(error::bad_version);
         return PA_ERROR;
     }
 
@@ -297,7 +312,8 @@ HttpParserRequestLine::req_first_major_digit(u_char ch)
     return PA_CONTINUE;
 }
 
-HttpParserRequestLine::Action HttpParserRequestLine::req_major_digit(u_char ch)
+HttpParserRequestLine::Action
+HttpParserRequestLine::req_major_digit(HttpRequest &, u_char ch)
 {
     if (ch == '.')
     {
@@ -307,7 +323,7 @@ HttpParserRequestLine::Action HttpParserRequestLine::req_major_digit(u_char ch)
 
     if (ch < '0' || ch > '9')
     {
-        setError(ParserError::bad_request);
+        setError(error::bad_request);
         return PA_ERROR;
     }
 
@@ -315,18 +331,18 @@ HttpParserRequestLine::Action HttpParserRequestLine::req_major_digit(u_char ch)
 
     if (m_major > 1)
     {
-        setError(ParserError::bad_version);
+        setError(error::bad_version);
         return PA_ERROR;
     }
     return PA_CONTINUE;
 }
 
 HttpParserRequestLine::Action
-HttpParserRequestLine::req_first_minor_digit(u_char ch)
+HttpParserRequestLine::req_first_minor_digit(HttpRequest &, u_char ch)
 {
     if (ch < '0' || ch > '9')
     {
-        setError(ParserError::bad_version);
+        setError(error::bad_version);
         return PA_ERROR;
     }
 
@@ -335,7 +351,8 @@ HttpParserRequestLine::req_first_minor_digit(u_char ch)
     return PA_CONTINUE;
 }
 
-HttpParserRequestLine::Action HttpParserRequestLine::req_minor_digit(u_char ch)
+HttpParserRequestLine::Action
+HttpParserRequestLine::req_minor_digit(HttpRequest &, u_char ch)
 {
     if (ch == CR)
     {
@@ -352,13 +369,13 @@ HttpParserRequestLine::Action HttpParserRequestLine::req_minor_digit(u_char ch)
 
     if (ch < '0' || ch > '9')
     {
-        setError(ParserError::bad_request);
+        setError(error::bad_request);
         return PA_ERROR;
     }
 
     if (m_minor > 99)
     {
-        setError(ParserError::bad_request);
+        setError(error::bad_request);
         return PA_ERROR;
     }
 
@@ -367,7 +384,7 @@ HttpParserRequestLine::Action HttpParserRequestLine::req_minor_digit(u_char ch)
 }
 
 HttpParserRequestLine::Action
-HttpParserRequestLine::req_spaces_after_digit(u_char ch)
+HttpParserRequestLine::req_spaces_after_digit(HttpRequest &, u_char ch)
 {
     switch (ch)
     {
@@ -379,41 +396,18 @@ HttpParserRequestLine::req_spaces_after_digit(u_char ch)
         case LF:
             return PA_DONE;
         default:
-            setError(ParserError::bad_request);
+            setError(error::bad_request);
             return PA_ERROR;
     }
 }
 
-HttpParserRequestLine::Action HttpParserRequestLine::req_almost_done(u_char ch)
+HttpParserRequestLine::Action
+HttpParserRequestLine::req_almost_done(HttpRequest &, u_char ch)
 {
     if (ch != LF)
     {
-        setError(ParserError::bad_line_ending);
+        setError(error::bad_line_ending);
         return PA_ERROR;
     }
     return PA_DONE;
-}
-
-void HttpParserRequestLine::parseRequestLine(HttpRequest &request, Buffer &buff)
-{
-    while (!buff.empty())
-    {
-        char   ch     = buff.getc();
-        Action action = (this->*handlers[m_state])(ch);
-
-        switch (action)
-        {
-            case PA_ERROR:
-                processError(request);
-                return;
-            case PA_DONE:
-                processRequestLine(request);
-                m_phase = P_HEADERS;
-                m_state = 0;
-                return;
-            case PA_CONTINUE:
-            case PA_OK:
-                break;
-        }
-    }
 }

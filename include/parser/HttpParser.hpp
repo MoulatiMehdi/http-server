@@ -13,6 +13,7 @@ class HttpParser :
     public HttpParserHeaders,
     public HttpParserBody
 {
+  private:
     void parseBuffer(HttpRequest &request);
 
   public:
@@ -21,9 +22,8 @@ class HttpParser :
     HttpParser operator=(const HttpParser &other);
     ~HttpParser();
 
-    void clear();
+    using HttpParserState::clear;
     using HttpParserState::good;
-
     void parse(HttpRequest &request, const char *c_str, size_t len);
 };
 

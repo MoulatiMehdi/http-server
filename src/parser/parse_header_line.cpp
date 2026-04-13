@@ -30,8 +30,8 @@ static inline bool is_valid_name_char(u_char ch)
 
 HttpParserHeaders::Action HttpParserHeaders::hdr_start(u_char ch)
 {
-    m_header_name.clear();
-    m_header_value.clear();
+    m_buff.clear();
+    m_chunk_size = 0;
 
     switch (ch)
     {
@@ -45,10 +45,10 @@ HttpParserHeaders::Action HttpParserHeaders::hdr_start(u_char ch)
             u_char c = to_lower(ch);
             if (is_valid_name_char(c))
             {
-                m_header_name += c;
+                m_buff += c;
                 return PA_CONTINUE;
             }
-            setError(ParserError::bad_header_name);
+            setError(error::bad_header_name);
             return PA_ERROR;
     }
     return PA_CONTINUE;
@@ -60,12 +60,13 @@ HttpParserHeaders::Action HttpParserHeaders::hdr_name(u_char ch)
 
     if (is_valid_name_char(c))
     {
-        m_header_name += c;
+        m_buff += c;
         return PA_CONTINUE;
     }
     if (ch == ':')
     {
-        m_state = SW_SPACE_BEFORE_VALUE;
+        m_chunk_size = m_buff.size();
+        m_state      = SW_SPACE_BEFORE_VALUE;
         return PA_CONTINUE;
     }
     if (ch == CR)
@@ -77,7 +78,7 @@ HttpParserHeaders::Action HttpParserHeaders::hdr_name(u_char ch)
     {
         return PA_OK;
     }
-    setError(ParserError::bad_header_name);
+    setError(error::bad_header_name);
     return PA_ERROR;
 }
 
@@ -93,11 +94,11 @@ HttpParserHeaders::Action HttpParserHeaders::hdr_space_before_value(u_char ch)
         case LF:
             return PA_OK;
         case '\0':
-            setError(ParserError::bad_header_name);
+            setError(error::bad_header_name);
             return PA_ERROR;
         default:
-            m_header_value += ch;
-            m_state         = SW_VALUE;
+            m_buff += ch;
+            m_state        = SW_VALUE;
             return PA_CONTINUE;
     }
     return PA_CONTINUE;
@@ -113,10 +114,10 @@ HttpParserHeaders::Action HttpParserHeaders::hdr_value(u_char ch)
         case LF:
             return PA_OK;
         case '\0':
-            setError(ParserError::bad_header_value);
+            setError(error::bad_header_value);
             return PA_ERROR;
         default:
-            m_header_value += ch;
+            m_buff += ch;
             return PA_CONTINUE;
     }
     return PA_CONTINUE;
@@ -131,7 +132,7 @@ HttpParserHeaders::Action HttpParserHeaders::hdr_almost_done(u_char ch)
         case CR:
             return PA_CONTINUE;
         default:
-            setError(ParserError::bad_line_ending);
+            setError(error::bad_line_ending);
             return PA_ERROR;
     }
     return PA_CONTINUE;
@@ -144,7 +145,7 @@ HttpParserHeaders::Action HttpParserHeaders::hdr_header_almost_done(u_char ch)
         return PA_DONE;
     }
 
-    setError(ParserError::bad_line_ending);
+    setError(error::bad_line_ending);
     return PA_ERROR;
 }
 
@@ -167,7 +168,7 @@ void HttpParserHeaders::parseHeaders(HttpRequest &request, Buffer &buff)
                 if (!m_discard_body)
                 {
                     if (request.body().open_file() < 0)
-                        return setError(ParserError::bad_request);
+                        return setError(error::bad_request);
                 }
                 return;
             case PA_OK:

@@ -12,21 +12,21 @@ HttpResponse::HttpResponse() : HttpMessage(), m_complete(false)
 {
 }
 
-HttpResponse::HttpResponse(const HttpResponse &other)
-    : HttpMessage(other),
-      m_complete(other.m_complete)
-{
-}
-
-HttpResponse &HttpResponse::operator=(const HttpResponse &other)
-{
-    if (this == &other)
-        return *this;
-    this->operator=(other);
-    m_complete = other.m_complete;
-
-    return *this;
-}
+// HttpResponse::HttpResponse(const HttpResponse &other)
+//     : HttpMessage(other),
+//       m_complete(other.m_complete)
+// {
+// }
+//
+// HttpResponse &HttpResponse::operator=(const HttpResponse &other)
+// {
+//     if (this == &other)
+//         return *this;
+//     this->operator=(other);
+//     m_complete = other.m_complete;
+//
+//     return *this;
+// }
 
 HttpResponse::~HttpResponse()
 {
@@ -34,7 +34,7 @@ HttpResponse::~HttpResponse()
 
 bool HttpResponse::good() const
 {
-    return m_status == Status::OK;
+    return m_status == status::OK;
 }
 
 bool HttpResponse::complete() const
@@ -52,17 +52,16 @@ std::ostream &operator<<(std::ostream &os, const HttpResponse &response)
     std::cout << "/********************* HTTP response LINE "
                  "****************************/"
               << std::endl;
-    os  << "HTTP/" << response.version_major() << "."
-       << response.version_minor() << " " << response.status() << std::endl;
-    HttpResponse::Headers::const_iterator it = response.headers().cbegin();
-    HttpResponse::Headers::const_iterator end = response.headers().cend();
+    os << "HTTP/" << response.version_major() << "." << response.version_minor()
+       << " " << response.status() << std::endl;
+    HttpResponse::Headers::const_iterator it  = response.headers().begin();
+    HttpResponse::Headers::const_iterator end = response.headers().end();
     std::cout << "/********************* HTTP HEADERS "
                  "****************************/"
               << std::endl;
     while (it != end)
     {
-        os  << "'" << it->first << "' : '" << it->second << "'"
-           << std::endl;
+        os << "'" << it->first << "' : '" << it->second << "'" << std::endl;
         it++;
     }
     std::cout << "/********************* HTTP BODY "

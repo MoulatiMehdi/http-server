@@ -7,25 +7,25 @@
 Method string_to_method(const std::string &str)
 {
     if (str == "GET")
-        return Method::GET;
+        return method::GET;
     else if (str == "POST")
-        return Method::POST;
+        return method::POST;
     else if (str == "DELETE")
-        return Method::DELETE;
-    return Method::UNKNOWN;
+        return method::DELETE;
+    return method::UNKNOWN;
 }
 
 const std::string to_string(Method method)
 {
     switch (method)
     {
-        case Method::GET:
+        case method::GET:
             return "GET";
-        case Method::DELETE:
+        case method::DELETE:
             return "DELETE";
-        case Method::POST:
+        case method::POST:
             return "POST";
-        case Method::UNKNOWN:
+        case method::UNKNOWN:
             return "<unknown>";
     }
     throw std::invalid_argument("invalid argument");

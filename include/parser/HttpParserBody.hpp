@@ -25,9 +25,6 @@ class HttpParserBody : virtual public HttpParserState
     HttpParserBody();
     ~HttpParserBody();
 
-    size_t m_chunk_max_size;
-    size_t m_chunk_size;
-
     void clear();
     void parse_body(HttpRequest &request, Buffer &buffer);
     void parse_body_chunk(HttpRequest &request, Buffer &buffer);

@@ -15,27 +15,23 @@ const HttpParserHeaders::Handler HttpParserHeaders::handlers[] = {
     &HttpParserHeaders::hdr_header_almost_done,
 };
 
-HttpParserHeaders::HttpParserHeaders()
-    : HttpParserState(),
-      m_header_name(),
-      m_header_value()
+HttpParserHeaders::HttpParserHeaders() : HttpParserState()
 {
 }
 
 void HttpParserHeaders::processHeaderLine(HttpRequest &request)
 {
-    if (!m_header_value.empty())
+    if (*m_buff.rbegin() == ' ')
     {
-        size_t i = m_header_value.size() - 1;
-        if (m_header_value.back() == ' ')
-        {
-            while (i > 0 && m_header_value[i] == ' ')
-                i--;
-            i++;
-            m_header_value.erase(i, m_header_value.size() - i);
-        }
+        size_t i = m_buff.size();
+        while (i > 0 && m_buff[i - 1] == ' ')
+            i--;
+        m_buff.resize(i);
     }
-    request.setHeader(m_header_name, m_header_value);
+    request.setHeader(
+        m_buff.substr(0, m_chunk_size), m_buff.substr(m_chunk_size)
+    );
+    m_buff.clear();
 }
 
 void HttpParserHeaders::handle_transfer_encoding(HttpRequest &request)
@@ -49,14 +45,14 @@ void HttpParserHeaders::handle_transfer_encoding(HttpRequest &request)
         return;
     }
     if (request.version() == 9)
-        return setError(ParserError::bad_request);
+        return setError(error::bad_request);
 
     if (it1->second == "chunked")
         m_chunked = true;
     else if (it1->second == "identity")
         m_chunked = false;
     else
-        setError(ParserError::unsupported_transfer);
+        setError(error::unsupported_transfer);
 }
 
 void HttpParserHeaders::handle_content_length(HttpRequest &request)
@@ -65,30 +61,24 @@ void HttpParserHeaders::handle_content_length(HttpRequest &request)
     int count = request.headers().count("content-length");
 
     if (count == 0)
-        return setError(ParserError::bad_request);
+        return setError(error::bad_request);
     if (count > 1)
-        return setError(ParserError::multiple_content_length);
+        return setError(error::multiple_content_length);
 
     HttpRequest::Headers::const_iterator it =
         request.getHeader("content-length");
-    size_t             content_length;
+    ssize_t            content_length;
     std::istringstream iss(it->second);
 
     iss >> content_length;
     if (iss.bad() || !iss.eof())
     {
-        setError(ParserError::bad_content_length);
+        setError(error::bad_content_length);
         return;
     }
     request.setContentLength(content_length);
     if (content_length == 0)
         request.setComplete(true);
-}
-
-void HttpParserHeaders::clear()
-{
-    m_header_value.clear();
-    m_header_value.clear();
 }
 
 void HttpParserHeaders::processHeaders(HttpRequest &request)

@@ -15,10 +15,10 @@ class HttpRequest : public HttpMessage
 
   public:
     HttpRequest();
-    HttpRequest(const HttpRequest &);
+    // HttpRequest(const HttpRequest &);
+    // HttpRequest &operator=(const HttpRequest &);
     ~HttpRequest();
 
-    HttpRequest &operator=(const HttpRequest &);
 
     bool good() const;
     bool complete() const;
@@ -31,6 +31,7 @@ class HttpRequest : public HttpMessage
     std::string &uri();
     Headers     &headers();
 
+    void setMethod(std::string &method);
     void setMethod(Method method);
     void setComplete(bool val);
     void setUri(const std::string &uri);

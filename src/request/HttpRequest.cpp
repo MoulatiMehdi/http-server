@@ -19,31 +19,31 @@
 
 HttpRequest::HttpRequest()
     : HttpMessage(),
-      m_method(Method::UNKNOWN),
       m_uri(),
+      m_method(method::UNKNOWN),
       m_complete(false)
 {
 }
 
-HttpRequest::HttpRequest(const HttpRequest &other)
-    : HttpMessage(other),
-      m_method(other.m_method),
-      m_uri(other.m_uri),
-      m_complete(other.m_complete)
-{
-}
+// HttpRequest::HttpRequest(const HttpRequest &other)
+//     : HttpMessage(other),
+//       m_uri(other.m_uri),
+//       m_method(other.m_method),
+//       m_complete(other.m_complete)
+// {
+// }
 
-HttpRequest &HttpRequest::operator=(const HttpRequest &other)
-{
-    if (this == &other)
-        return *this;
-    this->operator=(other);
-    m_method   = other.m_method;
-    m_uri      = other.m_uri;
-    m_complete = other.m_complete;
-
-    return *this;
-}
+// HttpRequest &HttpRequest::operator=(const HttpRequest &other)
+// {
+//     if (this == &other)
+//         return *this;
+//     this->operator=(other);
+//     m_method   = other.m_method;
+//     m_uri      = other.m_uri;
+//     m_complete = other.m_complete;
+//
+//     return *this;
+// }
 
 Method HttpRequest::method() const
 {
@@ -53,6 +53,11 @@ Method HttpRequest::method() const
 void HttpRequest::setMethod(Method method)
 {
     m_method = method;
+}
+
+void HttpRequest::setMethod(std::string &method)
+{
+    m_method = string_to_method(method);
 }
 
 HttpRequest::~HttpRequest()
@@ -76,7 +81,7 @@ std::string &HttpRequest::uri()
 
 bool HttpRequest::good() const
 {
-    return m_status == Status::OK;
+    return m_status == status::OK;
 }
 
 const HttpRequest::Headers &HttpRequest::headers() const
@@ -104,7 +109,7 @@ void HttpRequest::clear()
     HttpMessage::clear();
     m_complete = false;
     m_uri.clear();
-    m_method = Method::UNKNOWN;
+    m_method = method::UNKNOWN;
 }
 
 static const int WIDTH     = 42;
@@ -189,8 +194,8 @@ std::ostream &operator<<(std::ostream &os, const HttpRequest &request)
     print_row("", "");
     print_separator("Header Line");
     print_row("", "");
-    HttpRequest::Headers::const_iterator it  = request.headers().cbegin();
-    HttpRequest::Headers::const_iterator end = request.headers().cend();
+    HttpRequest::Headers::const_iterator it  = request.headers().begin();
+    HttpRequest::Headers::const_iterator end = request.headers().end();
     while (it != end)
     {
         print_row(it->first, it->second);
@@ -198,7 +203,7 @@ std::ostream &operator<<(std::ostream &os, const HttpRequest &request)
     }
     print_row("", "");
     print_separator("Body");
-    std::ifstream ifs(request.body().path());
+    std::ifstream ifs(request.body().c_path());
 
     char buffer[WIDTH];
     while (ifs.getline(buffer, WIDTH))

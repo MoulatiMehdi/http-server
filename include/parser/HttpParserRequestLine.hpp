@@ -4,7 +4,6 @@
 #include "Buffer.hpp"
 #include "HttpParserState.hpp"
 #include "HttpRequest.hpp"
-#include <string>
 #include <sys/types.h>
 
 class HttpParserRequestLine : virtual public HttpParserState
@@ -31,40 +30,34 @@ class HttpParserRequestLine : virtual public HttpParserState
         SW_ALMOST_DONE,
     };
 
-    typedef Action (HttpParserRequestLine::*Handler)(u_char);
+    typedef Action (HttpParserRequestLine::*Handler)(HttpRequest &, u_char);
     static Handler handlers[17];
 
   protected:
     HttpParserRequestLine();
     ~HttpParserRequestLine();
 
-    std::string m_target;
-    std::string m_method;
-
-    unsigned short m_major;
-    unsigned short m_minor;
 
   private:
-    Action req_start(u_char ch);
-    Action req_method(u_char ch);
-    Action req_spaces_before_uri(u_char ch);
-    Action req_uri_after_slash(u_char ch);
-    Action req_check_uri(u_char ch);
-    Action req_uri(u_char ch);
-    Action req_http_09(u_char ch);
-    Action req_http_H(u_char ch);
-    Action req_http_HT(u_char ch);
-    Action req_http_HTT(u_char ch);
-    Action req_http_HTTP(u_char ch);
-    Action req_first_major_digit(u_char ch);
-    Action req_major_digit(u_char ch);
-    Action req_first_minor_digit(u_char ch);
-    Action req_minor_digit(u_char ch);
-    Action req_spaces_after_digit(u_char ch);
-    Action req_almost_done(u_char ch);
+    Action req_start(HttpRequest &request, u_char ch);
+    Action req_method(HttpRequest &request, u_char ch);
+    Action req_spaces_before_uri(HttpRequest &request, u_char ch);
+    Action req_uri_after_slash(HttpRequest &request, u_char ch);
+    Action req_check_uri(HttpRequest &request, u_char ch);
+    Action req_uri(HttpRequest &request, u_char ch);
+    Action req_http_09(HttpRequest &request, u_char ch);
+    Action req_http_H(HttpRequest &request, u_char ch);
+    Action req_http_HT(HttpRequest &request, u_char ch);
+    Action req_http_HTT(HttpRequest &request, u_char ch);
+    Action req_http_HTTP(HttpRequest &request, u_char ch);
+    Action req_first_major_digit(HttpRequest &request, u_char ch);
+    Action req_major_digit(HttpRequest &request, u_char ch);
+    Action req_first_minor_digit(HttpRequest &request, u_char ch);
+    Action req_minor_digit(HttpRequest &request, u_char ch);
+    Action req_spaces_after_digit(HttpRequest &request, u_char ch);
+    Action req_almost_done(HttpRequest &request, u_char ch);
 
   protected:
-    void clear();
     void processRequestLine(HttpRequest &request);
     void parseRequestLine(HttpRequest &request, Buffer &buff);
 };
