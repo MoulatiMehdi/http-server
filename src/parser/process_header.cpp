@@ -58,14 +58,14 @@ void HttpParserState::process_content_length(HttpRequest &request)
     std::istringstream iss(it->second);
 
     iss >> content_length;
+    std::cout << it->second << std::endl;
+    std::cout << content_length << std::endl;
     if (iss.bad() || !iss.eof())
     {
         setError(error::bad_content_length);
         return;
     }
     request.setContentLength(content_length);
-    if (content_length == 0)
-        request.setComplete(true);
 }
 
 void HttpParserState::process_headers(HttpRequest &request)

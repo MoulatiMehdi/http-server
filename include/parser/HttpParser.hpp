@@ -5,7 +5,7 @@
 #include "HttpRequest.hpp"
 #include <cstddef>
 
-class HttpParser : private HttpParserState
+class HttpParser : public HttpParserState
 {
   public:
     HttpParser(HttpRequest &request);

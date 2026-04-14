@@ -13,7 +13,7 @@ HttpParser::HttpParser(HttpRequest &request) : HttpParserState(request)
 
 void HttpParser::parse(const char *c_str, size_t len)
 {
-    if (request.complete())
+    if (request.complete() || !request.good())
         return;
     Buffer buffer(c_str, len);
     while (!buffer.empty())

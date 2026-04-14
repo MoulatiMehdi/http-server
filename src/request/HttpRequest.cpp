@@ -101,7 +101,7 @@ bool HttpRequest::complete() const
 
 void HttpRequest::setComplete(bool val)
 {
-    m_complete = val;
+    m_complete = m_status == status::OK && val;
 }
 
 static const int WIDTH     = 42;
