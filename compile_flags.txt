@@ -9,3 +9,6 @@
 -Iinclude/config
 -Iinclude/http
 -Iinclude/server
+-Iinclude/buffer
+-Iinclude/request
+-Iinclude/parser
