@@ -3,6 +3,7 @@
 #include "Method.hpp"
 #include "Status.hpp"
 #include <cctype>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
@@ -16,6 +17,137 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+
+const char *ascii_repr[128] = {
+    "\\0",
+    "\\x01",
+    "\\x02",
+    "\\x03",
+    "\\x04",
+    "\\x05",
+    "\\x06",
+    "\\a",
+    "\\b",
+    "\\t",
+    "\\n",
+    "\\v",
+    "\\f",
+    "\\r",
+    "\\x0E",
+    "\\x0F",
+    "\\x10",
+    "\\x11",
+    "\\x12",
+    "\\x13",
+    "\\x14",
+    "\\x15",
+    "\\x16",
+    "\\x17",
+    "\\x18",
+    "\\x19",
+    "\\x1A",
+    "\\x1B",
+    "\\x1C",
+    "\\x1D",
+    "\\x1E",
+    "\\x1F",
+    " ",
+    "!",
+    "\"",
+    "#",
+    "$",
+    "%",
+    "&",
+    "'",
+    "(",
+    ")",
+    "*",
+    "+",
+    ",",
+    "-",
+    ".",
+    "/",
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    ":",
+    ";",
+    "<",
+    "=",
+    ">",
+    "?",
+    "@",
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z",
+    "[",
+    "\\\\",
+    "]",
+    "^",
+    "_",
+    "`",
+    "a",
+    "b",
+    "c",
+    "d",
+    "e",
+    "f",
+    "g",
+    "h",
+    "i",
+    "j",
+    "k",
+    "l",
+    "m",
+    "n",
+    "o",
+    "p",
+    "q",
+    "r",
+    "s",
+    "t",
+    "u",
+    "v",
+    "w",
+    "x",
+    "y",
+    "z",
+    "{",
+    "|",
+    "}",
+    "~",
+    "\\x7F"
+};
 
 HttpRequest::HttpRequest()
     : HttpMessage(),
@@ -158,7 +290,17 @@ static void print_row(const std::string &key, const std::string &value)
 
 static void print_row(const std::string &value)
 {
-    std::cout << "│" << std::left << std::setw(WIDTH + 2) << value << "│\n";
+    std::cout << "│ ";
+
+    for (size_t i = 0; i < value.size(); i++)
+    {
+        std::cout.write(ascii_repr[(int)value[i]], 1);
+    }
+    for (size_t i = value.size(); i < WIDTH; i++)
+    {
+        std::cout.write(" ", 1);
+    }
+    std::cout << " │\n";
 }
 
 static void print_bottom()
