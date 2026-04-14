@@ -1,6 +1,7 @@
 #include "HttpParserState.hpp"
 #include "HttpRequest.hpp"
 #include "ParserError.hpp"
+#include "Status.hpp"
 #include <iostream>
 #include <string>
 #include <sys/types.h>
@@ -136,24 +137,13 @@ const char *ascii_repr[128] = {
     "\\x7F"
 };
 
-HttpParserState::HttpParserState()
-    : m_error(error::ok),
-      m_state(0),
-      m_complete(false),
-      m_discard_body(false),
+HttpParserState::HttpParserState(HttpRequest &request)
+    : m_state(0),
       m_chunked(false),
       m_phase(P_REQUEST_LINE),
-      m_cache()
+      m_error(error::ok),
+      request(request)
 {
-}
-
-HttpParserState::HttpParserState(HttpParserState &)
-{
-}
-
-HttpParserState &HttpParserState::operator=(HttpParserState &)
-{
-    return *this;
 }
 
 void HttpParserState::processError(HttpRequest &request)
@@ -186,6 +176,7 @@ void HttpParserState::processError(HttpRequest &request)
         case error::header_field_value_too_large:
             return request.setStatus(status::REQUEST_HEADER_FIELDS_TOO_LARGE);
         case error::stale_parser:
+            return request.setStatus(status::BAD_REQUEST);
         case error::short_read:
             break;
     }
@@ -202,34 +193,17 @@ bool HttpParserState::good() const
     return m_error == error::ok;
 }
 
-void HttpParserState::clear()
-{
-    m_state        = 0;
-    m_phase        = P_REQUEST_LINE;
-    m_complete     = false;
-    m_error        = error::ok;
-    m_discard_body = false;
-    m_chunked      = false;
-}
-
 std::ostream &operator<<(std::ostream &os, const HttpParserState &hps)
 {
     std::string phase[3] = {"Request Line", "Headers", "Body"};
 
     std::cout << "Error      : " << to_string(hps.m_error) << std::endl;
-    if (!hps.m_complete)
+    if (!hps.request.complete())
         std::cout << "Phase      : " << phase[hps.m_phase] << std::endl;
     else
         std::cout << "Phase      : Complete" << std::endl;
     if (!hps.good())
         std::cout << "State      : " << hps.m_state << std::endl;
-    std::cout << "Buffer     : '";
-
-    for (size_t i = 0; i < hps.m_cache.size(); i++)
-    {
-        std::cout << ascii_repr[(size_t)hps.m_cache[i]];
-    }
-    std::cout << "'" << std::endl;
 
     return os;
 }

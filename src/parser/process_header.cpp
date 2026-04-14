@@ -1,4 +1,3 @@
-#include "HttpParserHeaders.hpp"
 #include "HttpParserState.hpp"
 #include "HttpRequest.hpp"
 #include "ParserError.hpp"
@@ -6,21 +5,9 @@
 #include <sstream>
 #include <string>
 
-const HttpParserHeaders::Handler HttpParserHeaders::handlers[] = {
-    &HttpParserHeaders::hdr_start,
-    &HttpParserHeaders::hdr_name,
-    &HttpParserHeaders::hdr_space_before_value,
-    &HttpParserHeaders::hdr_value,
-    &HttpParserHeaders::hdr_almost_done,
-    &HttpParserHeaders::hdr_header_almost_done,
-};
-
-HttpParserHeaders::HttpParserHeaders() : HttpParserState()
+void HttpParserState::process_header_line(HttpRequest &request)
 {
-}
-
-void HttpParserHeaders::processHeaderLine(HttpRequest &request)
-{
+    m_state = 0;
     if (*m_buff.rbegin() == ' ')
     {
         size_t i = m_buff.size();
@@ -34,7 +21,7 @@ void HttpParserHeaders::processHeaderLine(HttpRequest &request)
     m_buff.clear();
 }
 
-void HttpParserHeaders::handle_transfer_encoding(HttpRequest &request)
+void HttpParserState::process_transfer_encoding(HttpRequest &request)
 {
     HttpRequest::Headers::const_iterator it1 =
         request.getHeader("transfer-encoding");
@@ -55,7 +42,7 @@ void HttpParserHeaders::handle_transfer_encoding(HttpRequest &request)
         setError(error::unsupported_transfer);
 }
 
-void HttpParserHeaders::handle_content_length(HttpRequest &request)
+void HttpParserState::process_content_length(HttpRequest &request)
 {
 
     int count = request.headers().count("content-length");
@@ -81,9 +68,16 @@ void HttpParserHeaders::handle_content_length(HttpRequest &request)
         request.setComplete(true);
 }
 
-void HttpParserHeaders::processHeaders(HttpRequest &request)
+void HttpParserState::process_headers(HttpRequest &request)
 {
-    handle_transfer_encoding(request);
+    m_phase = P_BODY;
+    m_state = 0;
+    process_transfer_encoding(request);
     if (!m_chunked)
-        handle_content_length(request);
+        process_content_length(request);
+    if (request.method() == method::POST)
+    {
+        if (request.body().open_file() < 0)
+            return setError(error::bad_request);
+    }
 }

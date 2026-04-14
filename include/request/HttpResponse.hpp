@@ -11,10 +11,7 @@ class HttpResponse : public HttpMessage
 
   public:
     HttpResponse();
-    // HttpResponse(const HttpResponse &);
-    // HttpResponse &operator=(const HttpResponse &);
     ~HttpResponse();
-
 
     bool good() const;
     bool complete() const;

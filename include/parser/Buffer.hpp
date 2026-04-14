@@ -13,7 +13,7 @@ class Buffer
   public:
     Buffer();
     Buffer(const char *str, size_t len);
-    Buffer(std::string& str);
+    Buffer(std::string &str);
     ~Buffer();
 
     bool        empty() const;
