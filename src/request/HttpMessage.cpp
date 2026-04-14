@@ -109,13 +109,4 @@ const HttpMessage::Headers &HttpMessage::headers() const
     return m_headers;
 }
 
-void HttpMessage::clear()
-{
-    m_headers.clear();
-    m_status         = status::OK;
-    m_content_length = 0;
-    m_version        = HTTP_V10;
-    m_body.clear();
-}
-
 HttpMessage::~HttpMessage() {};

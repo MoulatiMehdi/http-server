@@ -104,14 +104,6 @@ void HttpRequest::setComplete(bool val)
     m_complete = val;
 }
 
-void HttpRequest::clear()
-{
-    HttpMessage::clear();
-    m_complete = false;
-    m_uri.clear();
-    m_method = method::UNKNOWN;
-}
-
 static const int WIDTH     = 42;
 static const int KEY_WIDTH = 20;
 
