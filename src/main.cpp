@@ -9,7 +9,7 @@
 int main()
 {
     HttpRequest request;
-    HttpParser  parser;
+    HttpParser  parser(request);
     {
         std::string tokens[] = {
             "POST /        HTTP/1.0\r\n",
@@ -33,23 +33,12 @@ int main()
 
         for (int i = 0; i < size; i++)
         {
-            parser.parse(request, tokens[i].c_str(), tokens[i].size());
-            if (request.complete())
-            {
-                std::cout << request << std::endl;
-                std::cout << parser << std::endl;
-                parser.clear();
-                request.clear();
-            }
-            if (!request.good())
-            {
-                std::cout << request << std::endl;
-                std::cout << parser << std::endl;
-
-                return -1;
-            }
+            parser.parse(tokens[i].c_str(), tokens[i].size());
+            if (request.complete() || !request.good())
+                break;
         }
     }
+    std::cout << request << std::endl;
 
     return 0;
 }
