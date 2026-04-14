@@ -182,7 +182,6 @@ void HttpParserState::parse_headers(Buffer &buff)
         switch (action)
         {
             case RES_ERROR:
-                processError(request);
                 return;
             case RES_HEADER_DONE:
                 process_headers(request);
@@ -193,5 +192,7 @@ void HttpParserState::parse_headers(Buffer &buff)
             case RES_CONTINUE:
                 break;
         }
+        if (!good())
+            return;
     }
 }

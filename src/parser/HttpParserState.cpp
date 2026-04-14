@@ -185,7 +185,10 @@ void HttpParserState::processError(HttpRequest &request)
 void HttpParserState::setError(ParserError err)
 {
     if (m_error == error::ok)
+    {
         m_error = err;
+        processError(request);
+    }
 }
 
 bool HttpParserState::good() const

@@ -27,15 +27,12 @@ void HttpParserState::parse_body(Buffer &buffer)
 {
     if (m_chunked)
         parse_body_by_chunk(buffer);
-    else if (request.content_length() > 0)
-        parse_body_by_length(buffer);
     else
-        request.setComplete(true);
+        parse_body_by_length(buffer);
 }
 
 void HttpParserState::parse_body_by_chunk(Buffer &buffer)
 {
-
     while (!buffer.empty())
     {
         const char ch = buffer.getc();
@@ -60,9 +57,7 @@ void HttpParserState::parse_body_by_chunk(Buffer &buffer)
                 return setError(error::bad_request);
             case SW_CHUNK_SIZE:
                 if (m_chunk_max_size > LONG_MAX / 16)
-                {
                     return setError(error::bad_request);
-                }
                 if (ch >= '0' && ch <= '9')
                 {
                     m_chunk_max_size = m_chunk_max_size * 16 + (ch - '0');
@@ -189,7 +184,7 @@ void HttpParserState::parse_body_by_length(Buffer &buffer)
         buffer.consume(size);
     }
     if (request.content_length() < request.body().size())
-        setError(error::stale_parser);
+        return setError(error::stale_parser);
     else if (request.content_length() == request.body().size())
         request.setComplete(true);
 }

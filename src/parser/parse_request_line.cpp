@@ -422,10 +422,9 @@ void HttpParserState::process_request_line(unsigned int result)
 {
     switch (static_cast<RequestLineResult>(result))
     {
+        case RES_ERROR:
         case RES_CONTINUE:
             break;
-        case RES_ERROR:
-            return processError(request);
         case RES_METHOD_DONE:
             request.setMethod(m_buff);
             if (request.method() == method::UNKNOWN)
