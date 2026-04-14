@@ -113,7 +113,8 @@ ClientStatus Client::queueResponse(const HttpResp &resp) {
 	std::string headStr = head.str();
 	_wrbuf.insert(_wrbuf.end(), headStr.begin(), headStr.end());
 	// if (resp.isFile) readFile(resp.path.c_str(), _wrbuf);
-	if (resp.isFile) readFile(resp.path.c_str(), _wrbuf);
+	// if (resp.isFile) return initFileServe(resp.path);
+	if (_file) return WANT_WRITE;
 	else _wrbuf.insert(_wrbuf.end(), resp.body.begin(), resp.body.end());
 
 	return WANT_WRITE;
@@ -121,6 +122,33 @@ ClientStatus Client::queueResponse(const HttpResp &resp) {
 
 #include <sys/stat.h>
 #include "helper.hpp"
+
+ClientStatus Client::initFileServe(const std::string &path) {
+	_file = new FileServe(path);
+	if (_file->done()) {
+		delete _file;
+		_file = NULL;
+		return serveErr(404);
+	}
+	return WANT_WRITE;
+}
+
+ClientStatus Client::serveFile(const std::string &path) {
+	initFileServe(path);
+	if (_file->done()) {
+		delete _file;
+		_file = NULL;
+		serveErr(404);
+	}
+	HttpResp resp(200, "OK");
+	resp.isFile = true;
+	resp.path = path;
+	resp.headers["Content-Type"] = "text/html";
+	resp.headers["Content-Length"] = to_stringg(_file->size());
+	resp.headers["Connection"] = "close";
+	return queueResponse(resp);
+}
+
 ClientStatus Client::serveErr(int code) {
 	// return queueResponse(_router.buildError(status, _servConf));
 	// a response that has the filename or string
@@ -135,21 +163,24 @@ ClientStatus Client::serveErr(int code) {
 		"</title></head>\n"
 		"<body>\n"
 		"<h1>" +
-		to_stringg(code) + " " + msg +
+		to_stringg(code) + "From Memory" + msg +
 		"</h1>\n"
 		"</body>\n"
 		"</html>\n";
-
-	// Fill body as bytes
 	resp.body.assign(body.begin(), body.end());
-
-	// Headers
 	resp.isFile = true;
 	resp.path = "./err.html";
-	struct stat st;
-	stat(resp.path.c_str(), &st);
 	resp.headers["Content-Type"] = "text/html";
-	resp.headers["Content-Length"] = to_stringg(st.st_size);
+	_file = new FileServe(resp.path);
+	if (_file->done()) {
+		std::cout << "\n\n\nFile Failed to open Err page\n\n\n\n";
+		delete _file;
+		_file = NULL;
+		resp.headers["Content-Length"] = to_stringg(resp.body.size());
+	} else {
+		std::cout << "\n\n\nFile open opened\n\n\n\n";
+		resp.headers["Content-Length"] = to_stringg(_file->size());
+	}
 	resp.headers["Connection"] = "close";
 	return queueResponse(resp);
 }
@@ -159,9 +190,10 @@ ClientStatus Client::onReadable() {
 	char buff[BUFF_SIZE];
 	n = read(_fd, buff, sizeof(buff));
 	if (n == 0 || n == ERROR) return DISCONNECT;
-	std::cout.write(buff, n);
+	// std::cout.write(buff, n); // for debug
 
-	return serveErr(400);
+	// return serveErr(400);
+	return serveFile("hello.html");
 	// _parser.parse(_req, buff, n);
 	// if (!_req.good()) return serveErr(_req.status());  // returns WANT_WRITE
 	// if (!_req.complete()) return OK;
@@ -178,15 +210,25 @@ ClientStatus Client::onReadable() {
 ClientStatus Client::onWritable() {
 	int n;
 
-	if (hasDataToWrite()) {
+	if (!_wrbuf.empty()) {
 		n = write(_fd, _wrbuf.data(), _wrbuf.size());
 		if (n <= 0) return DISCONNECT;
 
 		_wrbuf.erase(_wrbuf.begin(), _wrbuf.begin() + n);
-		if (hasDataToWrite()) return OK;
-		return DONE_WRITE;
+		return OK;
 	}
-	return OK;
+
+	if (_file) {
+		if (_file->sendChunk(_fd) == ERROR) return DISCONNECT;
+		std::cout << "\n\n\nFile sent chunk\n\n\n\n";
+		if (_file->done()) {
+			delete _file;
+			_file = NULL;
+			return DONE_WRITE;
+		}
+		return OK;
+	}
+	return DONE_WRITE;
 }
 
 bool Client::hasDataToWrite() const { return !_wrbuf.empty(); }

@@ -2,8 +2,10 @@
 #include <unistd.h>
 #include <cstring>
 #include <iostream>
+#include <string>
 #include <vector>
 #include "Config.hpp"
+#include "FileServe.hpp"
 #include "HttpParser.hpp"
 #include "HttpRequest.hpp"
 #include "Logger.hpp"
@@ -29,6 +31,7 @@ class Client {
 	std::vector<u_int8_t> _wrbuf;
 	HttpParser _parser;
 	HttpRequest _req;
+	FileServe *_file;
 
 	// time_t _connected_at;
 	// time_t _last_response_at;
@@ -43,6 +46,8 @@ class Client {
 	ClientStatus onWritable();
 
 	ClientStatus serveErr(int status);
+	ClientStatus serveFile(const std::string &path);
+	ClientStatus initFileServe(const std::string &path);
 	ClientStatus queueResponse(const HttpResp &resp);
 };
 

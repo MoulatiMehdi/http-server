@@ -44,6 +44,7 @@ SRCS = ./src/config/ConfigParserSharedDirectives.cpp \
 	   ./src/server/EventLoop.cpp \
 	   ./src/server/Socket.cpp \
 	   ./src/server/Client.cpp \
+	   ./src/server/FileServe.cpp \
 	   ./src/common/Logger.cpp \
 	   ./src/buffer/Buffer.cpp
 
