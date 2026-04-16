@@ -1,4 +1,7 @@
 #include "EventLoop.hpp"
+#include <sys/epoll.h>
+#include <unistd.h>
+#include "ClientTable.hpp"
 
 EventLoop::EventLoop(SocketTable &_socketTable) : _sockTable(_socketTable) {
 	_epollfd = epoll_create1(0);
@@ -31,10 +34,20 @@ void EventLoop::disconnectClient(int fd) {
 	Logger::info("client " + to_stringg(fd) + ": disconnected");
 }
 
-bool EventLoop::handleStatus(int fd, ClientStatus status) {
+bool EventLoop::handleStatus(Client *client, ClientStatus status) {
+	int fd = client->getFd();
+
 	if (status == DISCONNECT) return false;
 	else if (status == WANT_WRITE) epollMod(fd, EPOLLIN | EPOLLOUT);
 	else if (status == DONE_WRITE) epollMod(fd, EPOLLIN);
+	else if (status == INIT_CGI) {
+		int pipe[2];
+		client->getCgi()->getPipe(pipe);
+		_pipe_to_client[pipe[STDIN_FILENO]] = fd;
+		_pipe_to_client[pipe[STDOUT_FILENO]] = fd;
+		epollAdd(pipe[STDIN_FILENO], EPOLLIN);
+		epollAdd(pipe[STDOUT_FILENO], EPOLLOUT);
+	}
 	return true;
 }
 
@@ -42,11 +55,11 @@ void EventLoop::processClients(struct epoll_event &ev) {
 	int fd = ev.data.fd;
 	Client *client = _cliTable.get(fd);
 
-	if (ev.events & EPOLLIN && !handleStatus(fd, client->onReadable())) {
+	if (ev.events & EPOLLIN && !handleStatus(client, client->onReadable())) {
 		disconnectClient(fd);
 		return;
 	}
-	if (ev.events & EPOLLOUT && !handleStatus(fd, client->onWritable())) {
+	if (ev.events & EPOLLOUT && !handleStatus(client, client->onWritable())) {
 		disconnectClient(fd);
 		return;
 	}
@@ -76,7 +89,7 @@ void EventLoop::addSockets() {
 		epollAdd(_sockTable[i]->getFd(), EPOLLIN);
 }
 
-// TODO: ihajji: 9lab 3la kifach maxfd
+// TODO: maxfd
 void EventLoop::loop() {
 	int nfds;
 	struct epoll_event events[MAX_EVENTS];

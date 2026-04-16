@@ -11,8 +11,8 @@
 #include <cstring>
 #include <string>
 #include "Logger.hpp"
-#include "helper.hpp"
 #include "SocketTable.hpp"
+#include "helper.hpp"
 
 #define MAX_EVENTS 128
 #define MAX_CLIENTS 1000
@@ -22,13 +22,14 @@ class EventLoop {
 	SocketTable &_sockTable;
 	ClientTable _cliTable;
 	int _epollfd;
+	std::map<int, int> _pipe_to_client;
 
 	void handleNewConnections(Socket *sock);
 	void processClients(struct epoll_event &ev);
 	void disconnectClient(int fd);
 	void epollMod(int fd, uint32_t events);
 	void epollAdd(int fd, uint32_t events);
-	bool handleStatus(int fd, ClientStatus status);
+	bool handleStatus(Client *client, ClientStatus status);
 
    public:
 	EventLoop(SocketTable &_socketTable);

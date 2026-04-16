@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <cstdio>
 #include <cstdlib>
+#include "Cgi.hpp"
 
 Client::Client(const ServerConfig &servConf, int fd)
 	: _fd(fd) /*, _servConf(servConf)  , _connected_at(time(NULL)) */ {
@@ -53,6 +54,7 @@ Client::~Client() {
 // 	int status_code;
 // 	std::string status_msg;
 // 	std::map<std::string, std::string> headers;
+// 	std::vector<u_int8_t> body;
 // 	std::vector<u_int8_t> body;
 //
 // 	HttpResponse() : status_code(200), status_msg("OK") {}
@@ -123,23 +125,18 @@ ClientStatus Client::queueResponse(const HttpResp &resp) {
 #include <sys/stat.h>
 #include "helper.hpp"
 
-ClientStatus Client::initFileServe(const std::string &path) {
+void Client::initFileServe(const std::string &path) {
 	_file = new FileServe(path);
 	if (_file->done()) {
 		delete _file;
 		_file = NULL;
-		return serveErr(404);
 	}
-	return WANT_WRITE;
 }
 
 ClientStatus Client::serveFile(const std::string &path) {
 	initFileServe(path);
-	if (_file->done()) {
-		delete _file;
-		_file = NULL;
-		serveErr(404);
-	}
+	if (_file == NULL) { return serveErr(404); }
+
 	HttpResp resp(200, "OK");
 	resp.isFile = true;
 	resp.path = path;
@@ -185,15 +182,24 @@ ClientStatus Client::serveErr(int code) {
 	return queueResponse(resp);
 }
 
+ClientStatus Client::initCgi() {
+	_cgi = new Cgi("./hello.sh", _req);	 // try catch
+	return INIT_CGI;
+}
+
+Cgi *Client::getCgi() const { return _cgi; }
+
+int Client::getFd() const { return _fd; }
+
 ClientStatus Client::onReadable() {
-	int n;
 	char buff[BUFF_SIZE];
-	n = read(_fd, buff, sizeof(buff));
+	int n = read(_fd, buff, sizeof(buff));
 	if (n == 0 || n == ERROR) return DISCONNECT;
 	// std::cout.write(buff, n); // for debug
 
 	// return serveErr(400);
-	return serveFile("hello.html");
+	// return serveFile("hello.html");
+	return initCgi();
 	// _parser.parse(_req, buff, n);
 	// if (!_req.good()) return serveErr(_req.status());  // returns WANT_WRITE
 	// if (!_req.complete()) return OK;
@@ -220,7 +226,6 @@ ClientStatus Client::onWritable() {
 
 	if (_file) {
 		if (_file->sendChunk(_fd) == ERROR) return DISCONNECT;
-		std::cout << "\n\n\nFile sent chunk\n\n\n\n";
 		if (_file->done()) {
 			delete _file;
 			_file = NULL;

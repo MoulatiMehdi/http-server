@@ -3,11 +3,14 @@
 #include <sys/types.h>
 #include <string>
 
+#define BUFF_SIZE 4096
 class FileServe {
    private:
 	int _fd;
-	off_t _offset;
-	off_t _size;
+	int _size;
+	char _tmp[BUFF_SIZE];
+	int _tmp_offset;
+	int _tmp_len;
 
 	FileServe(const FileServe &);
 	FileServe &operator=(const FileServe &);
@@ -17,7 +20,7 @@ class FileServe {
 	~FileServe();
 
 	bool done() const;
-	int sendChunk(int client_fd);
+	int sendChunk(int fd);
 	off_t size() const;
 };
 #endif	// !FILESERVE_HPP

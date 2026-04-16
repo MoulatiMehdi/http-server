@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "Cgi.hpp"
 #include "Config.hpp"
 #include "FileServe.hpp"
 #include "HttpParser.hpp"
@@ -22,7 +23,7 @@ struct HttpResp {
 	HttpResp(int n, const std::string &s) : status_code(n), status_msg(s) {}
 };
 
-enum ClientStatus { OK, WANT_WRITE, DONE_WRITE, DISCONNECT };
+enum ClientStatus { OK, WANT_WRITE, DONE_WRITE, DISCONNECT, INIT_CGI};
 
 class Client {
    private:
@@ -32,6 +33,7 @@ class Client {
 	HttpParser _parser;
 	HttpRequest _req;
 	FileServe *_file;
+	Cgi *_cgi;
 
 	// time_t _connected_at;
 	// time_t _last_response_at;
@@ -44,10 +46,13 @@ class Client {
 
 	ClientStatus onReadable();
 	ClientStatus onWritable();
+	ClientStatus initCgi();
+	Cgi *getCgi() const;
+	int getFd() const;
 
+	void initFileServe(const std::string &path);
 	ClientStatus serveErr(int status);
 	ClientStatus serveFile(const std::string &path);
-	ClientStatus initFileServe(const std::string &path);
 	ClientStatus queueResponse(const HttpResp &resp);
 };
 

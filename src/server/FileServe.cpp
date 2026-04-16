@@ -5,7 +5,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-FileServe::FileServe(const std::string &path) : _fd(-1), _offset(0), _size(0) {
+FileServe::FileServe(const std::string &path)
+	: _fd(-1), _size(0), _tmp_offset(0), _tmp_len(0) {
 	_fd = open(path.c_str(), O_RDONLY);
 	if (_fd < 0) return;
 
@@ -22,28 +23,36 @@ FileServe::~FileServe() {
 	if (_fd >= 0) close(_fd);
 }
 
-bool FileServe::done() const { return _fd < 0 || _offset >= _size; }
+bool FileServe::done() const { return _fd < 0; }
 
-#define BUFF_SIZE 4096
 #include "Client.hpp"
-int FileServe::sendChunk(int client_fd) {
-	char tmp[4096];
-
-	int n = read(_fd, tmp, sizeof(tmp));
-	if (n == 0) {
-		close(_fd);
-		_fd = -1;
-		return DONE_WRITE;
+int FileServe::sendChunk(int fd) {
+	if (_tmp_len == 0) {
+		int n = read(_fd, _tmp, sizeof(_tmp));
+		if (n == 0) {
+			close(_fd);
+			_fd = -1;
+			return 0;
+		}
+		if (n == ERROR) {
+			close(_fd);
+			_fd = -1;
+			return ERROR;
+		}
+		_tmp_len = n;
+		_tmp_offset = 0;
 	}
 
-	if (n == ERROR) {
-		close(_fd);
-		_fd = -1;
-		return DISCONNECT;
+	int n = write(fd, _tmp + _tmp_offset, _tmp_len - _tmp_offset);
+	if (n == ERROR) return ERROR;
+	_tmp_offset += n;
+
+	if (_tmp_offset == _tmp_len) {
+		_tmp_len = 0;
+		_tmp_offset = 0;
 	}
 
-	write(client_fd, tmp, n);
-	return OK;
+	return n;
 }
 
 off_t FileServe::size() const { return _size; }
