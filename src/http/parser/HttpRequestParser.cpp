@@ -1,4 +1,4 @@
-#include "HttpParser.hpp"
+#include "HttpRequestParser.hpp"
 #include "Buffer.hpp"
 #include "HttpParserState.hpp"
 #include "HttpRequest.hpp"
@@ -7,11 +7,13 @@
 #include <cstdio>
 #include <cstring>
 
-HttpParser::HttpParser(HttpRequest &request) : HttpParserState(request)
+HttpRequestParser::HttpRequestParser(HttpRequest &request)
+    : HttpParserState(request),
+      request(request)
 {
 }
 
-void HttpParser::parse(const char *c_str, size_t len)
+void HttpRequestParser::parse(const char *c_str, size_t len)
 {
     if (request.complete() || !request.good())
         return;
@@ -20,27 +22,24 @@ void HttpParser::parse(const char *c_str, size_t len)
     {
         switch (m_phase)
         {
-            case HttpParserState::P_REQUEST_LINE:
+            case HttpParserState::PHASE_REQUEST_LINE:
                 parse_request_line(buffer);
                 break;
-            case HttpParserState::P_HEADERS:
+            case HttpParserState::PHASE_HEADERS:
                 parse_headers(buffer);
                 break;
-            case HttpParserState::P_BODY:
+            case HttpParserState::PHASE_BODY:
                 parse_body(buffer);
-                if (request.complete())
-                {
-                    if (!buffer.empty())
-                        buffer.consume(buffer.size());
-                    return;
-                }
                 break;
         }
-        if (!good())
+        if (request.complete() || !good())
+        {
+            request.body().close();
             return;
+        }
     }
 }
 
-HttpParser::~HttpParser()
+HttpRequestParser::~HttpRequestParser()
 {
 }

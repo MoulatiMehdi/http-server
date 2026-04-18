@@ -15,14 +15,6 @@ enum HeaderState
     SW_HEADER_ALMOST_DONE,
 };
 
-enum HeaderResult
-{
-    RES_ERROR,
-    RES_CONTINUE,
-    RES_HEADER_DONE,
-    RES_HEADER_LINE_DONE
-};
-
 static inline u_char to_lower(u_char ch)
 {
     static const u_char lowcase[] =
@@ -162,37 +154,4 @@ unsigned int HttpParserState::hdr_header_almost_done(u_char ch)
 
     setError(error::bad_line_ending);
     return RES_ERROR;
-}
-
-void HttpParserState::parse_headers(Buffer &buff)
-{
-    const static Handler handlers[6] = {
-        &HttpParserState::hdr_start,
-        &HttpParserState::hdr_name,
-        &HttpParserState::hdr_space_before_value,
-        &HttpParserState::hdr_value,
-        &HttpParserState::hdr_almost_done,
-        &HttpParserState::hdr_header_almost_done,
-    };
-    while (!buff.empty())
-    {
-        char         ch     = buff.getc();
-        unsigned int action = (this->*handlers[m_state])(ch);
-
-        switch (action)
-        {
-            case RES_ERROR:
-                return;
-            case RES_HEADER_DONE:
-                process_headers(request);
-                return;
-            case RES_HEADER_LINE_DONE:
-                process_header_line(request);
-                break;
-            case RES_CONTINUE:
-                break;
-        }
-        if (!good())
-            return;
-    }
 }
