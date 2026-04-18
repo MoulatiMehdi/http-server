@@ -1,4 +1,9 @@
 #include "HttpParserState.hpp"
+#include "HttpRequest.hpp"
+#include "HttpRequestParser.hpp"
+#include "Method.hpp"
+#include "ParserError.hpp"
+#include <iostream>
 
 enum RequestLineState
 {
@@ -19,16 +24,6 @@ enum RequestLineState
     SW_MINOR_DIGIT,
     SW_SPACES_AFTER_DIGIT,
     SW_ALMOST_DONE,
-};
-
-enum RequestLineResult
-{
-    RES_ERROR,
-    RES_CONTINUE,
-    RES_METHOD_DONE,
-    RES_URI_DONE,
-    RES_VERSION_DONE,
-    RES_REQUEST_LINE_DONE
 };
 
 #define CR '\r'
@@ -62,7 +57,7 @@ static bool is_control(u_char ch)
     return ch < 0x20 || ch == 0x7f;
 }
 
-unsigned int HttpParserState::req_start(u_char ch)
+unsigned int HttpRequestParser::req_start(u_char ch)
 {
     if (ch == CR || ch == LF)
         return RES_CONTINUE;
@@ -78,7 +73,7 @@ unsigned int HttpParserState::req_start(u_char ch)
     return RES_CONTINUE;
 }
 
-unsigned int HttpParserState::req_method(u_char ch)
+unsigned int HttpRequestParser::req_method(u_char ch)
 {
     if (ch == ' ')
     {
@@ -95,7 +90,7 @@ unsigned int HttpParserState::req_method(u_char ch)
     return RES_CONTINUE;
 }
 
-unsigned int HttpParserState::req_spaces_before_uri(u_char ch)
+unsigned int HttpRequestParser::req_spaces_before_uri(u_char ch)
 {
     if (ch == '/')
     {
@@ -112,7 +107,7 @@ unsigned int HttpParserState::req_spaces_before_uri(u_char ch)
     return RES_CONTINUE;
 }
 
-unsigned int HttpParserState::req_uri_after_slash(u_char ch)
+unsigned int HttpRequestParser::req_uri_after_slash(u_char ch)
 {
     if (is_usual(ch))
     {
@@ -128,10 +123,12 @@ unsigned int HttpParserState::req_uri_after_slash(u_char ch)
             return RES_URI_DONE;
         case CR:
             m_minor = 9;
+            m_major = 0;
             m_state = SW_ALMOST_DONE;
             return RES_CONTINUE;
         case LF:
             m_minor = 9;
+            m_major = 0;
             return RES_REQUEST_LINE_DONE;
         case '.':
         case '%':
@@ -156,7 +153,7 @@ unsigned int HttpParserState::req_uri_after_slash(u_char ch)
     }
 }
 
-unsigned int HttpParserState::req_check_uri(u_char ch)
+unsigned int HttpRequestParser::req_check_uri(u_char ch)
 {
     if (is_usual(ch))
     {
@@ -203,7 +200,7 @@ unsigned int HttpParserState::req_check_uri(u_char ch)
     }
 }
 
-unsigned int HttpParserState::req_uri(u_char ch)
+unsigned int HttpRequestParser::req_uri(u_char ch)
 {
     if (is_usual(ch))
     {
@@ -237,7 +234,7 @@ unsigned int HttpParserState::req_uri(u_char ch)
     }
 }
 
-unsigned int HttpParserState::req_http_09(u_char ch)
+unsigned int HttpRequestParser::req_http_09(u_char ch)
 {
     switch (ch)
     {
@@ -259,7 +256,7 @@ unsigned int HttpParserState::req_http_09(u_char ch)
     }
 }
 
-unsigned int HttpParserState::req_http_H(u_char ch)
+unsigned int HttpRequestParser::req_http_H(u_char ch)
 {
     if (ch != 'T')
     {
@@ -270,7 +267,7 @@ unsigned int HttpParserState::req_http_H(u_char ch)
     return RES_CONTINUE;
 }
 
-unsigned int HttpParserState::req_http_HT(u_char ch)
+unsigned int HttpRequestParser::req_http_HT(u_char ch)
 {
     if (ch != 'T')
     {
@@ -281,7 +278,7 @@ unsigned int HttpParserState::req_http_HT(u_char ch)
     return RES_CONTINUE;
 }
 
-unsigned int HttpParserState::req_http_HTT(u_char ch)
+unsigned int HttpRequestParser::req_http_HTT(u_char ch)
 {
     if (ch != 'P')
     {
@@ -292,7 +289,7 @@ unsigned int HttpParserState::req_http_HTT(u_char ch)
     return RES_CONTINUE;
 }
 
-unsigned int HttpParserState::req_http_HTTP(u_char ch)
+unsigned int HttpRequestParser::req_http_HTTP(u_char ch)
 {
     if (ch != '/')
     {
@@ -303,7 +300,7 @@ unsigned int HttpParserState::req_http_HTTP(u_char ch)
     return RES_CONTINUE;
 }
 
-unsigned int HttpParserState::req_first_major_digit(u_char ch)
+unsigned int HttpRequestParser::req_first_major_digit(u_char ch)
 {
     if (ch < '1' || ch > '9')
     {
@@ -315,7 +312,7 @@ unsigned int HttpParserState::req_first_major_digit(u_char ch)
 
     if (m_major > 1)
     {
-        setError(error::bad_version);
+        setError(error::unsupported_version);
         return RES_ERROR;
     }
 
@@ -323,7 +320,7 @@ unsigned int HttpParserState::req_first_major_digit(u_char ch)
     return RES_CONTINUE;
 }
 
-unsigned int HttpParserState::req_major_digit(u_char ch)
+unsigned int HttpRequestParser::req_major_digit(u_char ch)
 {
     if (ch == '.')
     {
@@ -341,13 +338,13 @@ unsigned int HttpParserState::req_major_digit(u_char ch)
 
     if (m_major > 1)
     {
-        setError(error::bad_version);
+        setError(error::unsupported_version);
         return RES_ERROR;
     }
     return RES_CONTINUE;
 }
 
-unsigned int HttpParserState::req_first_minor_digit(u_char ch)
+unsigned int HttpRequestParser::req_first_minor_digit(u_char ch)
 {
     if (ch < '0' || ch > '9')
     {
@@ -360,12 +357,12 @@ unsigned int HttpParserState::req_first_minor_digit(u_char ch)
     return RES_CONTINUE;
 }
 
-unsigned int HttpParserState::req_minor_digit(u_char ch)
+unsigned int HttpRequestParser::req_minor_digit(u_char ch)
 {
     if (ch == CR)
     {
         m_state = SW_ALMOST_DONE;
-        return RES_CONTINUE;
+        return RES_VERSION_DONE;
     }
     if (ch == LF)
         return RES_REQUEST_LINE_DONE;
@@ -381,17 +378,17 @@ unsigned int HttpParserState::req_minor_digit(u_char ch)
         return RES_ERROR;
     }
 
-    if (m_minor > 99)
+    m_minor = m_minor * 10 + (ch - '0');
+    if (m_minor > 999)
     {
         setError(error::bad_request);
         return RES_ERROR;
     }
 
-    m_minor = m_minor * 10 + (ch - '0');
     return RES_CONTINUE;
 }
 
-unsigned int HttpParserState::req_spaces_after_digit(u_char ch)
+unsigned int HttpRequestParser::req_spaces_after_digit(u_char ch)
 {
     switch (ch)
     {
@@ -408,7 +405,7 @@ unsigned int HttpParserState::req_spaces_after_digit(u_char ch)
     }
 }
 
-unsigned int HttpParserState::req_almost_done(u_char ch)
+unsigned int HttpRequestParser::req_almost_done(u_char ch)
 {
     if (ch != LF)
     {
@@ -418,60 +415,57 @@ unsigned int HttpParserState::req_almost_done(u_char ch)
     return RES_REQUEST_LINE_DONE;
 }
 
-void HttpParserState::process_request_line(unsigned int result)
+void HttpRequestParser::parse_request_line(Buffer &buff)
 {
-    switch (static_cast<RequestLineResult>(result))
-    {
-        case RES_ERROR:
-        case RES_CONTINUE:
-            break;
-        case RES_METHOD_DONE:
-            request.setMethod(m_buff);
-            if (request.method() == method::UNKNOWN)
-                setError(error::unsupported_method);
-            m_buff.clear();
-            return;
-        case RES_URI_DONE:
-            request.setUri(m_buff);
-            m_buff.clear();
-            return;
-        case RES_VERSION_DONE:
-            request.setVersion(m_major, m_minor);
-            if (request.version() == 9)
-                setError(error::unsupported_version);
-            return;
-        case RES_REQUEST_LINE_DONE:
-            m_phase = P_HEADERS;
-            m_state = 0;
-            return;
-    }
-}
-
-void HttpParserState::parse_request_line(Buffer &buff)
-{
-    const static HttpParserState::Handler handlers[] = {
-        &HttpParserState::req_start,
-        &HttpParserState::req_method,
-        &HttpParserState::req_spaces_before_uri,
-        &HttpParserState::req_uri_after_slash,
-        &HttpParserState::req_check_uri,
-        &HttpParserState::req_uri,
-        &HttpParserState::req_http_09,
-        &HttpParserState::req_http_H,
-        &HttpParserState::req_http_HT,
-        &HttpParserState::req_http_HTT,
-        &HttpParserState::req_http_HTTP,
-        &HttpParserState::req_first_major_digit,
-        &HttpParserState::req_major_digit,
-        &HttpParserState::req_first_minor_digit,
-        &HttpParserState::req_minor_digit,
-        &HttpParserState::req_spaces_after_digit,
-        &HttpParserState::req_almost_done,
+    const static HttpRequestParser::Handler handlers[] = {
+        &HttpRequestParser::req_start,
+        &HttpRequestParser::req_method,
+        &HttpRequestParser::req_spaces_before_uri,
+        &HttpRequestParser::req_uri_after_slash,
+        &HttpRequestParser::req_check_uri,
+        &HttpRequestParser::req_uri,
+        &HttpRequestParser::req_http_09,
+        &HttpRequestParser::req_http_H,
+        &HttpRequestParser::req_http_HT,
+        &HttpRequestParser::req_http_HTT,
+        &HttpRequestParser::req_http_HTTP,
+        &HttpRequestParser::req_first_major_digit,
+        &HttpRequestParser::req_major_digit,
+        &HttpRequestParser::req_first_minor_digit,
+        &HttpRequestParser::req_minor_digit,
+        &HttpRequestParser::req_spaces_after_digit,
+        &HttpRequestParser::req_almost_done,
     };
     while (!buff.empty())
     {
         char         ch     = buff.getc();
         unsigned int action = (this->*handlers[m_state])(ch);
-        process_request_line(action);
+        switch (static_cast<RequestLineResult>(action))
+        {
+            case RES_ERROR:
+                return;
+            case RES_CONTINUE:
+                break;
+            case RES_METHOD_DONE:
+                request.setMethod(m_buff);
+                if (request.method() == method::UNKNOWN)
+                    return setError(error::unsupported_method);
+                m_discard_body = request.method() != method::POST;
+                m_buff.clear();
+                break;
+            case RES_URI_DONE:
+                request.setUri(m_buff);
+                m_buff.clear();
+                break;
+            case RES_VERSION_DONE:
+                request.setVersion(m_major, m_minor);
+                if (request.version() == 9)
+                    return setError(error::unsupported_version);
+                break;
+            case RES_REQUEST_LINE_DONE:
+                m_phase = PHASE_HEADERS;
+                m_state = 0;
+                return;
+        }
     }
 }

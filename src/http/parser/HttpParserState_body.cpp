@@ -1,6 +1,5 @@
 #include "Buffer.hpp"
 #include "HttpParserState.hpp"
-#include "HttpRequest.hpp"
 #include "ParserError.hpp"
 #include <algorithm>
 #include <climits>
@@ -105,9 +104,10 @@ void HttpParserState::parse_body_by_chunk(Buffer &buffer)
                 }
                 return setError(error::bad_request);
             case SW_CHUNK_DATA:
-                if (request.body().append(ch) < 0)
+                if (m_discard_body)
+                    request.body().consume(1);
+                else if (request.body().append(ch) < 0)
                     return setError(error::bad_request);
-
                 m_chunk_size++;
                 if (m_chunk_size == m_chunk_max_size)
                 {
@@ -179,7 +179,9 @@ void HttpParserState::parse_body_by_length(Buffer &buffer)
     if (content_length > body_size && !buffer.empty())
     {
         size_t size = std::min(content_length - body_size, buffer.size());
-        if (request.body().append(buffer.current(), size) < 0)
+        if (m_discard_body)
+            request.body().consume(size);
+        else if (request.body().append(buffer.current(), size) < 0)
             return setError(error::bad_request);
         buffer.consume(size);
     }

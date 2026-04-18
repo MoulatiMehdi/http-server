@@ -11,27 +11,10 @@ HttpMessage::HttpMessage()
       m_headers(),
       m_status(status::OK),
       m_content_length(0),
-      m_body()
+      m_body(),
+      m_complete(false)
 {
 }
-
-// HttpMessage::HttpMessage(const HttpMessage &other)
-//     : m_version(other.m_version),
-//       m_headers(other.m_headers),
-//       m_status(other.m_status),
-//       m_content_length(other.m_content_length),
-//       m_body()
-// {
-// }
-//
-// HttpMessage &HttpMessage::operator=(const HttpMessage &other)
-// {
-//     m_version        = other.m_version;
-//     m_status         = other.m_status;
-//     m_content_length = other.m_content_length;
-//     m_headers        = other.m_headers;
-//     return *this;
-// }
 
 void HttpMessage::setHeader(const std::string &name, const std::string &value)
 {
@@ -72,6 +55,16 @@ BodyStorage &HttpMessage::body()
 const BodyStorage &HttpMessage::body() const
 {
     return m_body;
+}
+
+bool HttpMessage::complete() const
+{
+    return m_complete;
+}
+
+void HttpMessage::setComplete(bool val)
+{
+    m_complete = m_status == status::OK && val;
 }
 
 unsigned int HttpMessage::version_major() const
