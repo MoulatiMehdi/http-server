@@ -1,6 +1,7 @@
 #include "EventLoop.hpp"
 #include <sys/epoll.h>
 #include <unistd.h>
+#include "Cgi.hpp"
 #include "ClientTable.hpp"
 
 EventLoop::EventLoop(SocketTable &_socketTable) : _sockTable(_socketTable) {
@@ -51,9 +52,59 @@ bool EventLoop::handleStatus(Client *client, ClientStatus status) {
 	return true;
 }
 
+// initCgi()
+//     pipe(in), pipe(out)
+//     fork()
+//     child: dup2, execve
+//     parent: set both pipe ends non-blocking
+//             return CgiPipes to EventLoop
+//
+// EventLoop registers:
+//     epollAdd(cgi_in,  EPOLLOUT)  ← we want to write body to child
+//     epollAdd(cgi_out, EPOLLIN)   ← we want to read response from child
+//     _pipe_to_client[cgi_in]  = client_fd
+//     _pipe_to_client[cgi_out] = client_fd
+//
+
+void EventLoop::registerCgiPipes(const Client *client) {
+	int cgiPipes[2];
+	int clientFd;
+	client->getCgi()->getPipe(cgiPipes);
+	clientFd = client->getFd();
+
+	epollAdd(cgiPipes[STDOUT_FILENO], EPOLLIN);
+	epollAdd(cgiPipes[STDIN_FILENO], EPOLLOUT);
+	_pipe_to_client[cgiPipes[STDOUT_FILENO]] = clientFd;
+	_pipe_to_client[cgiPipes[STDIN_FILENO]] = clientFd;
+}
+
+void EventLoop::processCgi(struct epoll_event &ev) {
+	int cgiFd = ev.data.fd;
+	Client *client = _cliTable.get(cgiFd);
+	Cgi *cgi = client->getCgi();
+
+	if (ev.events & EPOLLIN &&
+		cgi->onReadable() == CGI_DONE) {  // abstract to handleStatus
+		_pipe_to_client.erase(cgiFd);
+		if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiFd, &ev) == ERROR)
+			exitError("epoll_ctl: EPOLL_CTL_DEL");
+		// disconnectClient(client->getFd());
+	}
+	if (ev.events & EPOLLOUT && cgi->onWritable() == CGI_DONE) {
+		_pipe_to_client.erase(cgiFd);
+		if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiFd, &ev) == ERROR)
+			exitError("epoll_ctl: EPOLL_CTL_DEL");
+		// disconnectClient(client->getFd());
+	}
+}
+
 void EventLoop::processClients(struct epoll_event &ev) {
 	int fd = ev.data.fd;
 	Client *client = _cliTable.get(fd);
+	if (client->cgiPending()) {
+		client->initCgi();
+		registerCgiPipes(client);
+	}
 
 	if (ev.events & EPOLLIN && !handleStatus(client, client->onReadable())) {
 		disconnectClient(fd);
@@ -101,7 +152,11 @@ void EventLoop::loop() {
 		for (int n = 0; n < nfds; ++n) {
 			sockIndex = _sockTable.getSocket(events[n].data.fd);
 			if (sockIndex >= 0) handleNewConnections(_sockTable[sockIndex]);
-			else processClients(events[n]);
+			else if (_cliTable.get(events[n].data.fd) != NULL)
+				processClients(events[n]);
+			else if (_pipe_to_client.find(events[n].data.fd) !=
+					 _pipe_to_client.end())
+				processCgi(events[n]);
 		}
 	}
 }

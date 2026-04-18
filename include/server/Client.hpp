@@ -23,8 +23,9 @@ struct HttpResp {
 	HttpResp(int n, const std::string &s) : status_code(n), status_msg(s) {}
 };
 
-enum ClientStatus { OK, WANT_WRITE, DONE_WRITE, DISCONNECT, INIT_CGI};
+enum ClientStatus { OK, WANT_WRITE, DONE_WRITE, DISCONNECT, INIT_CGI };
 
+// choose one naming convention
 class Client {
    private:
 	int _fd;
@@ -33,6 +34,7 @@ class Client {
 	HttpParser _parser;
 	HttpRequest _req;
 	FileServe *_file;
+	bool _cgi_pending;
 	Cgi *_cgi;
 
 	// time_t _connected_at;
@@ -46,7 +48,8 @@ class Client {
 
 	ClientStatus onReadable();
 	ClientStatus onWritable();
-	ClientStatus initCgi();
+	Cgi *initCgi();
+	bool cgiPending() const;
 	Cgi *getCgi() const;
 	int getFd() const;
 

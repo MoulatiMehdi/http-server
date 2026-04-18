@@ -22,7 +22,7 @@ class EventLoop {
 	SocketTable &_sockTable;
 	ClientTable _cliTable;
 	int _epollfd;
-	std::map<int, int> _pipe_to_client;
+	std::map<int, int> _pipe_to_client;	 // abstract away
 
 	void handleNewConnections(Socket *sock);
 	void processClients(struct epoll_event &ev);
@@ -30,6 +30,8 @@ class EventLoop {
 	void epollMod(int fd, uint32_t events);
 	void epollAdd(int fd, uint32_t events);
 	bool handleStatus(Client *client, ClientStatus status);
+	void registerCgiPipes(const Client *client);
+	void processCgi(struct epoll_event &ev);
 
    public:
 	EventLoop(SocketTable &_socketTable);

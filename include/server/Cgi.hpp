@@ -6,12 +6,7 @@
 #include "FileServe.hpp"
 #include "HttpRequest.hpp"
 
-enum CgiStatus {
-	CGI_OK,
-	CGI_WANT_WRITE, 
-	CGI_DONE_WRITE, 
-	CGI_DISCONNECT
-};
+enum CgiStatus { CGI_OK, CGI_DONE, CGI_ERROR };
 
 class Cgi {
    private:
@@ -30,7 +25,7 @@ class Cgi {
 	bool done() const;
 	std::vector<u_int8_t> &output();
 	void cgikill();
-	void getPipe(int *) const;
+	void getPipe(int *arr) const;
 };
 
 #endif	// !CGI_HPP
