@@ -7,7 +7,6 @@
 #include "Cgi.hpp"
 #include "Config.hpp"
 #include "FileServe.hpp"
-#include "HttpParser.hpp"
 #include "HttpRequest.hpp"
 #include "Logger.hpp"
 #include "helper.hpp"
@@ -31,7 +30,6 @@ class Client {
 	int _fd;
 	// const ServerConfig &_servConf;
 	std::vector<u_int8_t> _wrbuf;
-	HttpParser _parser;
 	HttpRequest _req;
 	FileServe *_file;
 	bool _cgi_pending;
