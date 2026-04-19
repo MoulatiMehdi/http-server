@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-const std::string BodyStorage::m_dir = std::string("/tmp");
+const std::string BodyStorage::m_dir = "/tmp";
 
 BodyStorage::BodyStorage() : m_fd(-1), m_path(), m_size(0)
 {
@@ -49,9 +49,19 @@ ssize_t BodyStorage::append(const char *str, size_t len)
     return write(m_fd, str, len);
 }
 
+void BodyStorage::consume(size_t len)
+{
+    m_size += len;
+}
+
 bool BodyStorage::is_open() const
 {
     return m_fd < 0;
+}
+
+std::string &BodyStorage::path()
+{
+    return m_path;
 }
 
 const std::string &BodyStorage::path() const
@@ -66,22 +76,21 @@ const char *BodyStorage::c_path() const
 
 void BodyStorage::clear()
 {
-    if (m_fd >= 0)
-    {
-        std::remove(m_path.c_str());
-        close(m_fd);
-        m_fd = -1;
-    }
+    BodyStorage::close();
     m_size = 0;
     m_path = "";
 }
 
 BodyStorage::~BodyStorage()
 {
+    BodyStorage::close();
+}
+
+void BodyStorage::close()
+{
     if (m_fd >= 0)
     {
-        close(m_fd);
-        std::remove(m_path.c_str());
+        ::close(m_fd);
         m_fd = -1;
     }
 }
@@ -94,24 +103,4 @@ const std::string BodyStorage::generateName()
     std::ostringstream iss;
     iss << tv.tv_sec << "." << tv.tv_usec;
     return iss.str();
-}
-
-std::ostream &operator<<(std::ostream &os, const BodyStorage &body)
-{
-    int fd = open(body.c_path(), O_RDONLY);
-
-    if (fd < 0)
-    {
-        std::perror("open");
-        return os;
-    }
-    char    buff[1024];
-    ssize_t size = 0;
-
-    while ((size = read(fd, buff, 1024)) > 0)
-    {
-        std::cout.write(buff, size);
-    }
-    std::cout.flush();
-    return os;
 }

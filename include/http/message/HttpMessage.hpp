@@ -10,13 +10,15 @@ class HttpMessage
   public:
     typedef std::multimap<const std::string, std::string> Headers;
     typedef Headers::const_iterator                       const_iterator;
+    typedef Headers::iterator                             iterator;
 
   protected:
     unsigned int m_version;
     Headers      m_headers;
     Status       m_status;
-    ssize_t       m_content_length;
+    ssize_t      m_content_length;
     BodyStorage  m_body;
+    bool         m_complete;
 
   public:
     static const unsigned int HTTP_V11 = 1001;
@@ -24,18 +26,15 @@ class HttpMessage
     static const unsigned int HTTP_V09 = 9;
 
     HttpMessage();
-    // HttpMessage &operator=(const HttpMessage &other);
-    // HttpMessage(const HttpMessage &other);
-
     virtual ~HttpMessage() = 0;
 
-    virtual bool complete() const = 0;
-    bool         good() const;
+    bool complete() const;
+    bool good() const;
 
     unsigned int   version_major() const;
     unsigned int   version_minor() const;
     unsigned int   version() const;
-    ssize_t         content_length() const;
+    ssize_t        content_length() const;
     Status         status() const;
     const_iterator getHeader(const std::string &name) const;
     const Headers &headers() const;
@@ -44,11 +43,10 @@ class HttpMessage
     BodyStorage       &body();
     const BodyStorage &body() const;
 
+    void setComplete(bool val);
     void setVersion(unsigned int major, unsigned int minor = 0);
     void setContentLength(size_t size);
     void setStatus(Status code);
     void setHeader(const std::string &name, const std::string &value);
-    void clear();
-
 };
 #endif

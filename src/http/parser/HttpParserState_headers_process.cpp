@@ -1,26 +1,13 @@
-#include "HttpParserHeaders.hpp"
+#include "HttpMessage.hpp"
 #include "HttpParserState.hpp"
-#include "HttpRequest.hpp"
 #include "ParserError.hpp"
 #include <iostream>
 #include <sstream>
 #include <string>
 
-const HttpParserHeaders::Handler HttpParserHeaders::handlers[] = {
-    &HttpParserHeaders::hdr_start,
-    &HttpParserHeaders::hdr_name,
-    &HttpParserHeaders::hdr_space_before_value,
-    &HttpParserHeaders::hdr_value,
-    &HttpParserHeaders::hdr_almost_done,
-    &HttpParserHeaders::hdr_header_almost_done,
-};
-
-HttpParserHeaders::HttpParserHeaders() : HttpParserState()
+void HttpParserState::process_header_line(HttpMessage &request)
 {
-}
-
-void HttpParserHeaders::processHeaderLine(HttpRequest &request)
-{
+    m_state = 0;
     if (*m_buff.rbegin() == ' ')
     {
         size_t i = m_buff.size();
@@ -34,9 +21,9 @@ void HttpParserHeaders::processHeaderLine(HttpRequest &request)
     m_buff.clear();
 }
 
-void HttpParserHeaders::handle_transfer_encoding(HttpRequest &request)
+void HttpParserState::process_transfer_encoding(HttpMessage &request)
 {
-    HttpRequest::Headers::const_iterator it1 =
+    HttpMessage::Headers::const_iterator it1 =
         request.getHeader("transfer-encoding");
 
     if (it1 == request.headers().end())
@@ -44,9 +31,6 @@ void HttpParserHeaders::handle_transfer_encoding(HttpRequest &request)
         m_chunked = false;
         return;
     }
-    if (request.version() == 9)
-        return setError(error::bad_request);
-
     if (it1->second == "chunked")
         m_chunked = true;
     else if (it1->second == "identity")
@@ -55,17 +39,23 @@ void HttpParserHeaders::handle_transfer_encoding(HttpRequest &request)
         setError(error::unsupported_transfer);
 }
 
-void HttpParserHeaders::handle_content_length(HttpRequest &request)
+void HttpParserState::process_content_length(HttpMessage &request)
 {
 
     int count = request.headers().count("content-length");
 
     if (count == 0)
-        return setError(error::bad_request);
+    {
+        if (m_discard_body)
+            return request.setComplete(true);
+        else if (!m_chunked)
+            return setError(error::bad_request);
+        return;
+    }
     if (count > 1)
         return setError(error::multiple_content_length);
 
-    HttpRequest::Headers::const_iterator it =
+    HttpMessage::Headers::const_iterator it =
         request.getHeader("content-length");
     ssize_t            content_length;
     std::istringstream iss(it->second);
@@ -77,13 +67,27 @@ void HttpParserHeaders::handle_content_length(HttpRequest &request)
         return;
     }
     request.setContentLength(content_length);
-    if (content_length == 0)
-        request.setComplete(true);
 }
 
-void HttpParserHeaders::processHeaders(HttpRequest &request)
+void HttpParserState::process_headers(HttpMessage &request)
 {
-    handle_transfer_encoding(request);
-    if (!m_chunked)
-        handle_content_length(request);
+    m_phase = PHASE_BODY;
+    m_state = 0;
+    if (request.version() > HttpMessage::HTTP_V10)
+        process_host();
+    process_transfer_encoding(request);
+    process_content_length(request);
+    if (m_discard_body)
+        request.setComplete(true);
+    else if (request.body().open_file() < 0)
+        return setError(error::bad_request);
+}
+
+void HttpParserState::process_host()
+{
+    HttpMessage::Headers                 headers = request.headers();
+    HttpMessage::Headers::const_iterator it      = headers.find("host");
+
+    if (it == headers.end() || it->second.empty())
+        setError(error::bad_request);
 }

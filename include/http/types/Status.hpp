@@ -103,5 +103,4 @@ using status_class::StatusClass;
 StatusClass       to_status_class(Status v);
 const std::string phrase_reason(Status v);
 
-std::ostream &operator<<(std::ostream &, Status);
 #endif
