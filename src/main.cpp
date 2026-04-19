@@ -1,6 +1,5 @@
 #include "Debug.hpp"
 #include "HttpRequest.hpp"
-#include "HttpRequestParser.hpp"
 #include "HttpResponse.hpp"
 #include "Status.hpp"
 #include <arpa/inet.h>
@@ -66,8 +65,7 @@ int main()
     char buffer[1024];
     while (true)
     {
-        HttpRequest       request;
-        HttpRequestParser parser(request);
+        HttpRequest request;
 
         int fd_client = accept(fd_server, 0, 0);
         if (fd_client < 0)
@@ -83,18 +81,18 @@ int main()
             std::cout << "--------------------- Buffer ----------------------- "
                       << std::endl;
             print_ptr_nl(buffer, rsize);
-            parser.parse(buffer, rsize);
+            request.parse(buffer, rsize);
         }
         HttpResponse       response;
         std::string        str;
         std::ostringstream oss("", std::_S_app);
         print_request(request);
-        std::cout << parser << std::endl;
         if (!request.good())
         {
             response.setStatus(request.status());
             oss << "<html>\n<head>\n";
-            oss << "<title>" << phrase_reason(response.status()) << "</title>\n";
+            oss << "<title>" << phrase_reason(response.status())
+                << "</title>\n";
             oss << "</head>\n<body>\n";
             oss << "<h1>" << phrase_reason(response.status())
                 << "</h1>\n</body>\n</html>\n";
@@ -144,7 +142,7 @@ int main()
         write(fd_client, res.c_str(), res.size());
         write(fd_client, str.c_str(), str.size());
         print_response(response);
-        std::cout <<(str) << std::endl;
+        std::cout << (str) << std::endl;
         close(fd_client);
     }
     return 0;
