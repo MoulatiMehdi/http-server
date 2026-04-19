@@ -1,9 +1,10 @@
 #ifndef HTTP_RESPONSE_PARSER_HPP
 #define HTTP_RESPONSE_PARSER_HPP
-#include "HttpResponse.hpp"
 
 #include "HttpParserState.hpp"
 #include <cstddef>
+
+class HttpResponse;
 
 class HttpResponseParser : public HttpParserState
 {
@@ -24,7 +25,7 @@ class HttpResponseParser : public HttpParserState
     HttpResponseParser(HttpResponse &request);
     ~HttpResponseParser();
 
-    size_t consumed() const;
+    size_t gcount() const;
     void   parse(const char *c_str, size_t len);
 };
 

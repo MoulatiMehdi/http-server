@@ -1,4 +1,5 @@
 
+#include "HttpResponse.hpp"
 #include "HttpResponseParser.hpp"
 #include <sstream>
 
