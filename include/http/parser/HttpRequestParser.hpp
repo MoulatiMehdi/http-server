@@ -2,8 +2,9 @@
 #define HTTP_REQUEST_PARSER_HPP
 
 #include "HttpParserState.hpp"
-#include "HttpRequest.hpp"
 #include <cstddef>
+
+class HttpRequest;
 
 class HttpRequestParser : public HttpParserState
 {
@@ -47,7 +48,6 @@ class HttpRequestParser : public HttpParserState
     HttpRequestParser(HttpRequest &request);
     ~HttpRequestParser();
 
-    using HttpParserState::good;
     void parse(const char *c_str, size_t len);
 };
 

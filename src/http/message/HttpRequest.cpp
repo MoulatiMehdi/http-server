@@ -1,5 +1,6 @@
 #include "HttpRequest.hpp"
 #include "HttpMessage.hpp"
+#include "HttpRequestParser.hpp"
 #include "Method.hpp"
 #include "Status.hpp"
 #include <cctype>
@@ -12,7 +13,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-HttpRequest::HttpRequest() : HttpMessage(), m_uri(), m_method(method::UNKNOWN)
+HttpRequest::HttpRequest()
+    : HttpMessage(),
+      m_uri(),
+      m_method(method::UNKNOWN),
+      m_parser(*this)
 {
 }
 
@@ -59,6 +64,16 @@ const HttpRequest::Headers &HttpRequest::headers() const
 HttpRequest::Headers &HttpRequest::headers()
 {
     return m_headers;
+}
+
+void HttpRequest::parse(const char *c_str, size_t len)
+{
+    m_parser.parse(c_str, len);
+}
+
+HttpRequestParser &HttpRequest::parser()
+{
+    return m_parser;
 }
 
 std::string HttpRequest::to_string() const

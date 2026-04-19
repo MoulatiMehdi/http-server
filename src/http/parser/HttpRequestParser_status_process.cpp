@@ -1,4 +1,5 @@
 
+#include "HttpRequest.hpp"
 #include "HttpRequestParser.hpp"
 
 void HttpRequestParser::process_error()

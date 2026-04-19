@@ -3,7 +3,6 @@
 #include "HttpRequestParser.hpp"
 #include "Method.hpp"
 #include "ParserError.hpp"
-#include <iostream>
 
 enum RequestLineState
 {

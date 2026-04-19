@@ -15,7 +15,7 @@ HttpResponseParser::HttpResponseParser(HttpResponse &request)
     m_discard_body = false;
 }
 
-size_t HttpResponseParser::consumed() const
+size_t HttpResponseParser::gcount() const
 {
     return m_size;
 }
@@ -31,7 +31,7 @@ void HttpResponseParser::parse(const char *c_str, size_t len)
         if (!good() || request.complete())
             break;
     }
-    m_size += buffer.capacity() - buffer.size();
+    m_size = buffer.capacity() - buffer.size();
 }
 
 HttpResponseParser::~HttpResponseParser()
