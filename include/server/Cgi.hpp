@@ -18,6 +18,7 @@ class Cgi {
 	const HttpRequest &_req;
 
    public:
+	std::vector<u_int8_t> _output;
 	Cgi(const std::string &script, const HttpRequest &req);
 	~Cgi();
 	CgiStatus onWritable();
@@ -25,7 +26,8 @@ class Cgi {
 	bool done() const;
 	std::vector<u_int8_t> &output();
 	void cgikill();
-	void getPipe(int *arr) const;
+	int getIn() const { return _in; }
+	int getOut() const { return _out; }
 };
 
 #endif	// !CGI_HPP

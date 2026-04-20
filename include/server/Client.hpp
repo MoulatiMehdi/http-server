@@ -34,7 +34,6 @@ class Client {
 	HttpParser _parser;
 	HttpRequest _req;
 	FileServe *_file;
-	bool _cgi_pending;
 	Cgi *_cgi;
 
 	// time_t _connected_at;
@@ -46,9 +45,11 @@ class Client {
 	Client(const ServerConfig &servConf, int fd);
 	~Client();
 
+	bool _cgi_pending;
 	ClientStatus onReadable();
 	ClientStatus onWritable();
-	Cgi *initCgi();
+ClientStatus onCgiDone();
+	ClientStatus initCgi();
 	bool cgiPending() const;
 	Cgi *getCgi() const;
 	int getFd() const;

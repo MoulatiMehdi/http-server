@@ -6,8 +6,10 @@
 
 Client::Client(const ServerConfig &servConf, int fd)
 	: _fd(fd),
+	  _file(NULL),
+	  _cgi(NULL),
 	  _cgi_pending(
-		  false) /*, _servConf(servConf)  , _connected_at(time(NULL)) */ {
+		  true) /*, _servConf(servConf)  , _connected_at(time(NULL)) */ {
 	(void)servConf;
 }
 
@@ -57,7 +59,7 @@ void readFile(const char *path, std::vector<u_int8_t> &buffer) {
 	close(fd);
 }
 
-ClientStatus Client::queueResponse(const HttpResp &resp) {
+ClientStatus Client::queueResponse(const HttpResp &resp) { // must not return
 	std::ostringstream head;
 
 	head << "HTTP/1.0 " << to_stringg(resp.status_code) << " "
@@ -138,17 +140,32 @@ ClientStatus Client::serveErr(int code) {
 	return queueResponse(resp);
 }
 
-Cgi *Client::initCgi() {
-	_cgi = new Cgi("./hello.sh", _req);	 // try catch
-	return _cgi;
+ClientStatus Client::initCgi() {
+	// hardcoded for prototyping, will come from router result later
+	try {
+		_cgi = new Cgi("./hello.sh", _req);
+	} catch (std::exception &e) {
+		std::cerr << "initCgi failed: " << e.what() << "\n";
+		return DISCONNECT;
+	}
+	return INIT_CGI;
 }
 
 bool Client::cgiPending() const { return _cgi_pending; }
-Cgi *Client::getCgi() const { 
-
-	return _cgi; }
+Cgi *Client::getCgi() const {
+	if (_cgi) return _cgi;
+	return NULL;
+}
 
 int Client::getFd() const { return _fd; }
+ClientStatus Client::onCgiDone() {
+	// ClientStatus status = queueResponse(cgi->buildResponse()); // do the parsing
+	std::cout << "OnCgiDone\n";
+	std::cout.write((char *)_cgi->_output.data(), _cgi->_output.size());
+	delete _cgi;
+	_cgi = NULL;
+	return WANT_WRITE;
+}
 
 ClientStatus Client::onReadable() {
 	char buff[BUFF_SIZE];
@@ -156,11 +173,11 @@ ClientStatus Client::onReadable() {
 	if (n == 0 || n == ERROR) return DISCONNECT;
 	// std::cout.write(buff, n); // for debug
 
-	// return serveErr(400);
+	// return serveErr(400)
 	// return serveFile("hello.html");
 
-	_cgi_pending = true;
-	return OK;
+	static int x = 0;
+	if (x == 0) return x++, initCgi();
 	// _parser.parse(_req, buff, n);
 	// if (!_req.good()) return serveErr(_req.status());  // returns WANT_WRITE
 	// if (!_req.complete()) return OK;

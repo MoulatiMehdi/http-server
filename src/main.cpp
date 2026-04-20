@@ -1,4 +1,5 @@
 
+#include <csignal>
 #include <iostream>
 #include "Config.hpp"
 #include "ConfigParser.hpp"
@@ -10,9 +11,10 @@ int main(int ac, char **av) {
 		std::cout << "  Usage: ./webserv <config_file>" << std::endl;
 		return 1;
 	}
-	
-    HttpServer server(av[1]); // TODO: rename to HttpServer
 
+	HttpServer server(av[1]);  // TODO: rename to HttpServer
+
+	signal(SIGPIPE, SIG_IGN);
 	// try catch
 	server.init();
 	server.run();

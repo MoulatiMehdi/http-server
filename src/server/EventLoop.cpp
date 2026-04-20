@@ -41,70 +41,57 @@ bool EventLoop::handleStatus(Client *client, ClientStatus status) {
 	if (status == DISCONNECT) return false;
 	else if (status == WANT_WRITE) epollMod(fd, EPOLLIN | EPOLLOUT);
 	else if (status == DONE_WRITE) epollMod(fd, EPOLLIN);
-	else if (status == INIT_CGI) {
-		int pipe[2];
-		client->getCgi()->getPipe(pipe);
-		_pipe_to_client[pipe[STDIN_FILENO]] = fd;
-		_pipe_to_client[pipe[STDOUT_FILENO]] = fd;
-		epollAdd(pipe[STDIN_FILENO], EPOLLIN);
-		epollAdd(pipe[STDOUT_FILENO], EPOLLOUT);
-	}
+	else if (status == INIT_CGI) registerCgiPipes(client);
 	return true;
 }
 
-// initCgi()
-//     pipe(in), pipe(out)
-//     fork()
-//     child: dup2, execve
-//     parent: set both pipe ends non-blocking
-//             return CgiPipes to EventLoop
-//
-// EventLoop registers:
-//     epollAdd(cgi_in,  EPOLLOUT)  ← we want to write body to child
-//     epollAdd(cgi_out, EPOLLIN)   ← we want to read response from child
-//     _pipe_to_client[cgi_in]  = client_fd
-//     _pipe_to_client[cgi_out] = client_fd
-//
-
 void EventLoop::registerCgiPipes(const Client *client) {
-	int cgiPipes[2];
-	int clientFd;
-	client->getCgi()->getPipe(cgiPipes);
-	clientFd = client->getFd();
+	Cgi *cgi = client->getCgi();
+	int clientFd = client->getFd();
 
-	epollAdd(cgiPipes[STDOUT_FILENO], EPOLLIN);
-	epollAdd(cgiPipes[STDIN_FILENO], EPOLLOUT);
-	_pipe_to_client[cgiPipes[STDOUT_FILENO]] = clientFd;
-	_pipe_to_client[cgiPipes[STDIN_FILENO]] = clientFd;
+	int in = cgi->getIn();
+	int out = cgi->getOut();
+
+	epollAdd(in, EPOLLOUT);
+	epollAdd(out, EPOLLIN);
+
+	_pipe_to_client[in] = clientFd;
+	_pipe_to_client[out] = clientFd;
 }
 
 void EventLoop::processCgi(struct epoll_event &ev) {
 	int cgiFd = ev.data.fd;
-	Client *client = _cliTable.get(cgiFd);
-	Cgi *cgi = client->getCgi();
+	int clientFd = _pipe_to_client[cgiFd];
 
-	if (ev.events & EPOLLIN &&
-		cgi->onReadable() == CGI_DONE) {  // abstract to handleStatus
+	Client *client = _cliTable.get(clientFd);
+	if (!client) {
 		_pipe_to_client.erase(cgiFd);
-		if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiFd, &ev) == ERROR)
-			exitError("epoll_ctl: EPOLL_CTL_DEL");
-		// disconnectClient(client->getFd());
+		epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiFd, NULL);
+		close(cgiFd);
+		return;
 	}
-	if (ev.events & EPOLLOUT && cgi->onWritable() == CGI_DONE) {
+
+	Cgi *cgi = client->getCgi();
+	if (!cgi) return;
+
+	CgiStatus status = CGI_OK;
+
+	if (ev.events & EPOLLIN) status = cgi->onReadable();
+	else if (ev.events & EPOLLOUT) status = cgi->onWritable();
+
+	if (status == CGI_DONE || status == CGI_ERROR) {
+		epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiFd, NULL);
 		_pipe_to_client.erase(cgiFd);
-		if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiFd, &ev) == ERROR)
-			exitError("epoll_ctl: EPOLL_CTL_DEL");
-		// disconnectClient(client->getFd());
+
+		if (status == CGI_ERROR) disconnectClient(clientFd);
+		else if (status == CGI_DONE && cgiFd == cgi->getOut())
+			client->onCgiDone();
 	}
 }
 
 void EventLoop::processClients(struct epoll_event &ev) {
 	int fd = ev.data.fd;
 	Client *client = _cliTable.get(fd);
-	if (client->cgiPending()) {
-		client->initCgi();
-		registerCgiPipes(client);
-	}
 
 	if (ev.events & EPOLLIN && !handleStatus(client, client->onReadable())) {
 		disconnectClient(fd);

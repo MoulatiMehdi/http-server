@@ -63,6 +63,9 @@ push: fclean
 runq: all
 	./$(NAME) $(CONFIG_FILE)
 
+runqv: all
+	valgrind ./$(NAME) $(CONFIG_FILE)
+
 run: re
 	make clean
 	./$(NAME) $(CONFIG_FILE)

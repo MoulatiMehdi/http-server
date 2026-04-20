@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <iostream>
 
 FileServe::FileServe(const std::string &path)
 	: _fd(-1), _size(0), _tmp_offset(0), _tmp_len(0) {

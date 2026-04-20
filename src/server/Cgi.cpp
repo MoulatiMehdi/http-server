@@ -1,5 +1,4 @@
 #include "Cgi.hpp"
-
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -7,100 +6,100 @@
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
-#include "FileServe.hpp"
 #include "helper.hpp"
 
 Cgi::Cgi(const std::string &script, const HttpRequest &req)
-	: _in(-1), _out(-1), _pid(-1), _write_offset(0), _req(req) {
-	_reqBodyFile = new FileServe("err.html");
-
+	: _in(-1), _out(-1), _pid(-1), _req(req) {
+	_reqBodyFile = NULL;
 	int in_pipe[2];
 	int out_pipe[2];
 
-	if (_reqBodyFile->done()) {
-		delete _reqBodyFile;
-		throw std::runtime_error("FileServe failed");
-	}
-
 	if (pipe(in_pipe) < 0 || pipe(out_pipe) < 0)
 		throw std::runtime_error("pipe failed");
-	// TODO: catch later, also see if you can throw in
-	// other constructors
 
 	_pid = fork();
 	if (_pid < 0) throw std::runtime_error("fork failed");
 
 	if (_pid == 0) {
-		// stdin
-		dup2(in_pipe[STDIN_FILENO], STDIN_FILENO);
-		// stdout
-		dup2(out_pipe[STDOUT_FILENO], STDOUT_FILENO);
+		dup2(in_pipe[0], STDIN_FILENO);
+		dup2(out_pipe[1], STDOUT_FILENO);
 
-		close(in_pipe[STDOUT_FILENO]);
-		close(out_pipe[STDIN_FILENO]);
-		close(in_pipe[STDIN_FILENO]);
-		close(out_pipe[STDOUT_FILENO]);
+		close(in_pipe[0]);
+		close(in_pipe[1]);
+		close(out_pipe[0]);
+		close(out_pipe[1]);
 
-		std::vector<char *> env;
+		char *env[] = {strdup("GATEWAY_INTERFACE=CGI/1.1"),
+					   strdup("REQUEST_METHOD=GET"),
+					   strdup("SCRIPT_NAME=/cgi-bin/script"), NULL};
 
-		env.push_back(strdup("GATEWAY_INTERFACE=CGI/1.1"));
-		env.push_back(strdup("REQUEST_METHOD=GET"));  // TODO: from req
-		env.push_back(strdup("SCRIPT_NAME=/cgi-bin/script"));
-		env.push_back(NULL);
+		char *argv[] = {const_cast<char *>(script.c_str()), NULL};
 
-		char *argv[2];
-		argv[0] = const_cast<char *>(script.c_str());
-		argv[1] = NULL;
-
-		execve(script.c_str(), argv, env.data());
+		execve(script.c_str(), argv, env);
 		_exit(EXIT_FAILURE);
 	}
 
-	_in = in_pipe[STDOUT_FILENO];
-	_out = out_pipe[STDIN_FILENO];
+	// parent keeps: write end of in_pipe, read end of out_pipe
+	_in = in_pipe[1];
+	_out = out_pipe[0];
 
-	close(in_pipe[STDIN_FILENO]);
-	close(out_pipe[STDOUT_FILENO]);
+	close(in_pipe[0]);
+	close(out_pipe[1]);
 
-	make_non_blocking(_in);	 // TODO: change name to camelCase
+	make_non_blocking(_in);
 	make_non_blocking(_out);
-}
-
-void Cgi::getPipe(int *arr) const {
-	arr[0] = _in;
-	arr[1] = _out;
 }
 
 CgiStatus Cgi::onWritable() {
 	if (_in < 0) return CGI_DONE;
-	if (_reqBodyFile) {
-		if (_reqBodyFile->sendChunk(_in) == ERROR) return CGI_ERROR;
+
+	if (!_reqBodyFile) {
+		close(_in);
+		_in = -1;
+		return CGI_DONE;
 	}
+
+	int n = _reqBodyFile->sendChunk(_in);
+	if (n == ERROR) {
+		close(_in);
+		_in = -1;
+		return CGI_ERROR;
+	}
+
 	if (_reqBodyFile->done()) {
 		delete _reqBodyFile;
 		_reqBodyFile = NULL;
+		close(_in);
+		_in = -1;
 		return CGI_DONE;
 	}
+
 	return CGI_OK;
 }
 
 CgiStatus Cgi::onReadable() {
-	// must buffer reading until finding headers's end
-	// then stream everything into client
 	if (_out < 0) return CGI_DONE;
 
-	char buff[BUFF_SIZE];
-	int n = read(_out, buff, sizeof(buff));
-	if (n == ERROR) return CGI_ERROR;
-	if (n == 0) {
-		close(_out);
-		_out = -1;
-		return CGI_DONE;
+	while (true) {
+		char buff[BUFF_SIZE];
+		int n = read(_out, buff, sizeof(buff));
+
+		if (n == -1) {
+			close(_out);
+			_out = -1;
+			return CGI_ERROR;
+		}
+
+		if (n == 0) {
+			close(_out);
+			_out = -1;
+			waitpid(_pid, NULL, WNOHANG);
+			_pid = -1;
+			return CGI_DONE;
+		}
+
+		_output.insert(_output.end(), buff, buff + n);
 	}
-	std::cout << "\ncgi output: ";
-	std::cout.write(buff, n);
-	std::cout << "\n\n";
-	return CGI_OK;
 }
 
 void Cgi::cgikill() {
@@ -114,7 +113,6 @@ void Cgi::cgikill() {
 }
 
 Cgi::~Cgi() {
-	// 1. Close fds (safe even if already closed)
 	if (_in != -1) {
 		close(_in);
 		_in = -1;
@@ -125,24 +123,14 @@ Cgi::~Cgi() {
 		_out = -1;
 	}
 
-	// 2. Handle child process
 	if (_pid > 0) {
 		int status;
-
-		// Check if already exited
 		pid_t ret = waitpid(_pid, &status, WNOHANG);
-
 		if (ret == 0) {
-			// Still running → kill it
 			kill(_pid, SIGKILL);
 
-			// Now we MUST reap it (blocking is acceptable here)
 			waitpid(_pid, &status, 0);
 		}
-		// else:
-		// ret > 0 → already reaped
-		// ret == -1 → already handled or error (ignore safely)
-
 		_pid = -1;
 	}
 }
