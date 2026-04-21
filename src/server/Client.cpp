@@ -167,6 +167,29 @@ ClientStatus Client::onCgiDone() {
 	_cgi = NULL;
 	return WANT_WRITE;
 }
+// TODO: replace static int x hack in onReadable() with real HttpParser integration
+//       _parser.feed(buff, n, _req)
+//       if (!_req.good()) return serveErr(_req.status())
+//       if (!_req.complete()) return OK
+
+// TODO: replace hardcoded "./hello.sh" in initCgi() with RouterResult::cgi_path
+//       initCgi() should take a RouterResult or cgi path as parameter
+
+// TODO: implement onCgiDone() properly:
+//       call cgi->buildResponse() to parse CGI headers and build HttpResp
+//       call queueResponse(resp) to inject into _wrbuf
+//       delete _cgi, set _cgi = NULL
+//       return WANT_WRITE
+
+// TODO: implement keep-alive state machine reset after DONE_WRITE
+//       clear _req, reset _parser, go back to READING state
+//       check Connection: close header to decide whether to disconnect or reuse
+
+// TODO: store ServerConfig reference properly (currently passed but ignored)
+//       needed for router, error pages, and CGI env vars
+
+// TODO: remove _cgi_pending flag or give it a real purpose —
+//       currently set to true always and never used
 
 ClientStatus Client::onReadable() {
 	char buff[BUFF_SIZE];
@@ -175,10 +198,10 @@ ClientStatus Client::onReadable() {
 	// std::cout.write(buff, n); // for debug
 
 	// return serveErr(400)
-	// return serveFile("hello.html");
+	return serveFile("hello.html");
 
-	static int x = 0;
-	if (x == 0) return x++, initCgi();
+	// static int x = 0;
+	// if (x == 0) return x++, initCgi();
 	// _parser.parse(_req, buff, n);
 	// if (!_req.good()) return serveErr(_req.status());  // returns WANT_WRITE
 	// if (!_req.complete()) return OK;

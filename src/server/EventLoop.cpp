@@ -144,6 +144,22 @@ void EventLoop::addSockets() {
 }
 
 // TODO: maxfd
+// TODO: implement epoll_wait timeout for client maintenance
+//       replace ERROR (-1) timeout with a real value (e.g. 5000ms)
+//       on timeout: walk client table, disconnect clients that exceeded
+//       client_timeout (incomplete request) or keepalive_timeout (idle)
+
+// TODO: tag each client with its ServerConfig on accept()
+//       _fd_to_config maps listening fd → ServerConfig
+//       pass correct config to _cliTable.add()
+
+// TODO: handle EPOLLERR on client fds in processClients — currently ignored
+//       EPOLLERR should trigger disconnectClient same as DISCONNECT status
+
+// TODO: remove printEpollEvents debug helper before final submission
+
+// TODO: add signal handling for SIGCHLD if needed,
+//       or confirm WNOHANG waitpid in onReadable is sufficient to reap all children
 void EventLoop::loop() {
 	int nfds;
 	struct epoll_event events[MAX_EVENTS];
@@ -158,8 +174,8 @@ void EventLoop::loop() {
 			else if (_cliTable.get(events[n].data.fd) != NULL)
 				processClients(events[n]);
 			else if (_pipe_to_client.find(events[n].data.fd) !=
-					 _pipe_to_client.end())
-				processCgi(events[n]);
+					 _pipe_to_client.end()) 
+				processCgi(events[n]); 
 		}
 	}
 }
