@@ -6,11 +6,12 @@
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
+#include "FileServe.hpp"
 #include "helper.hpp"
 
 Cgi::Cgi(const std::string &script, const HttpRequest &req)
 	: _in(-1), _out(-1), _pid(-1), _req(req) {
-	_reqBodyFile = NULL;
+	_reqBodyFile = new FileServe("input.cgi");
 	int in_pipe[2];
 	int out_pipe[2];
 
@@ -80,26 +81,21 @@ CgiStatus Cgi::onWritable() {
 CgiStatus Cgi::onReadable() {
 	if (_out < 0) return CGI_DONE;
 
-	while (true) {
-		char buff[BUFF_SIZE];
-		int n = read(_out, buff, sizeof(buff));
+	char buff[BUFF_SIZE];
+	int n = read(_out, buff, sizeof(buff));
 
-		if (n == -1) {
-			close(_out);
-			_out = -1;
-			return CGI_ERROR;
-		}
+	if (n == -1) return CGI_ERROR;
 
-		if (n == 0) {
-			close(_out);
-			_out = -1;
-			waitpid(_pid, NULL, WNOHANG);
-			_pid = -1;
-			return CGI_DONE;
-		}
-
-		_output.insert(_output.end(), buff, buff + n);
+	if (n == 0) {
+		close(_out);
+		_out = -1;
+		waitpid(_pid, NULL, WNOHANG);
+		_pid = -1;
+		return CGI_DONE;
 	}
+
+	_output.insert(_output.end(), buff, buff + n);
+	return CGI_OK;
 }
 
 void Cgi::cgikill() {

@@ -24,7 +24,7 @@ class Cgi {
 	CgiStatus onWritable();
 	CgiStatus onReadable();
 	bool done() const;
-	std::vector<u_int8_t> &output();
+	std::vector<u_int8_t> &output() { return _output; };
 	void cgikill();
 	int getIn() const { return _in; }
 	int getOut() const { return _out; }

@@ -161,7 +161,8 @@ int Client::getFd() const { return _fd; }
 ClientStatus Client::onCgiDone() {
 	// ClientStatus status = queueResponse(cgi->buildResponse()); // do the parsing
 	std::cout << "OnCgiDone\n";
-	std::cout.write((char *)_cgi->_output.data(), _cgi->_output.size());
+	_wrbuf = _cgi->output();
+	std::cout.write((char *)_wrbuf.data(), _wrbuf.size());
 	delete _cgi;
 	_cgi = NULL;
 	return WANT_WRITE;

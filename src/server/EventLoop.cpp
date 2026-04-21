@@ -58,8 +58,23 @@ void EventLoop::registerCgiPipes(const Client *client) {
 	_pipe_to_client[in] = clientFd;
 	_pipe_to_client[out] = clientFd;
 }
+#include <sys/epoll.h>
+#include <iostream>
 
+void printEpollEvents(uint32_t events)
+{
+    if (events & EPOLLIN)    std::cout << "EPOLLIN ";
+    if (events & EPOLLOUT)   std::cout << "EPOLLOUT ";
+    if (events & EPOLLERR)   std::cout << "EPOLLERR ";
+    if (events & EPOLLHUP)   std::cout << "EPOLLHUP ";
+    if (events & EPOLLRDHUP) std::cout << "EPOLLRDHUP ";
+    if (events & EPOLLET)    std::cout << "EPOLLET ";
+    if (events & EPOLLONESHOT) std::cout << "EPOLLONESHOT ";
+
+    std::cout << std::endl;
+}
 void EventLoop::processCgi(struct epoll_event &ev) {
+	// std::cout << "EventLoop::processCgi\n";
 	int cgiFd = ev.data.fd;
 	int clientFd = _pipe_to_client[cgiFd];
 
@@ -75,8 +90,10 @@ void EventLoop::processCgi(struct epoll_event &ev) {
 	if (!cgi) return;
 
 	CgiStatus status = CGI_OK;
+	int cgiOut = cgi->getOut();
 
-	if (ev.events & EPOLLIN) status = cgi->onReadable();
+	printEpollEvents(ev.events);
+	if (ev.events & EPOLLIN || ev.events & EPOLLHUP) status = cgi->onReadable();
 	else if (ev.events & EPOLLOUT) status = cgi->onWritable();
 
 	if (status == CGI_DONE || status == CGI_ERROR) {
@@ -84,8 +101,7 @@ void EventLoop::processCgi(struct epoll_event &ev) {
 		_pipe_to_client.erase(cgiFd);
 
 		if (status == CGI_ERROR) disconnectClient(clientFd);
-		else if (status == CGI_DONE && cgiFd == cgi->getOut())
-			client->onCgiDone();
+		else if (status == CGI_DONE && cgiFd == cgiOut) client->onCgiDone();
 	}
 }
 
