@@ -6,10 +6,10 @@
 
 Client::Client(const ServerConfig &servConf, int fd)
 	: _fd(fd),
-	  _file(NULL),
+	  _servConf(servConf),
+	  _file(NULL), /* , _connected_at(time(NULL)) */ 
 	  _cgi(NULL),
-	  _cgi_pending(
-		  true) /*, _servConf(servConf)  , _connected_at(time(NULL)) */ {
+		  _cgi_pending(true){
 	(void)servConf;
 }
 
@@ -58,7 +58,7 @@ void readFile(const char *path, std::vector<u_int8_t> &buffer) {
 	close(fd);
 }
 
-ClientStatus Client::queueResponse(const HttpResp &resp) { // must not return
+ClientStatus Client::queueResponse(const HttpResp &resp) {	// must not return
 	std::ostringstream head;
 
 	head << "HTTP/1.0 " << to_stringg(resp.status_code) << " "
@@ -158,7 +158,8 @@ Cgi *Client::getCgi() const {
 
 int Client::getFd() const { return _fd; }
 ClientStatus Client::onCgiDone() {
-	// ClientStatus status = queueResponse(cgi->buildResponse()); // do the parsing
+	// ClientStatus status = queueResponse(cgi->buildResponse()); // do the
+	// parsing
 	std::cout << "OnCgiDone\n";
 	_wrbuf = _cgi->output();
 	std::cout.write((char *)_wrbuf.data(), _wrbuf.size());
@@ -166,7 +167,8 @@ ClientStatus Client::onCgiDone() {
 	_cgi = NULL;
 	return WANT_WRITE;
 }
-// TODO: replace static int x hack in onReadable() with real HttpParser integration
+// TODO: replace static int x hack in onReadable() with real HttpParser
+// integration
 //       _parser.feed(buff, n, _req)
 //       if (!_req.good()) return serveErr(_req.status())
 //       if (!_req.complete()) return OK
@@ -190,14 +192,40 @@ ClientStatus Client::onCgiDone() {
 // TODO: remove _cgi_pending flag or give it a real purpose —
 //       currently set to true always and never used
 
+#include "Router.hpp"
 ClientStatus Client::onReadable() {
 	char buff[BUFF_SIZE];
 	int n = read(_fd, buff, sizeof(buff));
+
 	if (n == 0 || n == ERROR) return DISCONNECT;
 	// std::cout.write(buff, n); // for debug
 
+	_req.parse(buff, n);
+	if (!_req.good()) return serveErr(400);
+	if (!_req.complete()) return OK;
+	_routeResult = Router::resolve(_servConf, _req);
+	switch (_routeResult.action) {
+		case ROUTE_STATIC_FILE:
+			return serveFile(_routeResult.path);
+		case ROUTE_CGI:
+			return initCgi();
+		case ROUTE_DIRECTORY_LISTING:
+			return serveFile("hello.html");
+			// return serveDir(_routeResult.path);
+		case ROUTE_ERROR:
+			return serveErr(_routeResult.statusCode);
+			break;
+	}
+
+	// enum RouteAction {
+	//     ROUTE_STATIC_FILE,
+	//     ROUTE_CGI,
+	//     ROUTE_DIRECTORY_LISTING,
+	//     ROUTE_ERROR
+	// };
+
 	// return serveErr(400)
-	return serveFile("hello.html");
+	// return serveFile("hello.html");
 
 	// static int x = 0;
 	// if (x == 0) return x++, initCgi();

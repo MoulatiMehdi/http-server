@@ -8,6 +8,7 @@
 #include "Config.hpp"
 #include "FileServe.hpp"
 #include "HttpRequest.hpp"
+#include "RouteResult.hpp"
 #include "Logger.hpp"
 #include "helper.hpp"
 
@@ -28,9 +29,10 @@ enum ClientStatus { OK, WANT_WRITE, DONE_WRITE, DISCONNECT, INIT_CGI };
 class Client {
    private:
 	int _fd;
-	// const ServerConfig &_servConf;
+	const ServerConfig &_servConf;
 	std::vector<u_int8_t> _wrbuf;
 	HttpRequest _req;
+	RouteResult _routeResult;
 	FileServe *_file;
 	Cgi *_cgi;
 

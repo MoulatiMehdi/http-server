@@ -12,7 +12,8 @@ DEPS = \
 	./include/http/message \
 	./include/http/parser \
 	./include/http/types \
-	./include/server \
+	./include/router \
+	./include/server 
 
 INCDIR  = $(addprefix -I,$(DEPS))
 
@@ -54,8 +55,9 @@ SRCS = \
 	./src/http/parser/HttpResponseParser_headers_process.cpp \
 	./src/http/types/Method.cpp \
 	./src/http/types/ParserError.cpp \
-	./src/http/types/Status.cpp 
-
+	./src/http/types/Status.cpp \
+	./src/router/Router.cpp \
+	./src/router/RouterResolver.cpp
 
 OBJS    = $(SRCS:.cpp=.o)
 
