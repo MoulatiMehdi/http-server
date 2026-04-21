@@ -4,50 +4,57 @@ CONFIG_FILE = config_file
 CXX     = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -g
 
-INCDIR  = -Iinclude/cgi \
-		  -Iinclude/common \
-		  -Iinclude/config \
-		  -Iinclude/http \
-		  -Iinclude/request \
-		  -Iinclude/parser \
-		  -Iinclude/buffer \
-		  -Iinclude/server
 
-SRCS = ./src/config/ConfigParserSharedDirectives.cpp \
-	   ./src/config/Tokenizer.cpp \
-	   ./src/config/ConfigParserServer.cpp \
-	   ./src/config/ConfigParser.cpp \
-	   ./src/config/ConfigParserUtils.cpp \
-	   ./src/config/ConfigParserValidators.cpp \
-	   ./src/config/ConfigParserServerDirectives.cpp \
-	   ./src/config/ConfigParserLocation.cpp \
-	   ./src/config/ConfigParserListen.cpp \
-	   ./src/main.cpp \
-	   ./src/request/HttpResponse.cpp \
-	   ./src/request/HttpRequest.cpp \
-	   ./src/request/Status.cpp \
-	   ./src/request/HttpMessage.cpp \
-	   ./src/request/Method.cpp \
-	   ./src/parser/HttpParserBody.cpp \
-	   ./src/parser/BodyStorage.cpp \
-	   ./src/parser/parse_request_line.cpp \
-	   ./src/parser/Error.cpp \
-	   ./src/parser/HttpParser.cpp \
-	   ./src/parser/HttpParserRequestLine.cpp \
-	   ./src/parser/parse_header_line.cpp \
-	   ./src/parser/HttpParserState.cpp \
-	   ./src/parser/HttpParserHeaders.cpp \
-	   ./src/server/ClientTable.cpp \
-	   ./src/server/helper.cpp \
-	   ./src/server/HttpServer.cpp \
-	   ./src/server/SocketTable.cpp \
-	   ./src/server/EventLoop.cpp \
-	   ./src/server/Socket.cpp \
-	   ./src/server/Client.cpp \
-	   ./src/server/FileServe.cpp \
-	   ./src/server/Cgi.cpp \
-	   ./src/common/Logger.cpp \
-	   ./src/buffer/Buffer.cpp
+DEPS = \
+	./include/common \
+	./include/config \
+	./include/http/common \
+	./include/http/message \
+	./include/http/parser \
+	./include/http/types \
+	./include/server \
+
+INCDIR  = $(addprefix -I,$(DEPS))
+
+SRCS = \
+	./src/common/Logger.cpp \
+	./src/config/ConfigParser.cpp \
+	./src/config/ConfigParserListen.cpp \
+	./src/config/ConfigParserLocation.cpp \
+	./src/config/ConfigParserServer.cpp \
+	./src/config/ConfigParserServerDirectives.cpp \
+	./src/config/ConfigParserSharedDirectives.cpp \
+	./src/config/ConfigParserUtils.cpp \
+	./src/config/ConfigParserValidators.cpp \
+	./src/config/Tokenizer.cpp \
+	./src/server/Cgi.cpp \
+	./src/server/Client.cpp \
+	./src/server/ClientTable.cpp \
+	./src/server/EventLoop.cpp \
+	./src/server/FileServe.cpp \
+	./src/server/HttpServer.cpp \
+	./src/server/Socket.cpp \
+	./src/server/SocketTable.cpp \
+	./src/server/helper.cpp \
+	./src/main.cpp \
+	./src/http/common/BodyStorage.cpp \
+	./src/http/common/Buffer.cpp \
+	./src/http/message/HttpMessage.cpp \
+	./src/http/message/HttpRequest.cpp \
+	./src/http/message/HttpResponse.cpp \
+	./src/http/parser/HttpParserState.cpp \
+	./src/http/parser/HttpParserState_body.cpp \
+	./src/http/parser/HttpParserState_headers_parse.cpp \
+	./src/http/parser/HttpParserState_headers_process.cpp \
+	./src/http/parser/HttpRequestParser.cpp \
+	./src/http/parser/HttpRequestParser_request_line_parse.cpp \
+	./src/http/parser/HttpRequestParser_status_process.cpp \
+	./src/http/parser/HttpResponseParser.cpp \
+	./src/http/parser/HttpResponseParser_headers_parse.cpp \
+	./src/http/parser/HttpResponseParser_headers_process.cpp \
+	./src/http/types/Method.cpp \
+	./src/http/types/ParserError.cpp \
+	./src/http/types/Status.cpp 
 
 
 OBJS    = $(SRCS:.cpp=.o)
@@ -83,7 +90,7 @@ $(NAME): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $(NAME) $(OBJS)
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -I$(INCDIR) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(INCDIR) -c $< -o $@
 
 clean:
 	rm -f $(OBJS)

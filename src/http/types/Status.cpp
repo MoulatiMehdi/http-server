@@ -163,8 +163,3 @@ StatusClass to_status_class(unsigned v)
     }
     return status_class::UNKNOWN;
 }
-
-std::ostream &operator<<(std::ostream &os, Status v)
-{
-    return os << phrase_reason(v);
-}

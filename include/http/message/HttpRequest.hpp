@@ -1,41 +1,38 @@
 #ifndef HTTP_REQUEST_HPP
 #define HTTP_REQUEST_HPP
-#include <ostream>
 
 #include "HttpMessage.hpp"
+#include "HttpRequestParser.hpp"
 #include "Method.hpp"
 #include <string>
 
 class HttpRequest : public HttpMessage
 {
   private:
-    std::string m_uri; // uri
-    Method      m_method;
-    bool        m_complete;
+    std::string       m_uri; // uri
+    Method            m_method;
+    HttpRequestParser m_parser;
 
   public:
     HttpRequest();
-    // HttpRequest(const HttpRequest &);
-    // HttpRequest &operator=(const HttpRequest &);
     ~HttpRequest();
 
-
     bool good() const;
-    bool complete() const;
 
     Method             method() const;
     const Headers     &headers() const;
     const std::string &uri() const;
-    void               clear();
+    std::string        to_string() const;
 
     std::string &uri();
     Headers     &headers();
 
     void setMethod(std::string &method);
     void setMethod(Method method);
-    void setComplete(bool val);
     void setUri(const std::string &uri);
+
+    HttpRequestParser &parser();
+    void               parse(const char *c_str, size_t len);
 };
 
-std::ostream &operator<<(std::ostream &os, const HttpRequest &request);
 #endif

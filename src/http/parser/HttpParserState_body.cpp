@@ -1,33 +1,37 @@
-
-#include "HttpParserBody.hpp"
 #include "Buffer.hpp"
 #include "HttpParserState.hpp"
-#include "HttpRequest.hpp"
 #include "ParserError.hpp"
+#include <algorithm>
 #include <climits>
 #include <cstddef>
+#include <sys/types.h>
 
 #define CR '\r'
 #define LF '\n'
 
-HttpParserBody::HttpParserBody() : HttpParserState()
+enum ChunkState
 {
-}
+    SW_CHUNK_START = 0,
+    SW_CHUNK_SIZE,
+    SW_CHUNK_SIZE_ALMOST_DONE,
+    SW_CHUNK_DATA,
+    SW_AFTER_DATA,
+    SW_AFTER_DATA_ALMOST_DONE,
+    SW_LAST_CHUNK_SIZE_ALMOST_DONE,
+    SW_LAST_CHUNK_DATA_ALMOST_DONE,
+    SW_BODY_ALMOST_DONE,
+};
 
-void HttpParserBody::parse_body(HttpRequest &request, Buffer &buffer)
+void HttpParserState::parse_body(Buffer &buffer)
 {
-
     if (m_chunked)
-        parse_body_chunk(request, buffer);
-    else if (request.content_length() > 0)
-        parse_body_length(request, buffer);
+        parse_body_by_chunk(buffer);
     else
-        m_complete = true;
+        parse_body_by_length(buffer);
 }
 
-void HttpParserBody::parse_body_chunk(HttpRequest &request, Buffer &buffer)
+void HttpParserState::parse_body_by_chunk(Buffer &buffer)
 {
-
     while (!buffer.empty())
     {
         const char ch = buffer.getc();
@@ -52,9 +56,7 @@ void HttpParserBody::parse_body_chunk(HttpRequest &request, Buffer &buffer)
                 return setError(error::bad_request);
             case SW_CHUNK_SIZE:
                 if (m_chunk_max_size > LONG_MAX / 16)
-                {
                     return setError(error::bad_request);
-                }
                 if (ch >= '0' && ch <= '9')
                 {
                     m_chunk_max_size = m_chunk_max_size * 16 + (ch - '0');
@@ -102,9 +104,10 @@ void HttpParserBody::parse_body_chunk(HttpRequest &request, Buffer &buffer)
                 }
                 return setError(error::bad_request);
             case SW_CHUNK_DATA:
-                if (request.body().append(ch) < 0)
+                if (m_discard_body)
+                    request.body().consume(1);
+                else if (request.body().append(ch) < 0)
                     return setError(error::bad_request);
-
                 m_chunk_size++;
                 if (m_chunk_size == m_chunk_max_size)
                 {
@@ -160,7 +163,7 @@ void HttpParserBody::parse_body_chunk(HttpRequest &request, Buffer &buffer)
             case SW_BODY_ALMOST_DONE:
                 if (ch == LF)
                 {
-                    m_complete = true;
+                    request.setComplete(true);
                     return;
                 }
                 return setError(error::bad_request);
@@ -168,20 +171,22 @@ void HttpParserBody::parse_body_chunk(HttpRequest &request, Buffer &buffer)
     }
 }
 
-void HttpParserBody::parse_body_length(HttpRequest &request, Buffer &buffer)
+void HttpParserState::parse_body_by_length(Buffer &buffer)
 {
     const size_t content_length = request.content_length();
+    const size_t body_size      = request.body().size();
 
-    if (content_length > m_cache.size() && !buffer.empty())
+    if (content_length > body_size && !buffer.empty())
     {
-        size_t size = std::min(content_length - m_cache.size(), buffer.size());
-        if (request.body().append(buffer.current(), size) < 0)
+        size_t size = std::min(content_length - body_size, buffer.size());
+        if (m_discard_body)
+            request.body().consume(size);
+        else if (request.body().append(buffer.current(), size) < 0)
             return setError(error::bad_request);
         buffer.consume(size);
     }
-    m_complete = request.content_length() == request.body().size();
-}
-
-HttpParserBody::~HttpParserBody()
-{
+    if (request.content_length() < request.body().size())
+        return setError(error::stale_parser);
+    else if (request.content_length() == request.body().size())
+        request.setComplete(true);
 }

@@ -1,9 +1,8 @@
 #ifndef BODY_STORAGE_HPP
 #define BODY_STORAGE_HPP
 #include <cstddef>
+#include <cstring>
 #include <fcntl.h>
-#include <iostream>
-#include <ostream>
 #include <string>
 #include <sys/types.h>
 #include <unistd.h>
@@ -28,13 +27,15 @@ class BodyStorage
     int open_file();
 
     ssize_t            size() const;
+    std::string       &path();
     const std::string &path() const;
     const char        *c_path() const;
     bool               is_open() const;
+    void               consume(size_t len);
     void               clear();
+    void               close();
 
     static const std::string generateName();
 };
 
-std::ostream &operator<<(std::ostream &os, const BodyStorage &body);
 #endif

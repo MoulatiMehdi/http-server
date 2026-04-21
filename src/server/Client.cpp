@@ -42,7 +42,6 @@ struct RouterResult {
 
 #define BUFF_SIZE 4096
 
-#include "HttpParser.hpp"
 #include "HttpRequest.hpp"
 
 void readFile(const char *path, std::vector<u_int8_t> &buffer) {
