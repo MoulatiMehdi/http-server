@@ -48,11 +48,11 @@ bool Router::isCgiRequest(RouteResult& result, const std::string& path) {
 }
 
 //  TODO: check syntax later
-
+// ree check
 bool Router::pathExists(RouteResult& result) {
     struct stat st;
 
-    if (stat(result.path.c_str(), &st) == 0) {
+    if (stat(result.path.c_str(), &st) != 0) {
         result.action = ROUTE_ERROR;
         result.statusCode = 404;
         return true;
@@ -80,7 +80,7 @@ bool Router::isDirectory(RouteResult& result) {
     return false;
 }
 
-// --------------------------
+// -------------------------- 
 
 bool Router::readPermission(RouteResult& result, const char *p)
 {
@@ -136,7 +136,7 @@ bool Router::checkPermission(RouteResult& result, Method method)
     if (method == method::GET)
         return readPermission(result, p);
 
-    if (method == method::POST)
+    if (method == method::POST) // not needed
         return writePermission(result ,p);
 
     if (result.action == ROUTE_CGI)
