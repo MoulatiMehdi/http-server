@@ -7,9 +7,9 @@
 Client::Client(const ServerConfig &servConf, int fd)
 	: _fd(fd),
 	  _servConf(servConf),
-	  _file(NULL), /* , _connected_at(time(NULL)) */ 
+	  _file(NULL), /* , _connected_at(time(NULL)) */
 	  _cgi(NULL),
-		  _cgi_pending(true){
+	  _cgi_pending(true) {
 	(void)servConf;
 }
 
@@ -139,10 +139,9 @@ ClientStatus Client::serveErr(int code) {
 	return queueResponse(resp);
 }
 
-ClientStatus Client::initCgi() {
-	// hardcoded for prototyping, will come from router result later
+ClientStatus Client::initCgi(RouteResult routeResult) {
 	try {
-		_cgi = new Cgi("./hello.sh", _req);
+		_cgi = new Cgi(routeResult.path, _req);
 	} catch (std::exception &e) {
 		std::cerr << "initCgi failed: " << e.what() << "\n";
 		return DISCONNECT;
@@ -150,7 +149,6 @@ ClientStatus Client::initCgi() {
 	return INIT_CGI;
 }
 
-bool Client::cgiPending() const { return _cgi_pending; }
 Cgi *Client::getCgi() const {
 	if (_cgi) return _cgi;
 	return NULL;
@@ -158,39 +156,11 @@ Cgi *Client::getCgi() const {
 
 int Client::getFd() const { return _fd; }
 ClientStatus Client::onCgiDone() {
-	// ClientStatus status = queueResponse(cgi->buildResponse()); // do the
-	// parsing
-	std::cout << "OnCgiDone\n";
-	_wrbuf = _cgi->output();
-	std::cout.write((char *)_wrbuf.data(), _wrbuf.size());
+	// ClientStatus status = queueResponse(cgi->getResponse()); // does the
 	delete _cgi;
 	_cgi = NULL;
 	return WANT_WRITE;
 }
-// TODO: replace static int x hack in onReadable() with real HttpParser
-// integration
-//       _parser.feed(buff, n, _req)
-//       if (!_req.good()) return serveErr(_req.status())
-//       if (!_req.complete()) return OK
-
-// TODO: replace hardcoded "./hello.sh" in initCgi() with RouterResult::cgi_path
-//       initCgi() should take a RouterResult or cgi path as parameter
-
-// TODO: implement onCgiDone() properly:
-//       call cgi->buildResponse() to parse CGI headers and build HttpResp
-//       call queueResponse(resp) to inject into _wrbuf
-//       delete _cgi, set _cgi = NULL
-//       return WANT_WRITE
-
-// TODO: implement keep-alive state machine reset after DONE_WRITE
-//       clear _req, reset _parser, go back to READING state
-//       check Connection: close header to decide whether to disconnect or reuse
-
-// TODO: store ServerConfig reference properly (currently passed but ignored)
-//       needed for router, error pages, and CGI env vars
-
-// TODO: remove _cgi_pending flag or give it a real purpose —
-//       currently set to true always and never used
 
 #include "Router.hpp"
 ClientStatus Client::onReadable() {
@@ -208,7 +178,7 @@ ClientStatus Client::onReadable() {
 		case ROUTE_STATIC_FILE:
 			return serveFile(_routeResult.path);
 		case ROUTE_CGI:
-			return initCgi();
+			return initCgi(_routeResult);
 		case ROUTE_DIRECTORY_LISTING:
 			return serveFile("hello.html");
 			// return serveDir(_routeResult.path);
@@ -223,21 +193,6 @@ ClientStatus Client::onReadable() {
 	//     ROUTE_DIRECTORY_LISTING,
 	//     ROUTE_ERROR
 	// };
-
-	// return serveErr(400)
-	// return serveFile("hello.html");
-
-	// static int x = 0;
-	// if (x == 0) return x++, initCgi();
-	// _parser.parse(_req, buff, n);
-	// if (!_req.good()) return serveErr(_req.status());  // returns WANT_WRITE
-	// if (!_req.complete()) return OK;
-
-	// RouterResult result = _router.handle(_req, _servConf);
-	// if (result.isCgi()) return initCgi(result); returns OK	 // starts
-	// pipe/fork
-
-	// return queueResponse(result.response()); // returns WANT_WRITE
 
 	return WANT_WRITE;
 }

@@ -2,22 +2,28 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include "FileServe.hpp"
+#include "HttpResponse.hpp"
 #include "helper.hpp"
 
-// TODO: replace hardcoded env vars with values derived from HttpRequest and ServerConfig
-//       REQUEST_METHOD, CONTENT_TYPE, CONTENT_LENGTH, PATH_INFO, QUERY_STRING, etc.
+// TODO: replace hardcoded env vars with values derived from HttpRequest and
+// ServerConfig
+//       REQUEST_METHOD, CONTENT_TYPE, CONTENT_LENGTH, PATH_INFO, QUERY_STRING,
+//       etc.
 
 // TODO: replace hardcoded "input.cgi" with actual request body source
 //       _reqBodyFile should only be set if req.body is non-empty (POST/PUT)
 //       body source will likely be a temp file written during request parsing
 
-// TODO: add CGI timeout — track start time, kill child if it exceeds config limit
-//       waitpid(WNOHANG) in EventLoop maintenance tick, kill + CGI_ERROR if exceeded
+// TODO: add CGI timeout — track start time, kill child if it exceeds config
+// limit
+//       waitpid(WNOHANG) in EventLoop maintenance tick, kill + CGI_ERROR if
+//       exceeded
 
 // TODO: in onCgiDone (Client), parse _output:
 //       split at \r\n\r\n, extract CGI headers, inject HTTP/1.1 status line,
@@ -26,7 +32,7 @@
 
 Cgi::Cgi(const std::string &script, const HttpRequest &req)
 	: _in(-1), _out(-1), _pid(-1), _req(req) {
-	_reqBodyFile = new FileServe("input.cgi");
+	_reqBodyFile = new FileServe(_req.body().c_path());
 	int in_pipe[2];
 	int out_pipe[2];
 
@@ -45,9 +51,17 @@ Cgi::Cgi(const std::string &script, const HttpRequest &req)
 		close(out_pipe[0]);
 		close(out_pipe[1]);
 
-		char *env[] = {strdup("GATEWAY_INTERFACE=CGI/1.1"),
-					   strdup("REQUEST_METHOD=GET"),
-					   strdup("SCRIPT_NAME=/cgi-bin/script"), NULL};
+		const HttpMessage::Headers &hdrs = _req.headers();
+		char **env = new char *[hdrs.size() + 1];
+
+		int i = 0;
+		for (HttpMessage::const_iterator it = hdrs.begin(); it != hdrs.end();
+			 it++) {
+			std::cout << it->first + "=" + it->second << std::endl;	 // DEBUG:
+			std::string entry = it->first + "=" + it->second;
+			env[i++] = strdup(entry.c_str());
+		}
+		env[i] = NULL;
 
 		char *argv[] = {const_cast<char *>(script.c_str()), NULL};
 
@@ -98,7 +112,10 @@ CgiStatus Cgi::onReadable() {
 	char buff[BUFF_SIZE];
 	int n = read(_out, buff, sizeof(buff));
 
-	if (n == -1) return CGI_ERROR;
+	if (n == -1) {
+		// _resp = HttpResponse(500);
+		return CGI_ERROR;
+	}
 
 	if (n == 0) {
 		close(_out);
@@ -107,6 +124,22 @@ CgiStatus Cgi::onReadable() {
 		_pid = -1;
 		return CGI_DONE;
 	}
+	// try {
+	// 	bool parsingHeaders = true; Cgi::attr
+	// 	int consumed = -1;
+	// 	if (!_resp.complete()) {
+	// 		consumed = _resp.parse(buff, n);
+	// 		if (_resp.complete()) {
+	// 			_resp.body().write(buff + consumed, n - consumed);
+	// 			parsingHeaders = false;
+	// 			}
+	// 	}
+	// 	else if (!parsingHeaders)
+	// 		_resp.body().write(buff, n);
+	// } catch (const std::excp &e) {
+	// 		_resp = HttpResponse(500);
+	// 		return CGI_ERROR;
+	// }
 
 	_output.insert(_output.end(), buff, buff + n);
 	return CGI_OK;
@@ -143,4 +176,9 @@ Cgi::~Cgi() {
 		}
 		_pid = -1;
 	}
+}
+
+HttpResponse Cgi::getResponse() {
+	// set/modify content-length;
+	return _resp;
 }

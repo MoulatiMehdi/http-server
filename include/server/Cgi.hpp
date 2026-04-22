@@ -5,6 +5,7 @@
 #include <vector>
 #include "FileServe.hpp"
 #include "HttpRequest.hpp"
+#include "HttpResponse.hpp"
 
 enum CgiStatus { CGI_OK, CGI_DONE, CGI_ERROR };
 
@@ -16,9 +17,10 @@ class Cgi {
 	int _write_offset;
 	FileServe *_reqBodyFile;
 	const HttpRequest &_req;
+	HttpResponse _resp;
+	std::vector<u_int8_t> _output;
 
    public:
-	std::vector<u_int8_t> _output;
 	Cgi(const std::string &script, const HttpRequest &req);
 	~Cgi();
 	CgiStatus onWritable();
@@ -28,6 +30,7 @@ class Cgi {
 	void cgikill();
 	int getIn() const { return _in; }
 	int getOut() const { return _out; }
+	HttpResponse getResponse();
 };
 
 #endif	// !CGI_HPP

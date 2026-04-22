@@ -61,17 +61,16 @@ void EventLoop::registerCgiPipes(const Client *client) {
 #include <sys/epoll.h>
 #include <iostream>
 
-void printEpollEvents(uint32_t events)
-{
-    if (events & EPOLLIN)    std::cout << "EPOLLIN ";
-    if (events & EPOLLOUT)   std::cout << "EPOLLOUT ";
-    if (events & EPOLLERR)   std::cout << "EPOLLERR ";
-    if (events & EPOLLHUP)   std::cout << "EPOLLHUP ";
-    if (events & EPOLLRDHUP) std::cout << "EPOLLRDHUP ";
-    if (events & EPOLLET)    std::cout << "EPOLLET ";
-    if (events & EPOLLONESHOT) std::cout << "EPOLLONESHOT ";
+void printEpollEvents(uint32_t events) {
+	if (events & EPOLLIN) std::cout << "EPOLLIN ";
+	if (events & EPOLLOUT) std::cout << "EPOLLOUT ";
+	if (events & EPOLLERR) std::cout << "EPOLLERR ";
+	if (events & EPOLLHUP) std::cout << "EPOLLHUP ";
+	if (events & EPOLLRDHUP) std::cout << "EPOLLRDHUP ";
+	if (events & EPOLLET) std::cout << "EPOLLET ";
+	if (events & EPOLLONESHOT) std::cout << "EPOLLONESHOT ";
 
-    std::cout << std::endl;
+	std::cout << std::endl;
 }
 void EventLoop::processCgi(struct epoll_event &ev) {
 	// std::cout << "EventLoop::processCgi\n";
@@ -100,8 +99,7 @@ void EventLoop::processCgi(struct epoll_event &ev) {
 		epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiFd, NULL);
 		_pipe_to_client.erase(cgiFd);
 
-		if (status == CGI_ERROR) disconnectClient(clientFd);
-		else if (status == CGI_DONE && cgiFd == cgiOut) client->onCgiDone();
+		if (cgiFd == cgiOut) client->onCgiDone();
 	}
 }
 
@@ -159,7 +157,8 @@ void EventLoop::addSockets() {
 // TODO: remove printEpollEvents debug helper before final submission
 
 // TODO: add signal handling for SIGCHLD if needed,
-//       or confirm WNOHANG waitpid in onReadable is sufficient to reap all children
+//       or confirm WNOHANG waitpid in onReadable is sufficient to reap all
+//       children
 void EventLoop::loop() {
 	int nfds;
 	struct epoll_event events[MAX_EVENTS];
@@ -174,8 +173,8 @@ void EventLoop::loop() {
 			else if (_cliTable.get(events[n].data.fd) != NULL)
 				processClients(events[n]);
 			else if (_pipe_to_client.find(events[n].data.fd) !=
-					 _pipe_to_client.end()) 
-				processCgi(events[n]); 
+					 _pipe_to_client.end())
+				processCgi(events[n]);
 		}
 	}
 }

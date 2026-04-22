@@ -8,8 +8,8 @@
 #include "Config.hpp"
 #include "FileServe.hpp"
 #include "HttpRequest.hpp"
-#include "RouteResult.hpp"
 #include "Logger.hpp"
+#include "RouteResult.hpp"
 #include "helper.hpp"
 
 struct HttpResp {
@@ -45,11 +45,10 @@ class Client {
 	Client(const ServerConfig &servConf, int fd);
 	~Client();
 
-	bool _cgi_pending;
 	ClientStatus onReadable();
 	ClientStatus onWritable();
-ClientStatus onCgiDone();
-	ClientStatus initCgi();
+	ClientStatus onCgiDone();
+	ClientStatus initCgi(RouteResult _routeResult);
 	bool cgiPending() const;
 	Cgi *getCgi() const;
 	int getFd() const;
