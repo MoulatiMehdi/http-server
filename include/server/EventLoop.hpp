@@ -29,7 +29,7 @@ class EventLoop {
 	void disconnectClient(int fd);
 	void epollMod(int fd, uint32_t events);
 	void epollAdd(int fd, uint32_t events);
-	bool handleStatus(Client *client, ClientStatus status);
+	int handleStatus(Client *client, ClientStatus status);
 	void registerCgiPipes(const Client *client);
 	void processCgi(struct epoll_event &ev);
 

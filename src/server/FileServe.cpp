@@ -4,18 +4,20 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <exception>
 #include <iostream>
 
 FileServe::FileServe(const std::string &path)
 	: _fd(-1), _size(0), _tmp_offset(0), _tmp_len(0) {
 	_fd = open(path.c_str(), O_RDONLY);
-	if (_fd < 0) return; // THROW
+	if (_fd < 0) throw std::runtime_error("open failed");  // THROW
 
 	struct stat st;
 	if (fstat(_fd, &st) == -1) {
 		close(_fd);
 		_fd = -1;
 		return;
+		throw std::runtime_error("stat failed");
 	}
 	_size = st.st_size;
 }

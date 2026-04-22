@@ -9,34 +9,23 @@
 #include <stdexcept>
 #include "FileServe.hpp"
 #include "HttpResponse.hpp"
+#include "Method.hpp"
 #include "helper.hpp"
-
-// TODO: replace hardcoded env vars with values derived from HttpRequest and
-// ServerConfig
-//       REQUEST_METHOD, CONTENT_TYPE, CONTENT_LENGTH, PATH_INFO, QUERY_STRING,
-//       etc.
-
-// TODO: replace hardcoded "input.cgi" with actual request body source
-//       _reqBodyFile should only be set if req.body is non-empty (POST/PUT)
-//       body source will likely be a temp file written during request parsing
 
 // TODO: add CGI timeout — track start time, kill child if it exceeds config
 // limit
 //       waitpid(WNOHANG) in EventLoop maintenance tick, kill + CGI_ERROR if
 //       exceeded
 
-// TODO: in onCgiDone (Client), parse _output:
-//       split at \r\n\r\n, extract CGI headers, inject HTTP/1.1 status line,
-//       add Content-Length, pass through remaining headers, move body to _wrbuf
-//       serve 502 if \r\n\r\n not found (script crashed before writing headers)
-
 Cgi::Cgi(const std::string &script, const HttpRequest &req)
-	: _in(-1), _out(-1), _pid(-1), _req(req) {
-	_reqBodyFile = new FileServe(_req.body().c_path());
+	: _in(-1), _out(-1), _pid(-1), _reqBodyFile(NULL), _req(req) {
+	if (_req.body().size() != 0)
+		_reqBodyFile = new FileServe(_req.body().c_path()); // POST/PUT???
+
 	int in_pipe[2];
 	int out_pipe[2];
 
-	if (pipe(in_pipe) < 0 || pipe(out_pipe) < 0)
+	if (pipe(out_pipe) < 0 || pipe(out_pipe) < 0)
 		throw std::runtime_error("pipe failed");
 
 	_pid = fork();

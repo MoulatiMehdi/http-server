@@ -1,9 +1,26 @@
 #include "EventLoop.hpp"
 #include <sys/epoll.h>
 #include <unistd.h>
+#include <cstdlib>
 #include "Cgi.hpp"
 #include "ClientTable.hpp"
+#include "helper.hpp"
 
+// #include <sys/epoll.h>
+// #include <iostream>
+//
+// void printEpollEvents(uint32_t events) {
+// 	if (events & EPOLLIN) std::cout << "EPOLLIN ";
+// 	if (events & EPOLLOUT) std::cout << "EPOLLOUT ";
+// 	if (events & EPOLLERR) std::cout << "EPOLLERR ";
+// 	if (events & EPOLLHUP) std::cout << "EPOLLHUP ";
+// 	if (events & EPOLLRDHUP) std::cout << "EPOLLRDHUP ";
+// 	if (events & EPOLLET) std::cout << "EPOLLET ";
+// 	if (events & EPOLLONESHOT) std::cout << "EPOLLONESHOT ";
+//
+// 	std::cout << std::endl;
+// }
+ 
 EventLoop::EventLoop(SocketTable &_socketTable) : _sockTable(_socketTable) {
 	_epollfd = epoll_create1(0);
 	if (_epollfd == ERROR) exitError("epoll_create");
@@ -35,14 +52,14 @@ void EventLoop::disconnectClient(int fd) {
 	Logger::info("client " + to_stringg(fd) + ": disconnected");
 }
 
-bool EventLoop::handleStatus(Client *client, ClientStatus status) {
+int EventLoop::handleStatus(Client *client, ClientStatus status) {
 	int fd = client->getFd();
 
-	if (status == DISCONNECT) return false;
+	if (status == DISCONNECT) return -1;
 	else if (status == WANT_WRITE) epollMod(fd, EPOLLIN | EPOLLOUT);
 	else if (status == DONE_WRITE) epollMod(fd, EPOLLIN);
 	else if (status == INIT_CGI) registerCgiPipes(client);
-	return true;
+	return 0;
 }
 
 void EventLoop::registerCgiPipes(const Client *client) {
@@ -57,20 +74,6 @@ void EventLoop::registerCgiPipes(const Client *client) {
 
 	_pipe_to_client[in] = clientFd;
 	_pipe_to_client[out] = clientFd;
-}
-#include <sys/epoll.h>
-#include <iostream>
-
-void printEpollEvents(uint32_t events) {
-	if (events & EPOLLIN) std::cout << "EPOLLIN ";
-	if (events & EPOLLOUT) std::cout << "EPOLLOUT ";
-	if (events & EPOLLERR) std::cout << "EPOLLERR ";
-	if (events & EPOLLHUP) std::cout << "EPOLLHUP ";
-	if (events & EPOLLRDHUP) std::cout << "EPOLLRDHUP ";
-	if (events & EPOLLET) std::cout << "EPOLLET ";
-	if (events & EPOLLONESHOT) std::cout << "EPOLLONESHOT ";
-
-	std::cout << std::endl;
 }
 void EventLoop::processCgi(struct epoll_event &ev) {
 	// std::cout << "EventLoop::processCgi\n";
@@ -91,7 +94,6 @@ void EventLoop::processCgi(struct epoll_event &ev) {
 	CgiStatus status = CGI_OK;
 	int cgiOut = cgi->getOut();
 
-	printEpollEvents(ev.events);
 	if (ev.events & EPOLLIN || ev.events & EPOLLHUP) status = cgi->onReadable();
 	else if (ev.events & EPOLLOUT) status = cgi->onWritable();
 
@@ -106,15 +108,14 @@ void EventLoop::processCgi(struct epoll_event &ev) {
 void EventLoop::processClients(struct epoll_event &ev) {
 	int fd = ev.data.fd;
 	Client *client = _cliTable.get(fd);
+	ClientStatus status = OK;
 
-	if (ev.events & EPOLLIN && !handleStatus(client, client->onReadable())) {
-		disconnectClient(fd);
-		return;
-	}
-	if (ev.events & EPOLLOUT && !handleStatus(client, client->onWritable())) {
-		disconnectClient(fd);
-		return;
-	}
+	if (ev.events & EPOLLERR) disconnectClient(fd);
+	else if (ev.events & EPOLLIN) { status = client->onReadable(); }
+	else if (ev.events & EPOLLOUT) { status = client->onWritable(); }
+
+	if (handleStatus(client, status) == -1) disconnectClient(fd);
+	return;
 }
 
 void EventLoop::handleNewConnections(Socket *sock) {
@@ -142,23 +143,12 @@ void EventLoop::addSockets() {
 }
 
 // TODO: maxfd
+
 // TODO: implement epoll_wait timeout for client maintenance
 //       replace ERROR (-1) timeout with a real value (e.g. 5000ms)
 //       on timeout: walk client table, disconnect clients that exceeded
 //       client_timeout (incomplete request) or keepalive_timeout (idle)
 
-// TODO: tag each client with its ServerConfig on accept()
-//       _fd_to_config maps listening fd → ServerConfig
-//       pass correct config to _cliTable.add()
-
-// TODO: handle EPOLLERR on client fds in processClients — currently ignored
-//       EPOLLERR should trigger disconnectClient same as DISCONNECT status
-
-// TODO: remove printEpollEvents debug helper before final submission
-
-// TODO: add signal handling for SIGCHLD if needed,
-//       or confirm WNOHANG waitpid in onReadable is sufficient to reap all
-//       children
 void EventLoop::loop() {
 	int nfds;
 	struct epoll_event events[MAX_EVENTS];

@@ -2,14 +2,17 @@
 #include <fcntl.h>
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
 #include "Cgi.hpp"
+#include "HttpRequest.hpp"
+#include <sys/stat.h>
+#include "helper.hpp"
 
 Client::Client(const ServerConfig &servConf, int fd)
 	: _fd(fd),
 	  _servConf(servConf),
 	  _file(NULL), /* , _connected_at(time(NULL)) */
-	  _cgi(NULL),
-	  _cgi_pending(true) {
+	  _cgi(NULL) {
 	(void)servConf;
 }
 
@@ -17,32 +20,6 @@ Client::~Client() {
 	if (_fd >= 0) close(_fd);
 }
 
-/* struct HttpRequest {
-	std::string method;
-	std::string path;
-	std::string version;
-	std::map<std::string, std::string> headers;
-	std::vector<u_int8_t> body; // file??
-};
-
-struct HttpResponse {
-	int status_code;
-	std::string status_msg;
-	std::map<std::string, std::string> headers;
-	std::vector<u_int8_t> body;
-	std::vector<u_int8_t> body;
-
-	HttpResponse() : status_code(200), status_msg("OK") {}
-};
-struct RouterResult {
-	bool cgi;
-	std::string cgi_path;	// if cgi == true
-	HttpResponse response;	// if cgi == false
-}; */
-
-#define BUFF_SIZE 4096
-
-#include "HttpRequest.hpp"
 
 void readFile(const char *path, std::vector<u_int8_t> &buffer) {
 	int fd = open(path, O_RDONLY);
@@ -79,9 +56,6 @@ ClientStatus Client::queueResponse(const HttpResp &resp) {	// must not return
 	return WANT_WRITE;
 }
 
-#include <sys/stat.h>
-#include "helper.hpp"
-
 void Client::initFileServe(const std::string &path) {
 	_file = new FileServe(path);
 	if (_file->done()) {
@@ -91,8 +65,9 @@ void Client::initFileServe(const std::string &path) {
 }
 
 ClientStatus Client::serveFile(const std::string &path) {
-	initFileServe(path);
-	if (_file == NULL) { return serveErr(404); }
+	try {
+		initFileServe(path);
+	} catch (const std::exception &e) { return serveErr(404); }
 
 	HttpResp resp(200, "OK");
 	resp.isFile = true;
