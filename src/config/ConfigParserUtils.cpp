@@ -45,7 +45,8 @@ std::string ConfigParser::toString(std::size_t n) { // make it static!
 #include <vector>
 #include <map>
 
-static void printStringVector(const std::vector<std::string>& v) {
+template<typename T>
+static void printStringVector(const std::vector<T>& v) {
     if (v.empty()) {
         std::cout << "(none)";
         return;
@@ -56,6 +57,17 @@ static void printStringVector(const std::vector<std::string>& v) {
         std::cout << v[i];
     }
 }
+// static void printStringVector(const std::vector<std::string>& v) {
+//     if (v.empty()) {
+//         std::cout << "(none)";
+//         return;
+//     }
+//     for (std::size_t i = 0; i < v.size(); ++i) {
+//         if (i)
+//             std::cout << ", ";
+//         std::cout << v[i];
+//     }
+// }
 
 static void printCgiMap(const std::map<std::string, std::string>& cgi) {
     if (cgi.empty()) {

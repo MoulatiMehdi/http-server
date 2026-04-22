@@ -1,9 +1,14 @@
 #include "Router.hpp"
 #include "RouteResult.hpp"
+#include "Method.hpp"
+#include <string>
+#include <sys/stat.h>
 // #include "ConfigParser.hpp"
 
+
+
 bool Router::isMethodAllowed(RouteResult& result,
-                             const std::string& method)
+                             Method method)
 {
     if (result.location == NULL)
         return true;
@@ -77,7 +82,7 @@ bool Router::isDirectory(RouteResult& result) {
 
 // --------------------------
 
-bool Router::readPermition(RouteResult& result, char *p)
+bool Router::readPermission(RouteResult& result, const char *p)
 {
     if (access(p, R_OK) != 0) {
         result.action = ROUTE_ERROR;
@@ -87,7 +92,7 @@ bool Router::readPermition(RouteResult& result, char *p)
     return true;
 }
 
-bool Router::writePermition(RouteResult& result, char *p)
+bool Router::writePermission(RouteResult& result, const char *p)
 {
     if (access(p, W_OK) != 0) {
         result.action = ROUTE_ERROR;
@@ -97,7 +102,7 @@ bool Router::writePermition(RouteResult& result, char *p)
     return true;
 }
 
-bool Router::executePermition(RouteResult& result, char *p)
+bool Router::executePermission(RouteResult& result, const char *p)
 {
     if (access(p, X_OK) != 0) {
         result.action = ROUTE_ERROR;
@@ -108,7 +113,7 @@ bool Router::executePermition(RouteResult& result, char *p)
 }
 
 
-bool Router::deletePermition(RouteResult& result)
+bool Router::deletePermission(RouteResult& result) // check r&w
 {
     std::string dir = result.path;
     std::size_t pos = dir.rfind('/');
@@ -124,21 +129,21 @@ bool Router::deletePermition(RouteResult& result)
 }
 
 
-bool Router::checkPermission(RouteResult& result, const std::string& method)
+bool Router::checkPermission(RouteResult& result, Method method)
 {
     const char* p = result.path.c_str();
 
-    if (method == "GET")
-        return readPermition(result, p);
+    if (method == method::GET)
+        return readPermission(result, p);
 
-    if (method == "POST")
-        return writePermition(result ,p);
+    if (method == method::POST)
+        return writePermission(result ,p);
 
     if (result.action == ROUTE_CGI)
-        return executePermition(result, p);
+        return executePermission(result, p);
 
-    if (method == "DELETE")
-        deletePermition(result);
+    if (method == method::DELETE)
+        deletePermission(result);
 
     return true;
 }

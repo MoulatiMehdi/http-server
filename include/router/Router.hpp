@@ -5,7 +5,7 @@
 # include "Config.hpp"
 # include "HttpRequest.hpp" // check name
 # include "RouteResult.hpp"
-    
+# include "Method.hpp"
 
 class Router {
 public:
@@ -20,7 +20,7 @@ private:
     
     static bool pathMatchesLocation(const std::string& requestPath, const std::string& locationPath);
     
-    static bool isMethodAllowed(RouteResult &result, const std::string& method);
+    static bool isMethodAllowed(RouteResult &result, Method method);
 
     static bool isCgiRequest(RouteResult &result, const std::string& path);
 
@@ -30,13 +30,14 @@ private:
     static bool pathExists(RouteResult &result);
     static bool isRegularFile(RouteResult &result);
     static bool isDirectory(RouteResult &result);
+    static bool checkPermission(RouteResult &result, Method method);
 
-    std::string extractSuffix(const std::string& locPath, const std::string& reqPath);
+    static std::string extractSuffix(const std::string& locPath, const std::string& reqPath);
     
-    bool readPermition(RouteResult& result, char *p);
-    bool writePermition(RouteResult& result, char *p);
-    bool executePermition(RouteResult& result, char *p);
-    bool deletePermition(RouteResult& result);
+    static bool readPermission(RouteResult& result, const char *p);
+    static bool writePermission(RouteResult& result, const char *p);
+    static bool executePermission(RouteResult& result, const char *p);
+    static bool deletePermission(RouteResult& result);
 };
 
 #endif
