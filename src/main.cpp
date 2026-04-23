@@ -6,11 +6,9 @@
 #include <asm-generic/socket.h>
 #include <cstdio>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 #include <netinet/in.h>
 #include <ostream>
-#include <sstream>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -77,72 +75,31 @@ int main()
         if (rsize < 0)
             perror("read");
         if (rsize > 0)
-        {
-            std::cout << "--------------------- Buffer ----------------------- "
-                      << std::endl;
-            print_ptr_nl(buffer, rsize);
             request.parse(buffer, rsize);
-        }
-        HttpResponse       response;
-        std::string        str;
-        std::ostringstream oss("", std::_S_app);
+        HttpResponse response;
+        std::string  str;
         print_request(request);
         if (!request.good())
         {
             response.setStatus(request.status());
-            oss << "<html>\n<head>\n";
-            oss << "<title>" << phrase_reason(response.status())
-                << "</title>\n";
-            oss << "</head>\n<body>\n";
-            oss << "<h1>" << phrase_reason(response.status())
-                << "</h1>\n</body>\n</html>\n";
-
-            str = oss.str();
-            oss.str("");
-            oss.clear();
-            oss << str.size();
+            str = response.serve_page();
         }
         else if (request.complete())
         {
-            std::ifstream ifs("/home/mmoulati/test/index.html");
-
-            char buffer[1024];
-            while (true)
-            {
-                ifs.getline(buffer, 1024);
-                if (!ifs.good())
-                    break;
-                str.append(buffer, ifs.gcount());
-                str += "\n";
-            }
-
             response.setStatus(request.status());
-            oss << str.size();
+            str = response.serve_directory(
+                "/home/mmoulati", request.uri().c_str()
+            );
+            if (!response.good())
+                str = response.serve_page();
         }
         else
         {
             response.setStatus(status::GATEWAY_TIMEOUT);
-            oss << "<html>\n<head>\n";
-            oss << "<title>" << phrase_reason(response.status())
-                << "</title>\n";
-            oss << "</head>\n<body>\n";
-            oss << "<h1>" << phrase_reason(response.status())
-                << "</h1>\n</body>\n</html>\n";
-
-            str = oss.str();
-            oss.str("");
-            oss.clear();
-            oss << str.size();
+            str = response.serve_page();
         }
-        response.setHeader("content-length", oss.str());
-        response.setHeader("content-type", "text/html");
-        response.setHeader("connection", "close");
-        response.setHeader("server", "Webserv/1.0");
-        const std::string res = response.to_string();
-        write(fd_client, res.c_str(), res.size());
         write(fd_client, str.c_str(), str.size());
-        print_response(response);
-        std::cout << (str) << std::endl;
+        print_string_nl(str);
         close(fd_client);
     }
     return 0;
