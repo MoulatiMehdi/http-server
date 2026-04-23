@@ -11,6 +11,9 @@ class Router {
 public:
     static RouteResult resolve(const ServerConfig& server, const HttpRequest& request);
 
+    // debugging
+    static void printRouteResult(const RouteResult& r);
+
 private:
     Router();
     Router(const Router&);
