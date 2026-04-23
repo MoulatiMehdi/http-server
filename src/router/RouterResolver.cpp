@@ -132,15 +132,12 @@ bool Router::checkPermission(RouteResult& result, Method method)
 {
     const char* p = result.path.c_str();
 
-    if (method == method::GET)
-        return readPermission(result, p);
-
-    if (method == method::POST) // not needed
-        return writePermission(result ,p);
-
     if (result.action == ROUTE_CGI)
         return executePermission(result, p);
-
+    if (method == method::GET)
+        return readPermission(result, p);
+    if (method == method::POST) // not needed ?
+        return writePermission(result ,p);
     if (method == method::DELETE)
         deletePermission(result);
 
