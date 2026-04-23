@@ -1,11 +1,11 @@
 #include "Client.hpp"
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
 #include "Cgi.hpp"
 #include "HttpRequest.hpp"
-#include <sys/stat.h>
 #include "helper.hpp"
 
 Client::Client(const ServerConfig &servConf, int fd)
@@ -19,7 +19,6 @@ Client::Client(const ServerConfig &servConf, int fd)
 Client::~Client() {
 	if (_fd >= 0) close(_fd);
 }
-
 
 void readFile(const char *path, std::vector<u_int8_t> &buffer) {
 	int fd = open(path, O_RDONLY);
@@ -102,12 +101,10 @@ ClientStatus Client::serveErr(int code) {
 	resp.headers["Content-Type"] = "text/html";
 	_file = new FileServe(resp.path);
 	if (_file->done()) {
-		std::cout << "\n\n\nFile Failed to open Err page\n\n\n\n";
 		delete _file;
 		_file = NULL;
 		resp.headers["Content-Length"] = to_stringg(resp.body.size());
 	} else {
-		std::cout << "\n\n\nFile open opened\n\n\n\n";
 		resp.headers["Content-Length"] = to_stringg(_file->size());
 	}
 	resp.headers["Connection"] = "close";
@@ -143,19 +140,20 @@ ClientStatus Client::onReadable() {
 	int n = read(_fd, buff, sizeof(buff));
 
 	if (n == 0 || n == ERROR) return DISCONNECT;
-	// std::cout.write(buff, n); // for debug
 
 	_req.parse(buff, n);
 	if (!_req.good()) return serveErr(400);
 	if (!_req.complete()) return OK;
 	_routeResult = Router::resolve(_servConf, _req);
+
+	Router::printRouteResult(_routeResult);
 	switch (_routeResult.action) {
 		case ROUTE_STATIC_FILE:
 			return serveFile(_routeResult.path);
 		case ROUTE_CGI:
 			return initCgi(_routeResult);
 		case ROUTE_DIRECTORY_LISTING:
-			return serveFile("hello.html");
+			return serveFile("hello.pdf");
 			// return serveDir(_routeResult.path);
 		case ROUTE_ERROR:
 			return serveErr(_routeResult.statusCode);
