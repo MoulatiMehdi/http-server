@@ -25,7 +25,7 @@ Cgi::Cgi(const std::string &script, const HttpRequest &req)
 	int in_pipe[2];
 	int out_pipe[2];
 
-	if (pipe(out_pipe) < 0 || pipe(out_pipe) < 0)
+	if (pipe(out_pipe) < 0 || pipe(in_pipe) < 0)
 		throw std::runtime_error("pipe failed");
 
 	_pid = fork();

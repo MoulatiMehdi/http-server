@@ -71,9 +71,10 @@ ClientStatus Client::serveFile(const std::string &path) {
 	HttpResp resp(200, "OK");
 	resp.isFile = true;
 	resp.path = path;
-	resp.headers["Content-Type"] = "text/html";
-	resp.headers["Content-Length"] = to_stringg(_file->size());
 	resp.headers["Connection"] = "close";
+	resp.headers["Content-Type"] = "application/pdf";
+	resp.headers["Content-Disposition"] = "attachment; filename=\"file.pdf\"";
+	resp.headers["Content-Length"] = to_stringg(_file->size());
 	return queueResponse(resp);
 }
 
@@ -169,6 +170,7 @@ ClientStatus Client::onReadable() {
 
 	return WANT_WRITE;
 }
+
 /* TODO: onCgiDone()
  * - Call queueResponse(_cgi->getResponse()) instead of doing nothing
  * - The CGI response must be built and queued before deleting _cgi
@@ -187,7 +189,8 @@ ClientStatus Client::onReadable() {
  */
 
 /* TODO: onReadable()
- * - ROUTE_DIRECTORY_LISTING is stubbed to serveFile("hello.pdf") — implement serveDir()
+ * - ROUTE_DIRECTORY_LISTING is stubbed to serveFile("hello.pdf") — implement
+ * serveDir()
  * - Unreachable return WANT_WRITE at the bottom after the switch — dead code
  */
 
@@ -205,6 +208,132 @@ ClientStatus Client::onReadable() {
  * - Everything sends "Connection: close"
  * - Fine for now, but must be revisited when keep-alive is implemented
  */
+/* ========================= TODO: TCP / CONNECTION SIDE ========================= */
+
+/*
+TODO: Fix epoll_wait timeout
+- Currently uses timeout = -1 (wait forever), which violates requirement:
+  "A request should never hang indefinitely"
+- Replace with a finite timeout (e.g. 5000 ms)
+- On timeout, run a maintenance pass over all clients
+*/
+ 
+/*
+TODO: Implement client timeout tracking
+- Add timestamp per client (request start time)
+- On each epoll_wait timeout:
+    - Iterate over _cliTable
+    - Compute elapsed time
+    - Disconnect clients exceeding timeout threshold
+- Revive _connected_at or equivalent field
+*/
+
+/*
+TODO: Fix Client destructor resource leaks
+- Currently leaks:
+    - _cgi
+    - _file
+- Ensure proper deletion/cleanup of both
+- If CGI is active:
+    - Close pipes
+    - Remove pipe fds from epoll
+    - Clean _pipe_to_client mappings
+*/
+
+/*
+TODO: Fix disconnectClient() incomplete cleanup
+- Currently:
+    - Removes client fd from epoll
+    - Deletes client
+- Missing:
+    - Remove CGI pipe fds from epoll
+    - Erase entries from _pipe_to_client
+- Prevent dangling pipe fds and stale mappings
+*/
+
+
+/* ============================== TODO: CGI SIDE ============================== */
+
+/*
+TODO: Fix pipe() critical bug
+- Current bug:
+    pipe(out_pipe) called twice, in_pipe never initialized
+- Fix:
+    if (pipe(in_pipe) < 0 || pipe(out_pipe) < 0)
+- Without this:
+    - Child dup2 uses garbage fd
+    - CGI completely broken
+*/
+
+/*
+TODO: Implement CGI timeout handling
+- Add _started_at timestamp in Cgi
+- During epoll timeout maintenance:
+    - Check execution duration
+    - If exceeded:
+        - call cgikill()
+        - return CGI_ERROR to client
+- Prevent hanging CGI processes
+*/
+
+/*
+TODO: Implement CGI response handling in onCgiDone()
+- Current behavior:
+    - Deletes _cgi
+    - Discards output
+- Required:
+    - Parse _cgi->_output:
+        - Status line
+        - Headers
+        - Body
+    - Build proper HTTP response
+    - Call queueResponse()
+*/
+
+/*
+TODO: Fix CGI environment variables (RFC 3875 compliance)
+- Current behavior:
+    - Passing raw HTTP headers as env vars
+- Incorrect: CGI expects specific variables
+- Must include:
+    - REQUEST_METHOD
+    - CONTENT_LENGTH
+    - CONTENT_TYPE
+    - QUERY_STRING
+    - PATH_INFO
+    - SCRIPT_FILENAME
+    - etc.
+- Properly map HTTP request → CGI env
+*/
+
+/*
+TODO: Handle env memory on execve failure
+- env[] is built with strdup()
+- On execve success: OK (process replaced)
+- On failure:
+    - Must free allocated env entries before _exit
+- Minor leak but should be fixed
+*/
+
+
+/* ============================== PRIORITY ============================== */
+
+/*
+CRITICAL:
+- Fix pipe() bug
+
+HIGH:
+- epoll_wait timeout
+- client timeout tracking
+- disconnectClient cleanup
+- destructor leaks
+
+MEDIUM:
+- CGI timeout
+- CGI response parsing
+- CGI env correctness
+- env cleanup on execve failure
+*/
 
 ClientStatus Client::onWritable() {
 	int n;
