@@ -1,5 +1,6 @@
 #ifndef ROUTE_RESULT_HPP
 #define ROUTE_RESULT_HPP
+#include "Status.hpp"
 #ifndef   ROUTERESULT_HPP
 # define  ROUTERESULT_HPP
 
@@ -19,14 +20,14 @@ struct RouteResult {
 
     RouteAction           action;
     std::string           path;
-    int                   statusCode;
+    status::Status                   statusCode;
 
     RouteResult()
         : server(NULL),
           location(NULL),
           action(ROUTE_ERROR),
           path(""),
-          statusCode(404) {}
+          statusCode(status::NOT_FOUND) {}
 };
 
 #endif

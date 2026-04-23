@@ -1,4 +1,10 @@
 #include "Router.hpp"
+#include "Config.hpp"
+#include "RouteResult.hpp"
+#include "HttpRequest.hpp"
+#include "helper.hpp"
+#include <iostream>
+#include <ostream>
 
 RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& request)
 {
@@ -7,17 +13,20 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
     result.server = &server;
     std::size_t pathPos = request.uri().find('?');
     std::string path = request.uri().substr(0, pathPos);
+    
+    std::cout << "method = " << to_string(request.method()) << std::endl;
+    // std::cout << "$$$$$  requestPath = " << path << std::endl;
 
     result.location = matchLocation(server, path); 
 
-    if (!isMethodAllowed(result, request.method))
+    if (!isMethodAllowed(result, request.method()))
         return result;
 
     result.path = buildTargetPath(server, result.location, path);
 
     if (isCgiRequest(result, path)) return result;
-    if (!pathExists(result))        return result;
-    if (!checkPermission(result))   return result;
+    if (pathExists(result))        return result;
+    if (!checkPermission(result, request.method()))   return result;
     if (isRegularFile(result))      return result;
     if (isDirectory(result))        return result;
 
@@ -63,6 +72,18 @@ bool Router::pathMatchesLocation(const std::string& requestPath, const std::stri
     return requestPath[len] == '/';
 }
 
+std::string Router::extractSuffix(const std::string& locPath, const std::string& reqPath)
+{
+    std::string suffix = reqPath.substr(locPath.size());
+
+    // std::cout << "reqPath = " << reqPath << std::endl;
+    // std::cout << "suffix = " << suffix << std::endl;
+    if (!suffix.empty() && suffix[0] == '/')
+        suffix = suffix.substr(1);
+    // std::cout << "suffix = " << suffix << std::endl;
+    return suffix;
+}
+
 std::string Router::buildTargetPath(const ServerConfig& server,
                                     const LocationConfig* location,
                                     const std::string& requestPath)
@@ -73,19 +94,15 @@ std::string Router::buildTargetPath(const ServerConfig& server,
     if (location != NULL) {
         if (!location->root.empty())
             root = location->root;
+        // std::cout << "root = " << location->root << std::endl;
+        // std::cout << "root = " << root << std::endl;
+        // if ()
         suffix = extractSuffix(location->path, requestPath);
     }
+    else
+        suffix = extractSuffix("", requestPath);
 
-    if (!suffix.empty() && root[root.size() - 1] != '/')
+    if (!root.empty() && root[root.size() - 1] != '/')
         root += "/";
     return root + suffix;
-}
-
-std::string Router::extractSuffix(const std::string& locPath, const std::string& reqPath)
-{
-    std::string suffix = reqPath.substr(locPath.size());
-
-    if (!suffix.empty() && suffix[0] == '/')
-        suffix = suffix.substr(1);
-    return suffix;
 }

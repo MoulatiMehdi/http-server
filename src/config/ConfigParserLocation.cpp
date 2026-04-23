@@ -1,6 +1,6 @@
 #include "ConfigParser.hpp"
 #include <cstdlib>
-
+#include "Method.hpp"
 // static
 
 const std::string ConfigParser::locationDirective[] = {
@@ -68,13 +68,13 @@ void ConfigParser::handleLocAllowMethods(LocationConfig& loc) {
         throwError("allowed_methods: expected at least one method");
 
     while (_tokens[_i].type == TOK_WORD) {
-        std::string m = _tokens[_i].value;
-        if (m != "GET" && m != "POST" && m != "DELETE")
+        Method method = string_to_method(_tokens[_i].value);
+        if (method == method::UNKNOWN)
             throwError("allowed_methods: only GET/POST/DELETE allowed");
-        loc.allowed_methods.push_back(m);
+        loc.allowed_methods.push_back(method);
         advance();
     }
-    expect(TOK_SEMICOLON, "allowed_methods: expected ';' after " + loc.allowed_methods.back(), true);
+    expect(TOK_SEMICOLON, "allowed_methods: expected ';' after " + _tokens[_i].value, true);
 }
 
 // return <code> <url>

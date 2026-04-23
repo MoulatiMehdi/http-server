@@ -1,11 +1,12 @@
 #ifndef   CONFIG_HPP
 # define  CONFIG_HPP
 
-#include <string>
-#include <vector>
-#include <map>
+# include <string>
+# include <vector>
+# include <map>
+# include "Method.hpp"
 
-struct ListenConfig { // replace it
+struct ListenConfig {
     std::string host;                   // ip
     int port;                           // 8080
 
@@ -14,15 +15,13 @@ struct ListenConfig { // replace it
 
 struct LocationConfig {
     std::string path;                          // "/"
-    std::vector<std::string> allowed_methods;  // GET POST DELETE
+    std::vector<Method> allowed_methods;  // GET POST DELETE
 
     std::string root;                          // optional override
     std::vector<std::string> index;            // e.g. index.html
     bool autoindex;                            // true/false
 
     std::map<std::string, std::string> cgi;    // e.g. cgi[".py"] = "/usr/bin/python3";
-    // std::string cgi_extension;                 // e.g. ".py"
-    // std::string cgi_path;                      // e.g. /usr/bin/python3
     std::string upload_dir;                    // e.g. /tmp/uploads
     bool        upload_enabled;                // upload allowed or not
 
@@ -38,8 +37,6 @@ struct LocationConfig {
 };
 
 struct ServerConfig {
-    // int listen_port;                           // 8080
-    // std::string listen_host;                   // 
     std::vector<ListenConfig> listens;         // multiple interface:port pairs
     std::vector<std::string> server_names;     // a.com www.a.com
     std::string root;                          // /var/www/a
