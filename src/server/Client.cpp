@@ -169,6 +169,42 @@ ClientStatus Client::onReadable() {
 
 	return WANT_WRITE;
 }
+/* TODO: onCgiDone()
+ * - Call queueResponse(_cgi->getResponse()) instead of doing nothing
+ * - The CGI response must be built and queued before deleting _cgi
+ */
+
+/* TODO: serveErr()
+ * - Remove the dead inline HTML body — it's never sent (file takes over)
+ * - Replace with _router.buildError(code, _servConf) once Router is wired
+ * - The dual path (file vs memory body) is contradictory, pick one
+ */
+
+/* TODO: queueResponse()
+ * - Uncomment and resolve the initFileServe path — currently commented out
+ * - The if (_file) check below is stale logic
+ * - HTTP/1.0 should be HTTP/1.1
+ */
+
+/* TODO: onReadable()
+ * - ROUTE_DIRECTORY_LISTING is stubbed to serveFile("hello.pdf") — implement serveDir()
+ * - Unreachable return WANT_WRITE at the bottom after the switch — dead code
+ */
+
+/* TODO: Client destructor
+ * - No cleanup for _cgi or _file on destruction
+ * - Both can leak if client disconnects mid-flight
+ */
+
+/* TODO: initCgi()
+ * - On failure returns DISCONNECT — should return serveErr(500)
+ * - The connection is still valid, don’t drop it
+ */
+
+/* TODO: Keep-alive
+ * - Everything sends "Connection: close"
+ * - Fine for now, but must be revisited when keep-alive is implemented
+ */
 
 ClientStatus Client::onWritable() {
 	int n;
