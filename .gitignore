@@ -1,3 +1,6 @@
 webserve
 compile_flags.txt
 *.o
+compile_commands.json
+.cache/
+webserv
