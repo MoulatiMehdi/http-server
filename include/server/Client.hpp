@@ -12,17 +12,6 @@
 #include "RouteResult.hpp"
 #include "helper.hpp"
 
-struct HttpResp {
-	int status_code;
-	std::string status_msg;
-	std::map<std::string, std::string> headers;
-	bool isFile;
-	std::string path;
-	std::vector<u_int8_t> body;
-
-	HttpResp(int n, const std::string &s) : status_code(n), status_msg(s) {}
-};
-
 enum ClientStatus { OK, WANT_WRITE, DONE_WRITE, DISCONNECT, INIT_CGI };
 
 // choose one naming convention
@@ -32,7 +21,7 @@ class Client {
 	const ServerConfig &_servConf;
 	std::vector<u_int8_t> _wrbuf;
 	HttpRequest _req;
-	RouteResult _routeResult;
+	
 	FileServe *_file;
 	Cgi *_cgi;
 
@@ -53,9 +42,11 @@ class Client {
 	Cgi *getCgi() const;
 	int getFd() const;
 
+	ClientStatus serveFile(RouteResult routeResult); // TODO: maybe const &
+	ClientStatus serveDir(RouteResult routeResult); // TODO: maybe const &
+	ClientStatus handleRoute(RouteResult routeResult); // TODO: private
 	void initFileServe(const std::string &path);
 	ClientStatus serveErr(int status);
-	ClientStatus serveFile(const std::string &path);
 	ClientStatus queueResponse(const HttpResp &resp);
 };
 

@@ -6,8 +6,10 @@
 #include <exception>
 #include "Cgi.hpp"
 #include "HttpRequest.hpp"
+#include "HttpResponse.hpp"
 #include "Logger.hpp"
 #include "helper.hpp"
+#include "Router.hpp"
 
 Client::Client(const ServerConfig &servConf, int fd)
 	: _fd(fd),
@@ -62,21 +64,6 @@ void Client::initFileServe(const std::string &path) {
 		delete _file;
 		_file = NULL;
 	}
-}
-
-ClientStatus Client::serveFile(const std::string &path) {
-	try {
-		initFileServe(path);
-	} catch (const std::exception &e) { return serveErr(404); }
-
-	HttpResp resp(200, "OK");
-	resp.isFile = true;
-	resp.path = path;
-	resp.headers["Connection"] = "close";
-	resp.headers["Content-Type"] = "application/pdf";
-	resp.headers["Content-Disposition"] = "attachment; filename=\"file.pdf\"";
-	resp.headers["Content-Length"] = to_stringg(_file->size());
-	return queueResponse(resp);
 }
 
 ClientStatus Client::serveErr(int code) {
@@ -137,7 +124,51 @@ ClientStatus Client::onCgiDone() {
 	return WANT_WRITE;
 }
 
-#include "Router.hpp"
+// 	// router
+// 	std::string mimeType;  // .pdf .html ...
+// 	bool isAttachment; // what khso i downloada
+// 	std::string downloadName; // smiya dyal download
+//
+// // httpresp
+// resp.applyRoute(routeResult); // applyi l headers
+//
+//
+// // tcp
+// Content-Length // 7it 3ndi lfile
+
+ClientStatus Client::serveFile(RouteResult routeResult) {
+	try {
+		initFileServe(routeResult.path);
+	} catch (const std::exception &e) { return serveErr(404); }
+
+	HttpResponse resp;
+	resp.setStatus(routeResult.statusCode);
+	resp.setContentLength(_file->size());
+
+	return queueResponse(resp);
+}
+
+ClientStatus Client::serveDir(RouteResult routeResult) {
+	std::string htmlStr = HttpResponse::serve_directory(routeResult.location->root, routeResult.path);
+	_wrbuf.insert(_wrbuf.end(), headStr.begin(), headStr.end());
+	return queueResponse(resp);
+}
+
+ClientStatus Client::handleRoute(RouteResult _routeResult) {
+	Router::printRouteResult(_routeResult);
+	switch (_routeResult.action) {
+		case ROUTE_STATIC_FILE:
+			return serveFile(_routeResult);
+		case ROUTE_DIRECTORY_LISTING:
+			return serveDir(_routeResult);
+		case ROUTE_ERROR:
+			return serveErr(_routeResult);
+		case ROUTE_CGI:
+			return initCgi(_routeResult);
+			break;
+	}
+}
+
 ClientStatus Client::onReadable() {
 	char buff[BUFF_SIZE];
 	int n = read(_fd, buff, sizeof(buff));
@@ -145,32 +176,11 @@ ClientStatus Client::onReadable() {
 	if (n == 0 || n == ERROR) return DISCONNECT;
 
 	_req.parse(buff, n);
-	if (!_req.good()) return serveErr(400);
+	if (!_req.good()) return serveErr(400); // STATUS CODE???
 	if (!_req.complete()) return OK;
-	_routeResult = Router::resolve(_servConf, _req);
 
-	Router::printRouteResult(_routeResult);
-	switch (_routeResult.action) {
-		case ROUTE_STATIC_FILE:
-			return serveFile(_routeResult.path);
-		case ROUTE_CGI:
-			return initCgi(_routeResult);
-		case ROUTE_DIRECTORY_LISTING:
-			return serveFile("hello.pdf");
-			// return serveDir(_routeResult.path);
-		case ROUTE_ERROR:
-			return serveErr(_routeResult.statusCode);
-			break;
-	}
-
-	// enum RouteAction {
-	//     ROUTE_STATIC_FILE,
-	//     ROUTE_CGI,
-	//     ROUTE_DIRECTORY_LISTING,
-	//     ROUTE_ERROR
-	// };
-
-	return WANT_WRITE;
+	return handleRoute(Router::resolve(_servConf, _req)); 
+	// TODO: remove return values, they all return same
 }
 
 /* TODO: onCgiDone()
