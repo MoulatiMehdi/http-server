@@ -16,7 +16,7 @@ void HttpServer::createSockets(const ServerConfig &servConf) {
 		Logger::info("Socket: [" + to_stringg(s->getFd()) + "] Listeting on: " +
 					 s->getAddr() + ":" + to_stringg(s->getPort()));
 	}
-	std::cout << "\n";
+	std::cout << "----------------------------------------\n";
 }
 
 void HttpServer::init() {
@@ -35,7 +35,7 @@ void HttpServer::init() {
 }
 
 void HttpServer::run() {
-	Logger::info("Server running");
+	Logger::info("Running...");
 	_eventLoop.addSockets();
 	_eventLoop.loop();
 }

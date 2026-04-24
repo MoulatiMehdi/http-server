@@ -49,7 +49,7 @@ void EventLoop::disconnectClient(int fd) {
 	if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, NULL) == ERROR)
 		exitError("epoll_ctl: EPOLL_CTL_DEL");
 	_cliTable.remove(fd);
-	Logger::info("client " + to_stringg(fd) + ": disconnected");
+	Logger::info("Client " + to_stringg(fd) + ": disconnected");
 }
 
 int EventLoop::handleStatus(Client *client, ClientStatus status) {
@@ -131,7 +131,7 @@ void EventLoop::handleNewConnections(Socket *sock) {
 		make_non_blocking(cliFd);
 		_cliTable.add(servConf, cliFd);
 		epollAdd(cliFd, EPOLLIN);
-		Logger::info("Client: " + std::string(inet_ntoa(cliAddr.sin_addr)) +
+		Logger::info("New Client: " + std::string(inet_ntoa(cliAddr.sin_addr)) +
 					 ":" + to_stringg(ntohs(cliAddr.sin_port)) + " through " +
 					 sock->getAddr() + ":" + to_stringg(sock->getPort()));
 	}

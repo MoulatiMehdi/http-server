@@ -6,6 +6,7 @@
 #include <exception>
 #include "Cgi.hpp"
 #include "HttpRequest.hpp"
+#include "Logger.hpp"
 #include "helper.hpp"
 
 Client::Client(const ServerConfig &servConf, int fd)
@@ -115,8 +116,9 @@ ClientStatus Client::serveErr(int code) {
 ClientStatus Client::initCgi(RouteResult routeResult) {
 	try {
 		_cgi = new Cgi(routeResult.path, _req);
+		Logger::info("Client " + to_stringg(_fd) + "Cgi initialized");
 	} catch (std::exception &e) {
-		std::cerr << "initCgi failed: " << e.what() << "\n";
+		Logger::error("initCgi failed: " + std::string(e.what()));
 		return DISCONNECT;
 	}
 	return INIT_CGI;
@@ -208,7 +210,8 @@ ClientStatus Client::onReadable() {
  * - Everything sends "Connection: close"
  * - Fine for now, but must be revisited when keep-alive is implemented
  */
-/* ========================= TODO: TCP / CONNECTION SIDE ========================= */
+/* ========================= TODO: TCP / CONNECTION SIDE
+ * ========================= */
 
 /*
 TODO: Fix epoll_wait timeout
@@ -217,92 +220,92 @@ TODO: Fix epoll_wait timeout
 - Replace with a finite timeout (e.g. 5000 ms)
 - On timeout, run a maintenance pass over all clients
 */
- 
+
 /*
 TODO: Implement client timeout tracking
 - Add timestamp per client (request start time)
 - On each epoll_wait timeout:
-    - Iterate over _cliTable
-    - Compute elapsed time
-    - Disconnect clients exceeding timeout threshold
+	- Iterate over _cliTable
+	- Compute elapsed time
+	- Disconnect clients exceeding timeout threshold
 - Revive _connected_at or equivalent field
 */
 
 /*
 TODO: Fix Client destructor resource leaks
 - Currently leaks:
-    - _cgi
-    - _file
+	- _cgi
+	- _file
 - Ensure proper deletion/cleanup of both
 - If CGI is active:
-    - Close pipes
-    - Remove pipe fds from epoll
-    - Clean _pipe_to_client mappings
+	- Close pipes
+	- Remove pipe fds from epoll
+	- Clean _pipe_to_client mappings
 */
 
 /*
 TODO: Fix disconnectClient() incomplete cleanup
 - Currently:
-    - Removes client fd from epoll
-    - Deletes client
+	- Removes client fd from epoll
+	- Deletes client
 - Missing:
-    - Remove CGI pipe fds from epoll
-    - Erase entries from _pipe_to_client
+	- Remove CGI pipe fds from epoll
+	- Erase entries from _pipe_to_client
 - Prevent dangling pipe fds and stale mappings
 */
 
-
-/* ============================== TODO: CGI SIDE ============================== */
+/* ============================== TODO: CGI SIDE ==============================
+ */
 
 /*
 TODO: Fix pipe() critical bug
 - Current bug:
-    pipe(out_pipe) called twice, in_pipe never initialized
+	pipe(out_pipe) called twice, in_pipe never initialized
 - Fix:
-    if (pipe(in_pipe) < 0 || pipe(out_pipe) < 0)
+	if (pipe(in_pipe) < 0 || pipe(out_pipe) < 0)
 - Without this:
-    - Child dup2 uses garbage fd
-    - CGI completely broken
+	- Child dup2 uses garbage fd
+	- CGI completely broken
 */
 
 /*
 TODO: Implement CGI timeout handling
 - Add _started_at timestamp in Cgi
 - During epoll timeout maintenance:
-    - Check execution duration
-    - If exceeded:
-        - call cgikill()
-        - return CGI_ERROR to client
+	- Check execution duration
+	- If exceeded:
+		- call cgikill()
+		- return CGI_ERROR to client
 - Prevent hanging CGI processes
 */
 
 /*
 TODO: Implement CGI response handling in onCgiDone()
 - Current behavior:
-    - Deletes _cgi
-    - Discards output
+	- Deletes _cgi
+	- Discards output
 - Required:
-    - Parse _cgi->_output:
-        - Status line
-        - Headers
-        - Body
-    - Build proper HTTP response
-    - Call queueResponse()
+	- Parse _cgi->_output:
+		- Status line
+		- Headers
+		- Body
+	- Build proper HTTP response
+	- Call queueResponse()
 */
 
 /*
 TODO: Fix CGI environment variables (RFC 3875 compliance)
 - Current behavior:
-    - Passing raw HTTP headers as env vars
+	- Passing raw HTTP headers as env vars
 - Incorrect: CGI expects specific variables
 - Must include:
-    - REQUEST_METHOD
-    - CONTENT_LENGTH
-    - CONTENT_TYPE
-    - QUERY_STRING
-    - PATH_INFO
-    - SCRIPT_FILENAME
-    - etc.
+	- REQUEST_METHOD
+	- CONTENT_LENGTH
+	- CONTENT_TYPE
+	- QUERY_STRING
+	- PATH_INFO
+	- SCRIPT_FILENAME
+	- etc.
 - Properly map HTTP request → CGI env
 */
 
@@ -311,10 +314,9 @@ TODO: Handle env memory on execve failure
 - env[] is built with strdup()
 - On execve success: OK (process replaced)
 - On failure:
-    - Must free allocated env entries before _exit
+	- Must free allocated env entries before _exit
 - Minor leak but should be fixed
 */
-
 
 /* ============================== PRIORITY ============================== */
 
