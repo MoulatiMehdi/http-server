@@ -46,8 +46,8 @@ class Client {
 	ClientStatus serveDir(RouteResult routeResult); // TODO: maybe const &
 	ClientStatus handleRoute(RouteResult routeResult); // TODO: private
 	void initFileServe(const std::string &path);
-	ClientStatus serveErr(int status);
-	ClientStatus queueResponse(const HttpResp &resp);
+	ClientStatus serveErr(RouteResult routeResult);
+	ClientStatus queueResponse(HttpResponse &resp, RouteResult routeResult);
 };
 
 // while the request isnt complete          => parser required

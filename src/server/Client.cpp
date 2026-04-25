@@ -4,12 +4,15 @@
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
+#include <string>
 #include "Cgi.hpp"
+#include "FileServe.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 #include "Logger.hpp"
-#include "helper.hpp"
 #include "Router.hpp"
+#include "Status.hpp"
+#include "helper.hpp"
 
 Client::Client(const ServerConfig &servConf, int fd)
 	: _fd(fd),
@@ -37,67 +40,35 @@ void readFile(const char *path, std::vector<u_int8_t> &buffer) {
 	close(fd);
 }
 
-ClientStatus Client::queueResponse(const HttpResp &resp) {	// must not return
-	std::ostringstream head;
-
-	head << "HTTP/1.0 " << to_stringg(resp.status_code) << " "
-		 << resp.status_msg << "\r\n";
-	for (std::map<std::string, std::string>::const_iterator it =
-			 resp.headers.begin();
-		 it != resp.headers.end(); ++it)
-		head << it->first << ": " << it->second << "\r\n";
-	head << "\r\n";
-
-	std::string headStr = head.str();
-	_wrbuf.insert(_wrbuf.end(), headStr.begin(), headStr.end());
-	// if (resp.isFile) readFile(resp.path.c_str(), _wrbuf);
-	// if (resp.isFile) return initFileServe(resp.path);
-	if (_file) return WANT_WRITE;
-	else _wrbuf.insert(_wrbuf.end(), resp.body.begin(), resp.body.end());
-
+ClientStatus Client::queueResponse(HttpResponse &resp, RouteResult routeResult /* const & */) {
+	// must not return
+	std::string s;
+	resp.setStatus(routeResult.statusCode);
+	if (routeResult.path.size()) try {
+			_file = new FileServe(routeResult.path);
+		} catch (const std::exception &e) {
+			Logger::error(e.what());
+			s = resp.serve_page();
+			_wrbuf.insert(_wrbuf.end(), s.begin(), s.end());
+			return WANT_WRITE;
+		}
+	resp.setContentLength(_file->size());
+	resp.setHeader("Content-type", "application/ostream");
+	s = resp.to_string();
+	_wrbuf.insert(_wrbuf.end(), s.begin(), s.end());
 	return WANT_WRITE;
 }
 
-void Client::initFileServe(const std::string &path) {
-	_file = new FileServe(path);
-	if (_file->done()) {
-		delete _file;
-		_file = NULL;
-	}
-}
+// void Client::initFileServe(const std::string &path) {
+// 	_file = new FileServe(path);
+// 	if (_file->done()) {
+// 		delete _file;
+// 		_file = NULL;
+// 	}
+// }
 
-ClientStatus Client::serveErr(int code) {
-	// return queueResponse(_router.buildError(status, _servConf));
-	// a response that has the filename or string
-	std::string msg("Not Found");
-	HttpResp resp(code, msg);
-
-	// Body (simple HTML)
-	std::string body =
-		"<html>\n"
-		"<head><title>" +
-		to_stringg(code) + " " + msg +
-		"</title></head>\n"
-		"<body>\n"
-		"<h1>" +
-		to_stringg(code) + "From Memory" + msg +
-		"</h1>\n"
-		"</body>\n"
-		"</html>\n";
-	resp.body.assign(body.begin(), body.end());
-	resp.isFile = true;
-	resp.path = "./err.html";
-	resp.headers["Content-Type"] = "text/html";
-	_file = new FileServe(resp.path);
-	if (_file->done()) {
-		delete _file;
-		_file = NULL;
-		resp.headers["Content-Length"] = to_stringg(resp.body.size());
-	} else {
-		resp.headers["Content-Length"] = to_stringg(_file->size());
-	}
-	resp.headers["Connection"] = "close";
-	return queueResponse(resp);
+ClientStatus Client::serveErr(RouteResult routeResult) {
+	return queueResponse(routeResult);
 }
 
 ClientStatus Client::initCgi(RouteResult routeResult) {
@@ -137,21 +108,26 @@ ClientStatus Client::onCgiDone() {
 // Content-Length // 7it 3ndi lfile
 
 ClientStatus Client::serveFile(RouteResult routeResult) {
-	try {
-		initFileServe(routeResult.path);
-	} catch (const std::exception &e) { return serveErr(404); }
-
 	HttpResponse resp;
+	try {
+		_file = new FileServe(routeResult.path);
+	} catch (const std::exception &e) {
+		Logger::error(e.what());
+		return serveErr(routeResult);
+	}
+
 	resp.setStatus(routeResult.statusCode);
 	resp.setContentLength(_file->size());
 
-	return queueResponse(resp);
+	return queueResponse(resp, routeResult);
 }
 
 ClientStatus Client::serveDir(RouteResult routeResult) {
-	std::string htmlStr = HttpResponse::serve_directory(routeResult.location->root, routeResult.path);
-	_wrbuf.insert(_wrbuf.end(), headStr.begin(), headStr.end());
-	return queueResponse(resp);
+	HttpResponse resp;
+	std::string html = resp.serve_directory(_servConf.root, routeResult.path);
+	if (resp.good())
+		// return (server had string);
+		return serveErr(resp);
 }
 
 ClientStatus Client::handleRoute(RouteResult _routeResult) {
@@ -165,7 +141,7 @@ ClientStatus Client::handleRoute(RouteResult _routeResult) {
 			return serveErr(_routeResult);
 		case ROUTE_CGI:
 			return initCgi(_routeResult);
-			break;
+		// case ROUTE_UPLOAD: return resp(201??)
 	}
 }
 
@@ -176,10 +152,11 @@ ClientStatus Client::onReadable() {
 	if (n == 0 || n == ERROR) return DISCONNECT;
 
 	_req.parse(buff, n);
-	if (!_req.good()) return serveErr(400); // STATUS CODE???
+	if (!_req.good())
+		return serveErr(Router::resolve(_servConf, _req));	// STATUS CODE???
 	if (!_req.complete()) return OK;
 
-	return handleRoute(Router::resolve(_servConf, _req)); 
+	return handleRoute(Router::resolve(_servConf, _req));
 	// TODO: remove return values, they all return same
 }
 
