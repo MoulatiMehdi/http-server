@@ -144,7 +144,7 @@ const std::string phrase_reason(Status v)
     return "<unknown-status>";
 }
 
-StatusClass to_status_class(unsigned v)
+StatusClass to_status_class(Status v)
 {
     switch (v / 100)
     {
