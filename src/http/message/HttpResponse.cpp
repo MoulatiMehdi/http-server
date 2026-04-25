@@ -20,6 +20,14 @@
 
 HttpResponse::HttpResponse() : HttpMessage(), m_parser(*this)
 {
+    setHeader("Server", "webserv");
+    setHeader("Connection", "close");
+}
+
+HttpResponse::HttpResponse(Status status) : HttpMessage(status), m_parser(*this)
+{
+    setHeader("Server", "webserv");
+    setHeader("Connection", "close");
 }
 
 void HttpResponse::parse(const char *c_str, size_t len)
