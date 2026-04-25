@@ -2,6 +2,7 @@
 #include "HttpMessage.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
+#include "MimeType.hpp"
 #include "Status.hpp"
 #include <arpa/inet.h>
 #include <asm-generic/socket.h>
@@ -59,49 +60,55 @@ int server_open()
 
 int main()
 {
-    int fd_server = server_open();
+    // int fd_server = server_open();
 
-    char buffer[1024];
-    while (true)
-    {
-        HttpRequest request;
+    // char buffer[1024];
+    // while (true)
+    // {
+    //     HttpRequest request;
+    //
+    //     int fd_client = accept(fd_server, 0, 0);
+    //     if (fd_client < 0)
+    //     {
+    //         perror("accept");
+    //         return 0;
+    //     }
+    //     ssize_t rsize = read(fd_client, &buffer, 1024);
+    //     if (rsize < 0)
+    //         perror("read");
+    //     if (rsize > 0)
+    //         request.parse(buffer, rsize);
+    //     HttpResponse response;
+    //     std::string  str;
+    //     print_request(request);
+    //     if (!request.good())
+    //     {
+    //         response.setStatus(request.status());
+    //         str = response.serve_page();
+    //     }
+    //     else if (request.complete())
+    //     {
+    //         response.setStatus(request.status());
+    //         str = response.serve_directory(
+    //             "/home/mmoulati", request.uri().c_str()
+    //         );
+    //         if (!response.good())
+    //             str = response.serve_page();
+    //     }
+    //     else
+    //     {
+    //         response.setStatus(status::GATEWAY_TIMEOUT);
+    //         str = response.serve_page();
+    //     }
+    //     write(fd_client, str.c_str(), str.size());
+    //     print_string_nl(str);
+    //     close(fd_client);
+    // }
+    //
 
-        int fd_client = accept(fd_server, 0, 0);
-        if (fd_client < 0)
-        {
-            perror("accept");
-            return 0;
-        }
-        ssize_t rsize = read(fd_client, &buffer, 1024);
-        if (rsize < 0)
-            perror("read");
-        if (rsize > 0)
-            request.parse(buffer, rsize);
-        HttpResponse response;
-        std::string  str;
-        print_request(request);
-        if (!request.good())
-        {
-            response.setStatus(request.status());
-            str = response.serve_page();
-        }
-        else if (request.complete())
-        {
-            response.setStatus(request.status());
-            str = response.serve_directory(
-                "/home/mmoulati", request.uri().c_str()
-            );
-            if (!response.good())
-                str = response.serve_page();
-        }
-        else
-        {
-            response.setStatus(status::GATEWAY_TIMEOUT);
-            str = response.serve_page();
-        }
-        write(fd_client, str.c_str(), str.size());
-        print_string_nl(str);
-        close(fd_client);
-    }
+    MimeType mm;
+
+    std::cout << mm.getContentType("txt") << std::endl;
+    std::cout << mm.getContentType("pdf") << std::endl;
     return 0;
 }
