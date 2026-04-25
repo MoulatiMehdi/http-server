@@ -1,4 +1,5 @@
 #include "Debug.hpp"
+#include "HttpMessage.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 #include "Status.hpp"
