@@ -1,16 +1,18 @@
-#ifndef ROUTE_RESULT_HPP
-#define ROUTE_RESULT_HPP
-#include "Status.hpp"
 #ifndef   ROUTERESULT_HPP
 # define  ROUTERESULT_HPP
 
 # include <string>
-# include "ConfigParser.hpp"
+# include "Config.hpp"
+# include "Status.hpp"
+
+struct ServerConfig;
+struct LocationConfig;
 
 enum RouteAction {
     ROUTE_STATIC_FILE,
     ROUTE_CGI,
     ROUTE_DIRECTORY_LISTING,
+    ROUTE_UPLOAD,
     ROUTE_ERROR
 };
 
@@ -30,5 +32,4 @@ struct RouteResult {
           statusCode(status::NOT_FOUND) {}
 };
 
-#endif
 #endif

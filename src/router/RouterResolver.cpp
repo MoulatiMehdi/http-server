@@ -1,10 +1,10 @@
+#include "HttpRequest.hpp"
 #include "Router.hpp"
 #include "RouteResult.hpp"
 #include "Method.hpp"
 #include "Status.hpp"
 #include <string>
 #include <sys/stat.h>
-// #include "ConfigParser.hpp"
 
 bool Router::isMethodAllowed(RouteResult& result,
                              Method method)
@@ -46,8 +46,27 @@ bool Router::isCgiRequest(RouteResult& result, const std::string& path) {
     return false;
 }
 
+bool Router::isUploadRequest(RouteResult &result, const HttpRequest& request) {
+    if (result.location == NULL)
+        return false;
+
+    if (request.method() != method::POST)
+        return false;
+
+    if (result.location->upload_dir.empty()) { // can be empty!? also upload_enabled should be checked
+        result.action = ROUTE_ERROR;
+        result.statusCode = status::INTERNAL_SERVER_ERROR;
+        return true;
+    }
+    result.action = ROUTE_UPLOAD;
+    result.path = result.location->upload_dir;
+    result.statusCode = status::OK;
+    return true;
+}
+
 //  TODO: check syntax later
-// ree check
+//  re check
+
 bool Router::pathExists(RouteResult& result) {
     struct stat st;
 
@@ -154,6 +173,7 @@ static std::string actionToString(RouteAction action) {
         case ROUTE_STATIC_FILE:       return "STATIC_FILE";
         case ROUTE_CGI:               return "CGI";
         case ROUTE_DIRECTORY_LISTING: return "DIRECTORY_LISTING";
+        case ROUTE_UPLOAD:            return "UPLOAD";
         case ROUTE_ERROR:             return "ERROR";
         default:                      return "UNKNOWN";
     }
