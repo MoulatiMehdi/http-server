@@ -3,6 +3,7 @@
 
 #include "HttpMessage.hpp"
 #include "HttpResponseParser.hpp"
+#include "Status.hpp"
 #include <string>
 
 class HttpResponseParser;
@@ -14,6 +15,7 @@ class HttpResponse : public HttpMessage
 
   public:
     HttpResponse();
+    HttpResponse(Status status);
     ~HttpResponse();
 
     size_t              gcount() const;
@@ -22,8 +24,7 @@ class HttpResponse : public HttpMessage
 
     std::string to_string() const;
     std::string serve_page();
-    std::string
-    serve_directory(const std::string &root, std::string path);
+    std::string serve_directory(const std::string &root, std::string path);
 };
 
 #endif

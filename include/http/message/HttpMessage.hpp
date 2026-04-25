@@ -26,6 +26,7 @@ class HttpMessage
     static const unsigned int HTTP_V09 = 9;
 
     HttpMessage();
+    HttpMessage(status::Status status);
     virtual ~HttpMessage() = 0;
 
     bool complete() const;

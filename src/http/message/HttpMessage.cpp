@@ -16,6 +16,16 @@ HttpMessage::HttpMessage()
 {
 }
 
+HttpMessage::HttpMessage(status::Status status)
+    : m_version(HTTP_V10),
+      m_headers(),
+      m_status(status),
+      m_content_length(0),
+      m_body(),
+      m_complete(true)
+{
+}
+
 void HttpMessage::setHeader(const std::string &name, const std::string &value)
 {
     m_headers.insert(Headers::value_type(name, value));
@@ -79,7 +89,8 @@ unsigned int HttpMessage::version_minor() const
 
 bool HttpMessage::good() const
 {
-    return m_status == status::OK;
+    const StatusClass i = to_status_class(m_status);
+    return i != status_class::CLIENT_ERROR && i != status_class::SERVER_ERROR;
 }
 
 Status HttpMessage::status() const
