@@ -40,46 +40,18 @@ void readFile(const char *path, std::vector<u_int8_t> &buffer) {
 	close(fd);
 }
 
-ClientStatus Client::queueResponse(HttpResponse &resp, RouteResult routeResult /* const & */) {
-	// must not return
-	std::string s;
-	resp.setStatus(routeResult.statusCode);
-	if (routeResult.path.size()) try {
-			_file = new FileServe(routeResult.path);
-		} catch (const std::exception &e) {
-			Logger::error(e.what());
-			s = resp.serve_page();
-			_wrbuf.insert(_wrbuf.end(), s.begin(), s.end());
-			return WANT_WRITE;
-		}
-	resp.setContentLength(_file->size());
-	resp.setHeader("Content-type", "application/ostream");
-	s = resp.to_string();
-	_wrbuf.insert(_wrbuf.end(), s.begin(), s.end());
-	return WANT_WRITE;
+ClientStatus Client::queueResponse(const HttpResponse &resp,
+                                   const std::string &body) {
+    std::string s = resp.to_string();
+    _wrbuf.insert(_wrbuf.end(), s.begin(), s.end());
+    _wrbuf.insert(_wrbuf.end(), body.begin(), body.end());
+    return WANT_WRITE;
 }
 
-// void Client::initFileServe(const std::string &path) {
-// 	_file = new FileServe(path);
-// 	if (_file->done()) {
-// 		delete _file;
-// 		_file = NULL;
-// 	}
-// }
-
-ClientStatus Client::serveErr(RouteResult routeResult) {
-	return queueResponse(routeResult);
-}
-
-ClientStatus Client::initCgi(RouteResult routeResult) {
-	try {
-		_cgi = new Cgi(routeResult.path, _req);
-		Logger::info("Client " + to_stringg(_fd) + "Cgi initialized");
-	} catch (std::exception &e) {
-		Logger::error("initCgi failed: " + std::string(e.what()));
-		return DISCONNECT;
-	}
-	return INIT_CGI;
+ClientStatus Client::queueResponse(const HttpResponse &resp) {
+    std::string s = resp.to_string();  // status line + headers + \r\n
+    _wrbuf.insert(_wrbuf.end(), s.begin(), s.end());
+    return WANT_WRITE;
 }
 
 Cgi *Client::getCgi() const {
@@ -95,65 +67,83 @@ ClientStatus Client::onCgiDone() {
 	return WANT_WRITE;
 }
 
-// 	// router
-// 	std::string mimeType;  // .pdf .html ...
-// 	bool isAttachment; // what khso i downloada
-// 	std::string downloadName; // smiya dyal download
-//
-// // httpresp
-// resp.applyRoute(routeResult); // applyi l headers
-//
-//
-// // tcp
-// Content-Length // 7it 3ndi lfile
-
-ClientStatus Client::serveFile(RouteResult routeResult) {
-	HttpResponse resp;
+ClientStatus Client::initCgi(const RouteResult &route) {
 	try {
-		_file = new FileServe(routeResult.path);
-	} catch (const std::exception &e) {
-		Logger::error(e.what());
-		return serveErr(routeResult);
+		_cgi = new Cgi(route.path, _req);
+	} catch (...) {
+		return serveErr(Status::INTERNAL_SERVER_ERROR);
+	}  // log Err
+	return INIT_CGI;  // EventLoop takes over from here
+}
+
+ClientStatus Client::serveErr(int code) {
+	std::string errPath = _servConf.errorPage(code);
+
+	if (!errPath.empty()) {
+		try {
+			_file = new FileServe(errPath);
+			HttpResponse resp(code);
+			resp.setHeader("Content-Type", "text/html");
+			resp.setHeader("Content-Length", to_stringg(_file->size()));
+			resp.setHeader("Connection", "close");
+			return queueResponse(resp);
+		} catch (...) {}  // fall through to built-in
 	}
 
-	resp.setStatus(routeResult.statusCode);
-	resp.setContentLength(_file->size());
-
-	return queueResponse(resp, routeResult);
+	HttpResponse resp(code);
+	std::string body = resp.serve_page(code);
+	return queueResponse(resp, body);
 }
 
-ClientStatus Client::serveDir(RouteResult routeResult) {
+ClientStatus Client::serveDir(RouteResult route /* cnst &   */) {
 	HttpResponse resp;
-	std::string html = resp.serve_directory(_servConf.root, routeResult.path);
-	if (resp.good())
-		// return (server had string);
-		return serveErr(resp);
+	std::string body = resp.serve_directory(_servConf.root, route.path);
+
+	if (!resp.good()) return serveErr(resp.status());
+
+	return queueResponse(resp, body);
 }
 
-ClientStatus Client::handleRoute(RouteResult _routeResult) {
-	Router::printRouteResult(_routeResult);
-	switch (_routeResult.action) {
+ClientStatus Client::serveFile(RouteResult route /* cnst &   */) {
+	try {
+		_file = new FileServe(route.path);
+	} catch (const std::exception &e) {
+		Logger::error(e.what());
+		return serveErr(route);
+	}
+
+	HttpResponse resp;
+	resp.setStatus(route.statusCode);
+	resp.setContentLength(_file->size());
+	resp.setHeader("Content-type", "application/ostream");
+	resp.setHeader("Connection", "close");
+	return queueResponse(resp);
+	// resp.setHeader("Content-Type", fileType(route.path));
+}
+
+ClientStatus Client::handleRoute(RouteResult route) {
+	Router::printRouteResult(route);
+	switch (route.action) {
 		case ROUTE_STATIC_FILE:
-			return serveFile(_routeResult);
+			return serveFile(route);
 		case ROUTE_DIRECTORY_LISTING:
-			return serveDir(_routeResult);
+			return serveDir(route);
 		case ROUTE_ERROR:
-			return serveErr(_routeResult);
+			return serveErr(route);
 		case ROUTE_CGI:
-			return initCgi(_routeResult);
-		// case ROUTE_UPLOAD: return resp(201??)
+			return initCgi(route);
+
+			// case ROUTE_UPLOAD: return ;//(HttpResponse(200));
 	}
 }
 
 ClientStatus Client::onReadable() {
 	char buff[BUFF_SIZE];
 	int n = read(_fd, buff, sizeof(buff));
-
-	if (n == 0 || n == ERROR) return DISCONNECT;
+	if (n <= 0) return DISCONNECT;
 
 	_req.parse(buff, n);
-	if (!_req.good())
-		return serveErr(Router::resolve(_servConf, _req));	// STATUS CODE???
+	if (!_req.good()) return serveErr(Router::resolve(_servConf, _req));
 	if (!_req.complete()) return OK;
 
 	return handleRoute(Router::resolve(_servConf, _req));
@@ -203,7 +193,7 @@ ClientStatus Client::onReadable() {
 /*
 TODO: Fix epoll_wait timeout
 - Currently uses timeout = -1 (wait forever), which violates requirement:
-  "A request should never hang indefinitely"
+"A request should never hang indefinitely"
 - Replace with a finite timeout (e.g. 5000 ms)
 - On timeout, run a maintenance pass over all clients
 */
@@ -212,32 +202,32 @@ TODO: Fix epoll_wait timeout
 TODO: Implement client timeout tracking
 - Add timestamp per client (request start time)
 - On each epoll_wait timeout:
-	- Iterate over _cliTable
-	- Compute elapsed time
-	- Disconnect clients exceeding timeout threshold
+- Iterate over _cliTable
+- Compute elapsed time
+- Disconnect clients exceeding timeout threshold
 - Revive _connected_at or equivalent field
 */
 
 /*
 TODO: Fix Client destructor resource leaks
 - Currently leaks:
-	- _cgi
-	- _file
+- _cgi
+- _file
 - Ensure proper deletion/cleanup of both
 - If CGI is active:
-	- Close pipes
-	- Remove pipe fds from epoll
-	- Clean _pipe_to_client mappings
+- Close pipes
+- Remove pipe fds from epoll
+- Clean _pipe_to_client mappings
 */
 
 /*
 TODO: Fix disconnectClient() incomplete cleanup
 - Currently:
-	- Removes client fd from epoll
-	- Deletes client
+- Removes client fd from epoll
+- Deletes client
 - Missing:
-	- Remove CGI pipe fds from epoll
-	- Erase entries from _pipe_to_client
+- Remove CGI pipe fds from epoll
+- Erase entries from _pipe_to_client
 - Prevent dangling pipe fds and stale mappings
 */
 
@@ -247,52 +237,52 @@ TODO: Fix disconnectClient() incomplete cleanup
 /*
 TODO: Fix pipe() critical bug
 - Current bug:
-	pipe(out_pipe) called twice, in_pipe never initialized
+pipe(out_pipe) called twice, in_pipe never initialized
 - Fix:
-	if (pipe(in_pipe) < 0 || pipe(out_pipe) < 0)
+if (pipe(in_pipe) < 0 || pipe(out_pipe) < 0)
 - Without this:
-	- Child dup2 uses garbage fd
-	- CGI completely broken
+- Child dup2 uses garbage fd
+- CGI completely broken
 */
 
 /*
 TODO: Implement CGI timeout handling
 - Add _started_at timestamp in Cgi
 - During epoll timeout maintenance:
-	- Check execution duration
-	- If exceeded:
-		- call cgikill()
-		- return CGI_ERROR to client
+- Check execution duration
+- If exceeded:
+- call cgikill()
+- return CGI_ERROR to client
 - Prevent hanging CGI processes
 */
 
 /*
 TODO: Implement CGI response handling in onCgiDone()
 - Current behavior:
-	- Deletes _cgi
-	- Discards output
+- Deletes _cgi
+- Discards output
 - Required:
-	- Parse _cgi->_output:
-		- Status line
-		- Headers
-		- Body
-	- Build proper HTTP response
-	- Call queueResponse()
+- Parse _cgi->_output:
+- Status line
+- Headers
+- Body
+- Build proper HTTP response
+- Call queueResponse()
 */
 
 /*
 TODO: Fix CGI environment variables (RFC 3875 compliance)
 - Current behavior:
-	- Passing raw HTTP headers as env vars
+- Passing raw HTTP headers as env vars
 - Incorrect: CGI expects specific variables
 - Must include:
-	- REQUEST_METHOD
-	- CONTENT_LENGTH
-	- CONTENT_TYPE
-	- QUERY_STRING
-	- PATH_INFO
-	- SCRIPT_FILENAME
-	- etc.
+- REQUEST_METHOD
+- CONTENT_LENGTH
+- CONTENT_TYPE
+- QUERY_STRING
+- PATH_INFO
+- SCRIPT_FILENAME
+- etc.
 - Properly map HTTP request → CGI env
 */
 
@@ -301,7 +291,7 @@ TODO: Handle env memory on execve failure
 - env[] is built with strdup()
 - On execve success: OK (process replaced)
 - On failure:
-	- Must free allocated env entries before _exit
+- Must free allocated env entries before _exit
 - Minor leak but should be fixed
 */
 
