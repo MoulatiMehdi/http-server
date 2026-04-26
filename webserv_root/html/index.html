@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Webserv Full Test</title>
+</head>
+<body>
+
+<h1>Webserv Test Page</h1>
+
+<!-- 1. Static test -->
+<h2>Static File Test</h2>
+<a href="/html/hello.html">Open hello.html</a>
+
+<!-- 2. Upload test -->
+<h2>Upload Test</h2>
+<form action="/upload" method="POST" enctype="multipart/form-data">
+    <input type="file" name="file">
+    <button type="submit">Upload File</button>
+</form>
+
+<!-- 3. CGI test -->
+<h2>CGI Test</h2>
+<a href="/cgi-bin/hello.py">Run CGI Script</a>
+
+</body>
+</html>

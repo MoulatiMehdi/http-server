@@ -41,9 +41,11 @@ struct ServerConfig {
     std::vector<std::string> server_names;     // a.com www.a.com
     std::string root;                          // /var/www/a
     std::vector<std::string> index;            // index.html | multiple index ??
-    std::size_t client_max_body_size;               // bytes
+    std::size_t client_max_body_size;          // bytes
     std::map<int, std::string> error_pages;    // 404 -> /errors/404.html
     std::vector<LocationConfig> locations;
+
+    std::string errorPage(int code) const;
 
     ServerConfig() : client_max_body_size(1024 * 1024) {}
 };

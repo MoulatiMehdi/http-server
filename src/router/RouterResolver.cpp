@@ -3,11 +3,11 @@
 #include "RouteResult.hpp"
 #include "Method.hpp"
 #include "Status.hpp"
+#include <cstddef>
 #include <string>
 #include <sys/stat.h>
 
-bool Router::isMethodAllowed(RouteResult& result,
-                             Method method)
+bool Router::isMethodAllowed(RouteResult& result, Method method)
 {
     if (result.location == NULL)
         return true;
@@ -19,8 +19,6 @@ bool Router::isMethodAllowed(RouteResult& result,
         if (result.location->allowed_methods[i] == method)
             return true;
     }
-    result.action = ROUTE_ERROR;
-    result.statusCode = status::METHOD_NOT_ALLOWED;
     return false;
 }
 
@@ -71,8 +69,8 @@ bool Router::pathExists(RouteResult& result) {
     struct stat st;
 
     if (stat(result.path.c_str(), &st) != 0) {
-        result.action = ROUTE_ERROR;
-        result.statusCode = status::NOT_FOUND;
+        // result.action = ROUTE_ERROR;
+        // result.statusCode = status::NOT_FOUND;
         return true;
     }
     return false;
@@ -100,67 +98,66 @@ bool Router::isDirectory(RouteResult& result) {
 
 // -------------------------- 
 
-bool Router::readPermission(RouteResult& result, const char *p)
+bool Router::checkPermission(const std::string &path, PermissionTarget target)
 {
-    if (access(p, R_OK) != 0) {
-        result.action = ROUTE_ERROR;
-        result.statusCode = status::FORBIDDEN;
-        return false;
-    }
+    const char* p = path.c_str();
+
+    if (target == PERM_READ_FILE)
+        return canRead(p);
+    if (target == PERM_WRITE_FILE)
+        return canWrite(p);
+    if (target == PERM_EXECUTE_FILE)
+        return canExecute(p);
+    if (target == PERM_DELETE_FILE)
+        return canDelete(getParentDirectory(path).c_str());
+
     return true;
 }
 
-bool Router::writePermission(RouteResult& result, const char *p)
+bool Router::canRead(const char *p)
 {
-    if (access(p, W_OK) != 0) {
-        result.action = ROUTE_ERROR;
-        result.statusCode = status::FORBIDDEN;
+    if (access(p, R_OK) != 0)
         return false;
-    }
     return true;
 }
 
-bool Router::executePermission(RouteResult& result, const char *p)
+bool Router::canWrite(const char *p)
 {
-    if (access(p, X_OK) != 0) {
-        result.action = ROUTE_ERROR;
-        result.statusCode = status::FORBIDDEN;
+    if (access(p, W_OK) != 0)
         return false;
-    }
     return true;
 }
 
-
-bool Router::deletePermission(RouteResult& result) // check r&w
+bool Router::canExecute(const char *p)
 {
-    std::string dir = result.path;
-    std::size_t pos = dir.rfind('/');
+    if (access(p, X_OK) != 0)
+        return false;
+    return true;
+}
+
+bool Router::canDelete(const char *p)
+{
+    if (access(p, W_OK | X_OK) != 0)
+        return false;
+    return true;
+}
+
+std::string Router::getParentDirectory(const std::string &path) // not sure if full correct!
+{
+    std::size_t pos = path.rfind('/');
     if (pos != std::string::npos)
-        dir = (pos == 0) ? "/" : dir.substr(0, pos);
-
-    if (access(dir.c_str(), W_OK) != 0) {
-        result.action = ROUTE_ERROR;
-        result.statusCode = status::FORBIDDEN;
-        return false;
-    }
-    return true;
+        return "/";
+    return path.substr(0, pos);
 }
 
-
-bool Router::checkPermission(RouteResult& result, Method method)
+PermissionTarget Router::permissionFromRequest(const RouteResult& route, Method method)
 {
-    const char* p = result.path.c_str();
+    if (route.action == ROUTE_CGI)  return PERM_EXECUTE_FILE;
+    if (method == method::GET)      return PERM_READ_FILE;
+    if (method == method::POST)     return PERM_WRITE_FILE;
+    if (method == method::DELETE)   return PERM_DELETE_FILE;
 
-    if (result.action == ROUTE_CGI)
-        return executePermission(result, p);
-    if (method == method::GET)
-        return readPermission(result, p);
-    if (method == method::POST) // not needed ?
-        return writePermission(result ,p);
-    if (method == method::DELETE)
-        deletePermission(result);
-
-    return true;
+    return PERM_READ_FILE;
 }
 
 // debugging

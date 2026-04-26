@@ -2,10 +2,32 @@
 #include "Config.hpp"
 #include "RouteResult.hpp"
 #include "HttpRequest.hpp"
+#include "Status.hpp"
+#include <map>
+#include <string>
+
+RouteResult Router::errorPage(Status status, std::map<int, std::string> error_pages) // develop it.
+{
+    RouteResult result;
+
+    result.action = ROUTE_ERROR;
+    result.statusCode = status;
+    result.path = "";
+   
+    std::map<int, std::string>::iterator it = error_pages.find(static_cast<int>(status));
+    
+    if (it == error_pages.end()) // use function from configParser (should be create first)
+        return result;
+
+    return result;
+}
 
 RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& request)
 {
     RouteResult result;
+
+    if (!request.good())
+        return errorPage(request.status(), server.error_pages);
 
     result.server = &server;
     std::size_t pathPos = request.uri().find('?');
@@ -14,22 +36,18 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
     result.location = matchLocation(server, path); 
 
     if (!isMethodAllowed(result, request.method()))
-        return result;
+        return errorPage(status::METHOD_NOT_ALLOWED, server.error_pages);
 
     result.path = buildTargetPath(server, result.location, path);
 
-    if (isCgiRequest(result, path))
-        return result;
-    if (isUploadRequest(result, request))
-        return result;
-    if (pathExists(result))
-        return result;
-    if (!checkPermission(result, request.method()))
-        return result;
-    if (isRegularFile(result))
-        return result;
-    if (isDirectory(result))
-        return result;
+    if (isCgiRequest(result, path))       return result; 
+    if (isUploadRequest(result, request)) return result;
+    if (!pathExists(result))              return errorPage(request.status(), server.error_pages);
+    if (!checkPermission(result.path,permissionFromRequest(result, request.method())))
+        return errorPage(status::FORBIDDEN, server.error_pages);
+    if (isRegularFile(result))            return result;
+    if (isDirectory(result))              return result;
+    
     return result;
 }
 
