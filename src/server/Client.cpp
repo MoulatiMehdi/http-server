@@ -40,18 +40,15 @@ void readFile(const char *path, std::vector<u_int8_t> &buffer) {
 	close(fd);
 }
 
-ClientStatus Client::queueResponse(const HttpResponse &resp,
-                                   const std::string &body) {
-    std::string s = resp.to_string();
-    _wrbuf.insert(_wrbuf.end(), s.begin(), s.end());
-    _wrbuf.insert(_wrbuf.end(), body.begin(), body.end());
-    return WANT_WRITE;
+void Client::queueResponse(const HttpResponse &resp, const std::string &body) {
+	std::string s = resp.to_string();
+	_wrbuf.insert(_wrbuf.end(), s.begin(), s.end());
+	_wrbuf.insert(_wrbuf.end(), body.begin(), body.end());
 }
 
-ClientStatus Client::queueResponse(const HttpResponse &resp) {
-    std::string s = resp.to_string();  // status line + headers + \r\n
-    _wrbuf.insert(_wrbuf.end(), s.begin(), s.end());
-    return WANT_WRITE;
+void Client::queueResponse(const HttpResponse &resp) {
+	std::string s = resp.to_string();
+	_wrbuf.insert(_wrbuf.end(), s.begin(), s.end());
 }
 
 Cgi *Client::getCgi() const {
@@ -61,22 +58,22 @@ Cgi *Client::getCgi() const {
 
 int Client::getFd() const { return _fd; }
 ClientStatus Client::onCgiDone() {
-	// ClientStatus status = queueResponse(cgi->getResponse()); // does the
+	// void status = queueResponse(cgi->getResponse()); // does the
 	delete _cgi;
 	_cgi = NULL;
 	return WANT_WRITE;
 }
 
-ClientStatus Client::initCgi(const RouteResult &route) {
+ClientStatus Client::initCgi(const std::string &path) {
 	try {
-		_cgi = new Cgi(route.path, _req);
+		_cgi = new Cgi(path, _req);
 	} catch (...) {
-		return serveErr(Status::INTERNAL_SERVER_ERROR);
+		return serveErr(status::INTERNAL_SERVER_ERROR), WANT_WRITE;
 	}  // log Err
 	return INIT_CGI;  // EventLoop takes over from here
 }
 
-ClientStatus Client::serveErr(int code) {
+void Client::serveErr(status::Status code) {
 	std::string errPath = _servConf.errorPage(code);
 
 	if (!errPath.empty()) {
@@ -91,49 +88,47 @@ ClientStatus Client::serveErr(int code) {
 	}
 
 	HttpResponse resp(code);
-	std::string body = resp.serve_page(code);
+	std::string body = resp.serve_page();
 	return queueResponse(resp, body);
 }
 
-ClientStatus Client::serveDir(RouteResult route /* cnst &   */) {
+void Client::serveDir(const std::string &path) {
 	HttpResponse resp;
-	std::string body = resp.serve_directory(_servConf.root, route.path);
+	std::string body = resp.serve_directory(_servConf.root, path);
 
 	if (!resp.good()) return serveErr(resp.status());
-
 	return queueResponse(resp, body);
 }
 
-ClientStatus Client::serveFile(RouteResult route /* cnst &   */) {
+void Client::serveFile(const std::string &path, status::Status code,
+					   const std::string &type) {
 	try {
-		_file = new FileServe(route.path);
+		_file = new FileServe(path);
 	} catch (const std::exception &e) {
 		Logger::error(e.what());
-		return serveErr(route);
+		return serveErr(status::INTERNAL_SERVER_ERROR);
 	}
 
 	HttpResponse resp;
-	resp.setStatus(route.statusCode);
+	resp.setStatus(code);
 	resp.setContentLength(_file->size());
-	resp.setHeader("Content-type", "application/ostream");
-	resp.setHeader("Connection", "close");
+	resp.setHeader("Content-type", type);
 	return queueResponse(resp);
-	// resp.setHeader("Content-Type", fileType(route.path));
 }
 
-ClientStatus Client::handleRoute(RouteResult route) {
+ClientStatus Client::handleRoute(const RouteResult &route) {
 	Router::printRouteResult(route);
 	switch (route.action) {
 		case ROUTE_STATIC_FILE:
-			return serveFile(route);
+			return serveFile(route.path, route.statusCode, route.type), WANT_WRITE;
 		case ROUTE_DIRECTORY_LISTING:
-			return serveDir(route);
+			return serveDir(route.path), WANT_WRITE;
 		case ROUTE_ERROR:
-			return serveErr(route);
+			return serveErr(route.statusCode), WANT_WRITE;
 		case ROUTE_CGI:
-			return initCgi(route);
-
-			// case ROUTE_UPLOAD: return ;//(HttpResponse(200));
+			return initCgi(route.path), INIT_CGI;
+		case ROUTE_UPLOAD:
+			return queueResponse(HttpResponse(status::CREATED)), WANT_WRITE;
 	}
 }
 
@@ -143,7 +138,7 @@ ClientStatus Client::onReadable() {
 	if (n <= 0) return DISCONNECT;
 
 	_req.parse(buff, n);
-	if (!_req.good()) return serveErr(Router::resolve(_servConf, _req));
+	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
 	if (!_req.complete()) return OK;
 
 	return handleRoute(Router::resolve(_servConf, _req));
@@ -336,5 +331,3 @@ ClientStatus Client::onWritable() {
 	}
 	return DONE_WRITE;
 }
-
-bool Client::hasDataToWrite() const { return !_wrbuf.empty(); }
