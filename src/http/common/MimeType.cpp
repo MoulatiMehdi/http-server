@@ -131,9 +131,9 @@ MimeType::MimeType()
     MimeType::map["avi"]  = "video/x-msvideo";
 }
 
-const std::string &MimeType::getContentType(const std::string &extension)
+const std::string &MimeType::getContentType(const std::string &extension) const
 {
-    iterator it = map.find(extension);
+    const_iterator it = map.find(extension);
 
     if (it == map.end())
         return DEFAULT;

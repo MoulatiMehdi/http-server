@@ -8,7 +8,7 @@ class MimeType
 {
 
   private:
-    const static std::string                   DEFAULT;
+    const static std::string DEFAULT;
 
     typedef std::map<std::string, std::string> Map;
     typedef Map::iterator                      iterator;
@@ -20,6 +20,6 @@ class MimeType
     MimeType();
     ~MimeType();
 
-    const std::string &getContentType(const std::string &ext);
+    const std::string &getContentType(const std::string &ext) const;
 };
 #endif

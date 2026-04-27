@@ -1,6 +1,10 @@
 #include "Config.hpp"
+#include "MimeType.hpp"
 
-std::string ServerConfig::errorPage(int code) const {
+MimeType ServerConfig::mimetype;
+
+std::string ServerConfig::errorPage(int code) const
+{
     std::map<int, std::string>::const_iterator it = error_pages.find(code);
     if (it == error_pages.end())
         return "";

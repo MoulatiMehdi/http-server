@@ -5,6 +5,7 @@
 # include <vector>
 # include <map>
 # include "Method.hpp"
+# include "MimeType.hpp"
 
 struct ListenConfig {
     std::string host;                   // ip
@@ -37,6 +38,7 @@ struct LocationConfig {
 };
 
 struct ServerConfig {
+    static MimeType mimetype;
     std::vector<ListenConfig> listens;         // multiple interface:port pairs
     std::vector<std::string> server_names;     // a.com www.a.com
     std::string root;                          // /var/www/a

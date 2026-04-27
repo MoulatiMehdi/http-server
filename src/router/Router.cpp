@@ -39,7 +39,7 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
         return errorPage(status::METHOD_NOT_ALLOWED, server.error_pages);
 
     result.path = buildTargetPath(server, result.location, path);
-    result.type = getExtension(result.path);
+    result.type = ServerConfig::mimetype.getContentType(getExtension(result.path)) ;
 
     if (isCgiRequest(result, path))       return result; 
     if (isUploadRequest(result, request)) return result;
