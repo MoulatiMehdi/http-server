@@ -22,18 +22,25 @@ bool Router::isMethodAllowed(RouteResult& result, Method method)
     return false;
 }
 
-bool Router::isCgiRequest(RouteResult& result, const std::string& path) {
-    if (result.location == NULL || result.location->cgi.empty())
-        return false;
+std::string Router::getExtension(const std::string& path) { // utils
 
     std::size_t slashPos = path.rfind('/');
     std::size_t dotPos = path.rfind('.');
 
     if (dotPos == std::string::npos || dotPos < slashPos) { // dotPos < slashPos + 1 for case path = blabla/.hiddenFile
-        return false;
+        return "";
     }
+    return path.substr(dotPos + 1);
+}
 
-    std::string ext = path.substr(dotPos);
+bool Router::isCgiRequest(RouteResult& result, const std::string& path) {
+    if (result.location == NULL || result.location->cgi.empty())
+        return false;
+
+    std::string ext = getExtension(path);
+    if (ext.empty())
+        return false;
+    ext += ".";
 
     if (result.location->cgi.find(ext) != result.location->cgi.end()) {
         result.action = ROUTE_CGI;

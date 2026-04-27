@@ -27,6 +27,7 @@ SRCS = \
 	./src/config/ConfigParserSharedDirectives.cpp \
 	./src/config/ConfigParserUtils.cpp \
 	./src/config/ConfigParserValidators.cpp \
+	./src/config/ServerConfig.cpp \
 	./src/config/Tokenizer.cpp \
 	./src/server/Cgi.cpp \
 	./src/server/Client.cpp \

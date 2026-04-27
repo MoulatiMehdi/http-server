@@ -29,6 +29,8 @@ private:
     
     // RouteResult &result;
 
+    static std::string getExtension(const std::string& path);
+
     static const LocationConfig* matchLocation(const ServerConfig& server, const std::string& requestPath);
     
     static bool pathMatchesLocation(const std::string& requestPath, const std::string& locationPath);
