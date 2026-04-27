@@ -16,7 +16,7 @@ struct ListenConfig {
 
 struct LocationConfig {
     std::string path;                          // "/"
-    std::vector<Method> allowed_methods;  // GET POST DELETE
+    std::vector<Method> allowed_methods;       // GET POST DELETE
 
     std::string root;                          // optional override
     std::vector<std::string> index;            // e.g. index.html

@@ -39,10 +39,10 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
         return errorPage(status::METHOD_NOT_ALLOWED, server.error_pages);
 
     result.path = buildTargetPath(server, result.location, path);
-    result.type = ServerConfig::mimetype.getContentType(getExtension(result.path)) ;
+    result.type = ServerConfig::mimetype.getContentType(getExtension(result.path)); // I think must be for regulare files only
 
     if (isCgiRequest(result, path))       return result; 
-    if (isUploadRequest(result, request)) return result;
+    if (isUploadRequest(result, request)) return result; // path!?
     if (!pathExists(result))              return errorPage(request.status(), server.error_pages);
     if (!checkPermission(result.path,permissionFromRequest(result, request.method())))
         return errorPage(status::FORBIDDEN, server.error_pages);

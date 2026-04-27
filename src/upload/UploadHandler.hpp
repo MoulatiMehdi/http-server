@@ -3,12 +3,16 @@
 
 #include "HttpRequest.hpp"
 #include "RouteResult.hpp"
+#include <string>
 
 class UploadHandler {
 public:
-    static HttpResponse handle(const HttpRequest& request, const RouteResult& route);
+    static bool handle(const HttpRequest& request, const RouteResult& route);
 
-    private:
+private:
+    static std::string getBoundary(const HttpRequest& req);
+    static std::string getFilename(const std::string& partHeader);
+    static bool writeFile(const std::string &path, const std::string& content);
 };
 
 #endif
