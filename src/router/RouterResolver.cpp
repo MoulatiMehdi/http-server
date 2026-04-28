@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <string>
 #include <sys/stat.h>
+#include <cstdio>
 
 bool Router::isMethodAllowed(RouteResult& result, Method method)
 {
@@ -51,6 +52,12 @@ bool Router::isCgiRequest(RouteResult& result, const std::string& path) {
     return false;
 }
 
+bool Router::putFileOnDir(const std::string& src, const std::string& dest) {
+    if (std::rename(src.c_str(), dest.c_str()) != 0)
+        return false;
+    return true;
+}
+
 bool Router::isUploadRequest(RouteResult &result, const HttpRequest& request) {
     if (result.location == NULL)
         return false;
@@ -66,6 +73,8 @@ bool Router::isUploadRequest(RouteResult &result, const HttpRequest& request) {
     result.action = ROUTE_UPLOAD;
     result.path = result.location->upload_dir;
     result.statusCode = status::OK;
+    if (!putFileOnDir(request.body().path(), result.path + "file1"))
+        return false;
     return true;
 }
 

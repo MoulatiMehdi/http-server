@@ -56,7 +56,9 @@ private:
     static bool canDelete(const char *p);
 
     static PermissionTarget permissionFromRequest(const RouteResult& route, Method method);
-    
+ 
+    static bool putFileOnDir(const std::string &src, const std::string &dest);   
+
     static std::string getParentDirectory(const std::string &path);
     // Error
     static RouteResult errorPage(Status status, std::map<int, std::string> error_pages);
