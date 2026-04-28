@@ -57,7 +57,9 @@ Cgi *Client::getCgi() const {
 
 int Client::getFd() const { return _fd; }
 ClientStatus Client::onCgiDone() {
-	// void status = queueResponse(cgi->getResponse()); // does the
+	HttpResponse resp = _cgi->getResponse();
+	_file = new FileServe(resp.body().c_path());
+	queueResponse(_cgi->getResponse().to_string());
 	delete _cgi;
 	_cgi = NULL;
 	return WANT_WRITE;
@@ -138,6 +140,7 @@ ClientStatus Client::onReadable() {
 	if (n <= 0) return DISCONNECT;
 
 	_req.parse(buff, n);
+	// _req.parse(buff, n, _servConf);
 	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
 	if (!_req.complete()) return OK;
 
