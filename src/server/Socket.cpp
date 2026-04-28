@@ -2,7 +2,10 @@
 #include <sstream>
 
 Socket::Socket(const ServerConfig &servConf, const ListenConfig &listenConf)
-	: _servConf(servConf), _listenConf(listenConf), _port(listenConf.port), _ip(listenConf.host) {
+	: _servConf(servConf),
+	  _listenConf(listenConf),
+	  _port(listenConf.port),
+	  _ip(listenConf.host) {
 	_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (_fd < 0) exitError("socket");
 }
@@ -22,25 +25,19 @@ void Socket::configureSocket() {
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-std::string ipToString(in_addr_t addr)
-{
-    char buffer[INET_ADDRSTRLEN];
+std::string ipToString(in_addr_t addr) {
+	char buffer[INET_ADDRSTRLEN];
 
-    if (inet_ntop(AF_INET, &addr, buffer, INET_ADDRSTRLEN) == NULL)
-        throw std::runtime_error("inet_ntop failed");
+	if (inet_ntop(AF_INET, &addr, buffer, INET_ADDRSTRLEN) == NULL)
+		throw std::runtime_error("inet_ntop failed");
 
-    return std::string(buffer);
+	return std::string(buffer);
 }
 
-void Socket::configureAddress() {
-	std::memset(&_addr, 0, sizeof(_addr));
-	_addr.sin_family = AF_INET;
-	_addr.sin_port = htons(_port);
-
-	int ip = 0;
+int strToIp(const std::string &ipstr) {
 	int bytes[4];
 	char c;
-	std::stringstream ss(_ip);
+	std::stringstream ss(ipstr);
 	ss >> bytes[0];
 	ss >> c;
 	ss >> bytes[1];
@@ -49,10 +46,15 @@ void Socket::configureAddress() {
 	ss >> c;
 	ss >> bytes[3];
 
-	ip = (bytes[0] << 24) + (bytes[1] << 16) + (bytes[2] << 8) + bytes[3];
+	return (bytes[0] << 24) + (bytes[1] << 16) + (bytes[2] << 8) + bytes[3];
+}
 
-	_addr.sin_addr.s_addr = htonl(ip);
-	std::cout << ipToString(_addr.sin_addr.s_addr) << "\n\n\n";
+void Socket::configureAddress() {
+	std::memset(&_addr, 0, sizeof(_addr));
+	_addr.sin_family = AF_INET;
+	_addr.sin_port = htons(_port);
+
+	_addr.sin_addr.s_addr = htonl(strToIp(_ip));
 }
 
 void Socket::bindSocket() {
