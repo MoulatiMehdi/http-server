@@ -26,7 +26,8 @@ Cgi::Cgi(const std::string &script, const HttpRequest &req)
 	  _pid(-1),
 	  _parsingHeaders(true),
 	  _reqBodyFile(NULL),
-	  _req(req) {
+	  _req(req),
+	  _started_at(time(NULL)) {
 	if (_req.body().size() != 0)
 		_reqBodyFile = new FileServe(_req.body().c_path());	 // POST/PUT???
 
@@ -74,8 +75,8 @@ Cgi::Cgi(const std::string &script, const HttpRequest &req)
 	close(in_pipe[0]);
 	close(out_pipe[1]);
 
-	make_non_blocking(_in);
-	make_non_blocking(_out);
+	makeNonBlocking(_in);
+	makeNonBlocking(_out);
 }
 
 CgiStatus Cgi::onWritable() {
@@ -136,21 +137,10 @@ CgiStatus Cgi::onReadable() {
 		_resp.setStatus(status::BAD_GATEWAY);
 		return CGI_ERROR;
 	}
-
-	_output.insert(_output.end(), buff, buff + n);
 	return CGI_OK;
 }
 
-void Cgi::cgikill() {
-	if (_pid > 0) ::kill(_pid, SIGKILL);
-
-	if (_in != -1) close(_in);
-	if (_out != -1) close(_out);
-
-	_in = -1;
-	_out = -1;
-}
-
+time_t Cgi::startedAt() { return _started_at; }
 Cgi::~Cgi() {
 	if (_in != -1) {
 		close(_in);
@@ -175,7 +165,6 @@ Cgi::~Cgi() {
 }
 
 HttpResponse Cgi::getResponse() {
-	// set/modify content-length;
 	_resp.setContentLength(_resp.body().size());
 	return _resp;
 }

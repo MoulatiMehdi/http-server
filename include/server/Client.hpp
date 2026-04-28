@@ -26,14 +26,13 @@ class Client {
 	FileServe *_file;
 	Cgi *_cgi;
 
-	// time_t _connected_at;
-	// time_t _last_response_at;
-	// bool _request_complete;
+	time_t _connected_at;
 
    public:
 	Client(const ServerConfig &servConf, int fd);
 	~Client();
 
+	time_t connectedAt() const;
 	ClientStatus onReadable();
 	ClientStatus onWritable();
 	ClientStatus onCgiDone();

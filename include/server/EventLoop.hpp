@@ -26,12 +26,13 @@ class EventLoop {
 
 	void handleNewConnections(Socket *sock);
 	void processClients(struct epoll_event &ev);
-	void disconnectClient(int fd);
+	void disconnectClient(const Client *cli);
 	void epollMod(int fd, uint32_t events);
 	void epollAdd(int fd, uint32_t events);
 	int handleStatus(Client *client, ClientStatus status);
 	void registerCgiPipes(const Client *client);
 	void processCgi(struct epoll_event &ev);
+	void runMaintenance();
 
    public:
 	EventLoop(SocketTable &_socketTable);

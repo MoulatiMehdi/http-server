@@ -8,7 +8,7 @@
 #include "Cgi.hpp"
 #include "FileServe.hpp"
 #include "HttpRequest.hpp"
-#include "HttpResponse.hpp"
+// #include "HttpResponse.hpp"
 #include "Logger.hpp"
 #include "RouteResult.hpp"
 #include "Router.hpp"
@@ -18,14 +18,19 @@
 Client::Client(const ServerConfig &servConf, int fd)
 	: _fd(fd),
 	  _servConf(servConf),
-	  _file(NULL), /* , _connected_at(time(NULL)) */
-	  _cgi(NULL) {
+	  _file(NULL),
+	  _cgi(NULL),
+	  _connected_at(time(NULL)) {
 	(void)servConf;
 }
 
 Client::~Client() {
 	if (_fd >= 0) close(_fd);
+	if (_file) delete _file;
+	if (_cgi) delete _cgi;
 }
+
+bool Client::cgiPending() const { return _cgi != NULL; }
 
 void readFile(const char *path, std::vector<u_int8_t> &buffer) {
 	int fd = open(path, O_RDONLY);
@@ -42,8 +47,9 @@ void readFile(const char *path, std::vector<u_int8_t> &buffer) {
 }
 
 // void Client::queueResponse(const HttpResponse &resp, const std::string &body)
-// { 	std::string s = resp.to_string(); 	_wrbuf.insert(_wrbuf.end(), s.begin(),
-// s.end()); 	_wrbuf.insert(_wrbuf.end(), body.begin(), body.end());
+// { 	std::string s = resp.to_string(); 	_wrbuf.insert(_wrbuf.end(),
+// s.begin(), s.end()); 	_wrbuf.insert(_wrbuf.end(), body.begin(),
+// body.end());
 // }
 
 void Client::queueResponse(const std::string &raw) {
@@ -99,7 +105,7 @@ void Client::serveErr(status::Status code) {
 
 void Client::serveDir(const std::string &path) {
 	HttpResponse resp;
-	std::string raw = resp.serve_directory(path,"");
+	std::string raw = resp.serve_directory(path, "");
 
 	if (!resp.good()) return serveErr(resp.status());
 	return queueResponse(raw);
@@ -149,129 +155,10 @@ ClientStatus Client::onReadable() {
 	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
 	if (!_req.complete()) return OK;
 
-
-// struct RouteResult {
-//     const ServerConfig*   server;
-//     const LocationConfig* location;
-//
-//     RouteAction           action;
-//     std::string           path;
-//     status::Status        statusCode;
-//     std::string           type; // ----
-//
-//     RouteResult()
-//         : server(NULL),
-//           location(NULL),
-//           action(ROUTE_ERROR),
-//           path(""),
-//           statusCode(status::NOT_FOUND),
-//           type("") {}
-// };
-
-	// RouteResult res;
-	// res.server = &_servConf;
-	// res.path = "./index.html";
-	// res.statusCode = status::BAD_REQUEST;
-	// res.action = ROUTE_ERROR;
-	// return handleRoute(res);
 	return handleRoute(Router::resolve(_servConf, _req));
-	// TODO: remove return values, they all return same
 }
 
-/* TODO: onCgiDone()
- * - Call queueResponse(_cgi->getResponse()) instead of doing nothing
- * - The CGI response must be built and queued before deleting _cgi
- */
-
-/* TODO: serveErr()
- * - Remove the dead inline HTML body — it's never sent (file takes over)
- * - Replace with _router.buildError(code, _servConf) once Router is wired
- * - The dual path (file vs memory body) is contradictory, pick one
- */
-
-/* TODO: queueResponse()
- * - Uncomment and resolve the initFileServe path — currently commented out
- * - The if (_file) check below is stale logic
- * - HTTP/1.0 should be HTTP/1.1
- */
-
-/* TODO: onReadable()
- * - ROUTE_DIRECTORY_LISTING is stubbed to serveFile("hello.pdf") — implement
- * serveDir()
- * - Unreachable return WANT_WRITE at the bottom after the switch — dead code
- */
-
-/* TODO: Client destructor
- * - No cleanup for _cgi or _file on destruction
- * - Both can leak if client disconnects mid-flight
- */
-
-/* TODO: initCgi()
- * - On failure returns DISCONNECT — should return serveErr(500)
- * - The connection is still valid, don’t drop it
- */
-
-/* TODO: Keep-alive
- * - Everything sends "Connection: close"
- * - Fine for now, but must be revisited when keep-alive is implemented
- */
-/* ========================= TODO: TCP / CONNECTION SIDE
- * ========================= */
-
-/*
-TODO: Fix epoll_wait timeout
-- Currently uses timeout = -1 (wait forever), which violates requirement:
-"A request should never hang indefinitely"
-- Replace with a finite timeout (e.g. 5000 ms)
-- On timeout, run a maintenance pass over all clients
-*/
-
-/*
-TODO: Implement client timeout tracking
-- Add timestamp per client (request start time)
-- On each epoll_wait timeout:
-- Iterate over _cliTable
-- Compute elapsed time
-- Disconnect clients exceeding timeout threshold
-- Revive _connected_at or equivalent field
-*/
-
-/*
-TODO: Fix Client destructor resource leaks
-- Currently leaks:
-- _cgi
-- _file
-- Ensure proper deletion/cleanup of both
-- If CGI is active:
-- Close pipes
-- Remove pipe fds from epoll
-- Clean _pipe_to_client mappings
-*/
-
-/*
-TODO: Fix disconnectClient() incomplete cleanup
-- Currently:
-- Removes client fd from epoll
-- Deletes client
-- Missing:
-- Remove CGI pipe fds from epoll
-- Erase entries from _pipe_to_client
-- Prevent dangling pipe fds and stale mappings
-*/
-
-/* ============================== TODO: CGI SIDE ==============================
- */
-
-/*
-TODO: Fix pipe() critical bug
-- Current bug:
-pipe(out_pipe) called twice, in_pipe never initialized
-- Fix:
-if (pipe(in_pipe) < 0 || pipe(out_pipe) < 0)
-- Without this:
-- Child dup2 uses garbage fd
-- CGI completely broken
-*/
+time_t Client::connectedAt() const { return _connected_at; }
 
 /*
 TODO: Implement CGI timeout handling

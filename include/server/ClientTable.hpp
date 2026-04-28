@@ -19,7 +19,7 @@ class ClientTable {
 
 	void add(const ServerConfig &servConf, int fd);
 	ClientMap::iterator remove(int fd);
-	// ClientMap &getAll();
+	const ClientMap &getAll();
 	Client *get(int fd);
 	size_t size();
 	void clear();

@@ -20,9 +20,9 @@
 //
 // 	std::cout << std::endl;
 // }
- 
+
 EventLoop::EventLoop(SocketTable &_socketTable) : _sockTable(_socketTable) {
-	_epollfd = epoll_create1(0);
+	_epollfd = epoll_create(1);
 	if (_epollfd == ERROR) exitError("epoll_create");
 	std::cout << _socketTable.size() << std::endl;
 }
@@ -45,11 +45,21 @@ void EventLoop::epollMod(int fd, u_int32_t events) {
 		exitError("epoll_ctl: EPOLL_CTL_MOD");
 }
 
-void EventLoop::disconnectClient(int fd) {
-	if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, NULL) == ERROR)
+void EventLoop::disconnectClient(const Client *cli) {
+	int cliFd = cli->getFd();
+	if (cli->getCgi()) {
+		int cgiIn = cli->getCgi()->getIn();
+		int cgiOut = cli->getCgi()->getOut();
+		if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiIn, NULL) == ERROR ||
+			epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiOut, NULL) == ERROR)
+			exitError("epoll_ctl: EPOLL_CTL_DEL");
+		_pipe_to_client.erase(cgiIn);
+		_pipe_to_client.erase(cgiOut);
+	}
+	if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, cliFd, NULL) == ERROR)
 		exitError("epoll_ctl: EPOLL_CTL_DEL");
-	_cliTable.remove(fd);
-	Logger::info("Client " + to_stringg(fd) + ": disconnected");
+	_cliTable.remove(cliFd);
+	Logger::info("Client " + toString(cliFd) + ": disconnected");
 }
 
 int EventLoop::handleStatus(Client *client, ClientStatus status) {
@@ -111,8 +121,11 @@ void EventLoop::processClients(struct epoll_event &ev) {
 	ClientStatus status = OK;
 
 	if (ev.events & EPOLLERR) disconnectClient(fd);
-	else if (ev.events & EPOLLIN) { status = client->onReadable(); }
-	else if (ev.events & EPOLLOUT) { status = client->onWritable(); }
+	else if (ev.events & EPOLLIN) {
+		status = client->onReadable();
+	} else if (ev.events & EPOLLOUT) {
+		status = client->onWritable();
+	}
 
 	if (handleStatus(client, status) == -1) disconnectClient(fd);
 	return;
@@ -128,12 +141,12 @@ void EventLoop::handleNewConnections(Socket *sock) {
 		cliFd = accept(sock->getFd(), (struct sockaddr *)&cliAddr, &len);
 		if (cliFd == -1) return;
 
-		make_non_blocking(cliFd);
+		makeNonBlocking(cliFd);
 		_cliTable.add(servConf, cliFd);
 		epollAdd(cliFd, EPOLLIN);
 		Logger::info("New Client: " + std::string(inet_ntoa(cliAddr.sin_addr)) +
-					 ":" + to_stringg(ntohs(cliAddr.sin_port)) + " through " +
-					 sock->getAddr() + ":" + to_stringg(sock->getPort()));
+					 ":" + toString(ntohs(cliAddr.sin_port)) + " through " +
+					 sock->getAddr() + ":" + toString(sock->getPort()));
 	}
 }
 
@@ -149,14 +162,18 @@ void EventLoop::addSockets() {
 //       on timeout: walk client table, disconnect clients that exceeded
 //       client_timeout (incomplete request) or keepalive_timeout (idle)
 
+#define CLI_TIMEOUT_MS 30000   // 30s
+#define EPOLL_TIMEOUT_MS 5000  // 5s
+#define CGI_TIMEOUT_MS 10000   // 10s
 void EventLoop::loop() {
 	int nfds;
 	struct epoll_event events[MAX_EVENTS];
 	int sockIndex;
 
 	while (true) {
-		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, ERROR /* time out */);
+		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, EPOLL_TIMEOUT_MS);
 		if (nfds == ERROR) exitError("epoll_wait");
+		if (nfds == 0) { runMaintenance(); }
 		for (int n = 0; n < nfds; ++n) {
 			sockIndex = _sockTable.getSocket(events[n].data.fd);
 			if (sockIndex >= 0) handleNewConnections(_sockTable[sockIndex]);
@@ -166,5 +183,26 @@ void EventLoop::loop() {
 					 _pipe_to_client.end())
 				processCgi(events[n]);
 		}
+	}
+}
+
+void EventLoop::runMaintenance() {
+	time_t now = time(NULL);
+	std::vector<Client *> toDisconnect;
+
+	const ClientMap &clients = _cliTable.getAll();
+	for (ClientMap::const_iterator it = clients.begin(); it != clients.end();
+		 ++it) {
+		Client *client = it->second;
+		if (now - client->connectedAt() > CLI_TIMEOUT_MS)
+			toDisconnect.push_back(it->second);
+		else if (client->cgiPending() &&
+				 now - client->getCgi()->startedAt() > CGI_TIMEOUT_MS)
+			toDisconnect.push_back(it->second);
+	}
+
+	for (size_t i = 0; i < toDisconnect.size(); ++i) {
+		Logger::info("Client " + toString(toDisconnect[i]) + ": timed out");
+		disconnectClient(toDisconnect[i]);
 	}
 }

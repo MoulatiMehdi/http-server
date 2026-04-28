@@ -9,7 +9,7 @@
 // NOTE: helper
 
 
-void make_non_blocking(int fd) {
+void makeNonBlocking(int fd) {
 	int flags = fcntl(fd, F_GETFL, 0);
 	if (flags == -1) {
 		std::cerr << std::strerror(errno) << std::endl;

@@ -12,6 +12,7 @@ enum CgiStatus { CGI_OK, CGI_DONE, CGI_ERROR };
 class Cgi {
    private:
 	int _in;
+
 	int _out;
 	pid_t _pid;
 	int _write_offset;
@@ -20,7 +21,7 @@ class Cgi {
 	const HttpRequest &_req;
 	HttpResponse _resp;
 	FileServe *_file;
-	std::vector<u_int8_t> _output; // REMOVE?
+	time_t _started_at;
 
    public:
 	Cgi(const std::string &script, const HttpRequest &req);
@@ -28,7 +29,7 @@ class Cgi {
 	CgiStatus onWritable();
 	CgiStatus onReadable();
 	bool done() const;
-	std::vector<u_int8_t> &output() { return _output; };
+	time_t startedAt();
 	void cgikill();
 	int getIn() const { return _in; }
 	int getOut() const { return _out; }
