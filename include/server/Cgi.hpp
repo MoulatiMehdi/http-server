@@ -15,10 +15,12 @@ class Cgi {
 	int _out;
 	pid_t _pid;
 	int _write_offset;
+	bool _parsingHeaders;
 	FileServe *_reqBodyFile;
 	const HttpRequest &_req;
 	HttpResponse _resp;
-	std::vector<u_int8_t> _output;
+	FileServe *_file;
+	std::vector<u_int8_t> _output; // REMOVE?
 
    public:
 	Cgi(const std::string &script, const HttpRequest &req);

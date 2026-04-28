@@ -40,15 +40,14 @@ void readFile(const char *path, std::vector<u_int8_t> &buffer) {
 	close(fd);
 }
 
-void Client::queueResponse(const HttpResponse &resp, const std::string &body) {
-	std::string s = resp.to_string();
-	_wrbuf.insert(_wrbuf.end(), s.begin(), s.end());
-	_wrbuf.insert(_wrbuf.end(), body.begin(), body.end());
-}
+// void Client::queueResponse(const HttpResponse &resp, const std::string &body) {
+// 	std::string s = resp.to_string();
+// 	_wrbuf.insert(_wrbuf.end(), s.begin(), s.end());
+// 	_wrbuf.insert(_wrbuf.end(), body.begin(), body.end());
+// }
 
-void Client::queueResponse(const HttpResponse &resp) {
-	std::string s = resp.to_string();
-	_wrbuf.insert(_wrbuf.end(), s.begin(), s.end());
+void Client::queueResponse(const std::string &raw) {
+	_wrbuf.insert(_wrbuf.end(), raw.begin(), raw.end());
 }
 
 Cgi *Client::getCgi() const {
@@ -58,7 +57,9 @@ Cgi *Client::getCgi() const {
 
 int Client::getFd() const { return _fd; }
 ClientStatus Client::onCgiDone() {
-	// void status = queueResponse(cgi->getResponse()); // does the
+	HttpResponse resp = _cgi->getResponse();
+	_file = new FileServe(resp.body().c_path());
+	queueResponse(_cgi->getResponse().to_string());
 	delete _cgi;
 	_cgi = NULL;
 	return WANT_WRITE;
@@ -83,21 +84,22 @@ void Client::serveErr(status::Status code) {
 			resp.setHeader("Content-Type", "text/html");
 			resp.setHeader("Content-Length", to_stringg(_file->size()));
 			resp.setHeader("Connection", "close");
-			return queueResponse(resp);
+			return queueResponse(resp.to_string());
 		} catch (...) {}  // fall through to built-in
 	}
 
 	HttpResponse resp(code);
-	std::string body = resp.serve_page();
-	return queueResponse(resp, body);
+	std::string raw = resp.serve_page();
+
+	return queueResponse(raw);
 }
 
 void Client::serveDir(const std::string &path) {
 	HttpResponse resp;
-	std::string body = resp.serve_directory(_servConf.root, path);
+	std::string raw = resp.serve_directory(_servConf.root, path);
 
 	if (!resp.good()) return serveErr(resp.status());
-	return queueResponse(resp, body);
+	return queueResponse(raw);
 }
 
 void Client::serveFile(const std::string &path, status::Status code,
@@ -113,11 +115,11 @@ void Client::serveFile(const std::string &path, status::Status code,
 	resp.setStatus(code);
 	resp.setContentLength(_file->size());
 	resp.setHeader("Content-type", type);
-	return queueResponse(resp);
+	return queueResponse(resp.to_string());
 }
 
 ClientStatus Client::handleRoute(const RouteResult &route) {
-	Router::printRouteResult(route);
+	// Router::printRouteResult(route);
 	switch (route.action) {
 		case ROUTE_STATIC_FILE:
 			return serveFile(route.path, route.statusCode, route.type), WANT_WRITE;
@@ -128,7 +130,7 @@ ClientStatus Client::handleRoute(const RouteResult &route) {
 		case ROUTE_CGI:
 			return initCgi(route.path), INIT_CGI;
 		case ROUTE_UPLOAD:
-			return queueResponse(HttpResponse(status::CREATED)), WANT_WRITE;
+			return queueResponse(HttpResponse(status::CREATED).to_string()), WANT_WRITE;
 	}
 }
 
@@ -138,6 +140,7 @@ ClientStatus Client::onReadable() {
 	if (n <= 0) return DISCONNECT;
 
 	_req.parse(buff, n);
+	// _req.parse(buff, n, _servConf);
 	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
 	if (!_req.complete()) return OK;
 

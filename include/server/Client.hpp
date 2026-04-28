@@ -47,8 +47,8 @@ class Client {
 				   const std::string &type);
 	void serveDir(const std::string &path);
 	void serveErr(status::Status status);
-	void queueResponse(const HttpResponse &resp);
-	void queueResponse(const HttpResponse &resp, const std::string &body);
+	void queueResponse(const std::string &raw);
+	// void queueResponse(const HttpResponse &resp, const std::string &body);
 };
 
 // while the request isnt complete          => parser required

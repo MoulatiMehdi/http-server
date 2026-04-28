@@ -3,13 +3,16 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <iostream>
 #include <stdexcept>
 #include "FileServe.hpp"
 #include "HttpResponse.hpp"
 #include "Method.hpp"
+#include "Status.hpp"
 #include "helper.hpp"
 
 // TODO: add CGI timeout — track start time, kill child if it exceeds config
@@ -18,9 +21,16 @@
 //       exceeded
 
 Cgi::Cgi(const std::string &script, const HttpRequest &req)
-	: _in(-1), _out(-1), _pid(-1), _reqBodyFile(NULL), _req(req) {
+	: _in(-1),
+	  _out(-1),
+	  _pid(-1),
+	  _parsingHeaders(true),
+	  _reqBodyFile(NULL),
+	  _req(req) {
 	if (_req.body().size() != 0)
-		_reqBodyFile = new FileServe(_req.body().c_path()); // POST/PUT???
+		_reqBodyFile = new FileServe(_req.body().c_path());	 // POST/PUT???
+
+	_resp.body().open_file();
 
 	int in_pipe[2];
 	int out_pipe[2];
@@ -102,7 +112,7 @@ CgiStatus Cgi::onReadable() {
 	int n = read(_out, buff, sizeof(buff));
 
 	if (n == -1) {
-		// _resp = HttpResponse(500);
+		_resp = HttpResponse(status::BAD_GATEWAY);
 		return CGI_ERROR;
 	}
 
@@ -113,24 +123,20 @@ CgiStatus Cgi::onReadable() {
 		_pid = -1;
 		return CGI_DONE;
 	}
-	// try {
-	// 	bool parsingHeaders = true; Cgi::attr
-	// 	int consumed = -1;
-	// 	if (!_resp.complete()) {
-	// 		consumed = _resp.parse(buff, n);
-	// 		if (_resp.complete()) {
-	// 			_resp.body().write(buff + consumed, n - consumed);
-	// 			parsingHeaders = false;
-	// 			}
-	// 	}
-	// 	else if (!parsingHeaders)
-	// 		_resp.body().write(buff, n);
-	// } catch (const std::excp &e) {
-	// 		_resp = HttpResponse(500);
-	// 		return CGI_ERROR;
-	// }
 
-	_output.insert(_output.end(), buff, buff + n);
+	try {
+		if (!_resp.complete()) {
+			_resp.parse(buff, n);
+			if (_resp.complete()) {
+				_resp.body().append(buff + _resp.gcount(), n - _resp.gcount());
+				_parsingHeaders = false;
+			}
+		} else if (!_parsingHeaders) _resp.body().append(buff, n);
+	} catch (const std::exception &e) {
+		_resp = HttpResponse(status::BAD_GATEWAY);
+		return CGI_ERROR;
+	}
+
 	return CGI_OK;
 }
 
@@ -168,6 +174,6 @@ Cgi::~Cgi() {
 }
 
 HttpResponse Cgi::getResponse() {
-	// set/modify content-length;
+	_resp.setContentLength(_resp.body().size());
 	return _resp;
 }
