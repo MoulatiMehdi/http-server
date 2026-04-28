@@ -10,6 +10,7 @@
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 #include "Logger.hpp"
+#include "RouteResult.hpp"
 #include "Router.hpp"
 #include "Status.hpp"
 #include "helper.hpp"
@@ -40,10 +41,9 @@ void readFile(const char *path, std::vector<u_int8_t> &buffer) {
 	close(fd);
 }
 
-// void Client::queueResponse(const HttpResponse &resp, const std::string &body) {
-// 	std::string s = resp.to_string();
-// 	_wrbuf.insert(_wrbuf.end(), s.begin(), s.end());
-// 	_wrbuf.insert(_wrbuf.end(), body.begin(), body.end());
+// void Client::queueResponse(const HttpResponse &resp, const std::string &body)
+// { 	std::string s = resp.to_string(); 	_wrbuf.insert(_wrbuf.end(), s.begin(),
+// s.end()); 	_wrbuf.insert(_wrbuf.end(), body.begin(), body.end());
 // }
 
 void Client::queueResponse(const std::string &raw) {
@@ -76,14 +76,17 @@ ClientStatus Client::initCgi(const std::string &path) {
 
 void Client::serveErr(status::Status code) {
 	std::string errPath = _servConf.errorPage(code);
+	std::cout << "PATH:::" << errPath << "\n\n\n";
 
 	if (!errPath.empty()) {
 		try {
 			_file = new FileServe(errPath);
 			HttpResponse resp(code);
 			resp.setHeader("Content-Type", "text/html");
-			resp.setHeader("Content-Length", to_stringg(_file->size()));
+			// resp.setHeader("Content-Length", to_stringg(_file->size()));
+			resp.setContentLength(_file->size());
 			resp.setHeader("Connection", "close");
+			std::cout << resp.to_string();
 			return queueResponse(resp.to_string());
 		} catch (...) {}  // fall through to built-in
 	}
@@ -119,10 +122,11 @@ void Client::serveFile(const std::string &path, status::Status code,
 }
 
 ClientStatus Client::handleRoute(const RouteResult &route) {
-	// Router::printRouteResult(route);
+	Router::printRouteResult(route);
 	switch (route.action) {
 		case ROUTE_STATIC_FILE:
-			return serveFile(route.path, route.statusCode, route.type), WANT_WRITE;
+			return serveFile(route.path, route.statusCode, route.type),
+				   WANT_WRITE;
 		case ROUTE_DIRECTORY_LISTING:
 			return serveDir(route.path), WANT_WRITE;
 		case ROUTE_ERROR:
@@ -130,7 +134,8 @@ ClientStatus Client::handleRoute(const RouteResult &route) {
 		case ROUTE_CGI:
 			return initCgi(route.path), INIT_CGI;
 		case ROUTE_UPLOAD:
-			return queueResponse(HttpResponse(status::CREATED).to_string()), WANT_WRITE;
+			return queueResponse(HttpResponse(status::CREATED).to_string()),
+				   WANT_WRITE;
 	}
 }
 
@@ -144,7 +149,32 @@ ClientStatus Client::onReadable() {
 	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
 	if (!_req.complete()) return OK;
 
-	return handleRoute(Router::resolve(_servConf, _req));
+
+// struct RouteResult {
+//     const ServerConfig*   server;
+//     const LocationConfig* location;
+//
+//     RouteAction           action;
+//     std::string           path;
+//     status::Status        statusCode;
+//     std::string           type; // ----
+//
+//     RouteResult()
+//         : server(NULL),
+//           location(NULL),
+//           action(ROUTE_ERROR),
+//           path(""),
+//           statusCode(status::NOT_FOUND),
+//           type("") {}
+// };
+
+	RouteResult res;
+	res.server = &_servConf;
+	res.path = "./index.html";
+	res.statusCode = status::BAD_REQUEST;
+	res.action = ROUTE_ERROR;
+	return handleRoute(res);
+	// return handleRoute(Router::resolve(_servConf, _req));
 	// TODO: remove return values, they all return same
 }
 
