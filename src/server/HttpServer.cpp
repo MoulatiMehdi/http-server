@@ -23,7 +23,7 @@ void HttpServer::init() {
 	ConfigParser parser;
 
 	_config = parser.parseFile(_configPath);
-    parser.printConfig(_config);
+	parser.printConfig(_config);
 	// if (config.bad())
 	// 	throw; // ??
 

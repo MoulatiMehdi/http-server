@@ -19,6 +19,7 @@ class Socket {
 	const ListenConfig &_listenConf;
 	int _fd;
 	int _port;
+	const std::string _ip;
 	struct sockaddr_in _addr;
 	// ref to Config
 

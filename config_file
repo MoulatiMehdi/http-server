@@ -1,5 +1,5 @@
 server {
-    listen 8080;
+    listen 127.0.0.1:8080;
     server_name localhost;
 
     root /home/yel-guad/Desktop/webserv;
@@ -29,12 +29,12 @@ server {
     }
 
     location /src/uploads {
-        allowed_methods POST;
+        allowed_methods GET;
+        cgi .py /usr/bin/python3;
     }
 
     location /cgi-bin {
         root /home/yel-guad/Desktop/webserv;
-        cgi .py /usr/bin/python3;
         allowed_methods GET POST;
     }
 }

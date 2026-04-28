@@ -1,4 +1,5 @@
 
+#include <sys/socket.h>
 #include <csignal>
 #include <iostream>
 #include "Config.hpp"

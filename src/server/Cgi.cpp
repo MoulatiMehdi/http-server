@@ -112,7 +112,7 @@ CgiStatus Cgi::onReadable() {
 	int n = read(_out, buff, sizeof(buff));
 
 	if (n == -1) {
-		_resp = HttpResponse(status::BAD_GATEWAY);
+		_resp.setStatus(status::BAD_GATEWAY);
 		return CGI_ERROR;
 	}
 
@@ -133,10 +133,11 @@ CgiStatus Cgi::onReadable() {
 			}
 		} else if (!_parsingHeaders) _resp.body().append(buff, n);
 	} catch (const std::exception &e) {
-		_resp = HttpResponse(status::BAD_GATEWAY);
+		_resp.setStatus(status::BAD_GATEWAY);
 		return CGI_ERROR;
 	}
 
+	_output.insert(_output.end(), buff, buff + n);
 	return CGI_OK;
 }
 
@@ -174,6 +175,7 @@ Cgi::~Cgi() {
 }
 
 HttpResponse Cgi::getResponse() {
+	// set/modify content-length;
 	_resp.setContentLength(_resp.body().size());
 	return _resp;
 }

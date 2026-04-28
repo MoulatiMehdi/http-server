@@ -1,7 +1,19 @@
 #include "ConfigParser.hpp"
 #include "Tokenizer.hpp"
+#include "sys/stat.h"
+
+
+bool isRegularFile(const std::string &path) {
+    struct stat st;
+    if (stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode)) {
+        return true;
+    }
+    return false;
+}
 
 std::string ConfigParser::readFileOrThrow(const std::string& path) {
+	if  (!isRegularFile(path))
+        throw std::runtime_error("Error: could not open config file " + path);
     std::ifstream file(path.c_str());
     if (!file.is_open())
         throw std::runtime_error("Error: could not open config file " + path);
