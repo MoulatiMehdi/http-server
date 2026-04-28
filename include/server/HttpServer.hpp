@@ -16,7 +16,7 @@ class HttpServer {
 	// ClientTable _table; // eventLoop owns these
 	SocketTable _socketTable;
 	Config _config;
-	const std::string &_configPath;
+	const std::string _configPath;
 	EventLoop _eventLoop;
 	void createSockets(const ServerConfig &servConf);
 
