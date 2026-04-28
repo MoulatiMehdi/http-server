@@ -84,7 +84,7 @@ bool Router::isUploadRequest(RouteResult &result, const HttpRequest& request) {
 bool Router::pathExists(RouteResult& result) {
     struct stat st;
 
-    if (stat(result.path.c_str(), &st) != 0) {
+    if (stat(result.path.c_str(), &st) == 0) {
         // result.action = ROUTE_ERROR;
         // result.statusCode = status::NOT_FOUND;
         return true;
