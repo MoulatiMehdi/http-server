@@ -99,7 +99,7 @@ void Client::serveErr(status::Status code) {
 
 void Client::serveDir(const std::string &path) {
 	HttpResponse resp;
-	std::string raw = resp.serve_directory(_servConf.root, path);
+	std::string raw = resp.serve_directory(path,"");
 
 	if (!resp.good()) return serveErr(resp.status());
 	return queueResponse(raw);
@@ -168,13 +168,13 @@ ClientStatus Client::onReadable() {
 //           type("") {}
 // };
 
-	RouteResult res;
-	res.server = &_servConf;
-	res.path = "./index.html";
-	res.statusCode = status::BAD_REQUEST;
-	res.action = ROUTE_ERROR;
-	return handleRoute(res);
-	// return handleRoute(Router::resolve(_servConf, _req));
+	// RouteResult res;
+	// res.server = &_servConf;
+	// res.path = "./index.html";
+	// res.statusCode = status::BAD_REQUEST;
+	// res.action = ROUTE_ERROR;
+	// return handleRoute(res);
+	return handleRoute(Router::resolve(_servConf, _req));
 	// TODO: remove return values, they all return same
 }
 
