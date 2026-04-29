@@ -46,8 +46,10 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
     if (!pathExists(result))              return errorPage(request.status(), server.error_pages);
     if (!checkPermission(result.path,permissionFromRequest(result, request.method())))
         return errorPage(status::FORBIDDEN, server.error_pages);
-    if (isRegularFile(result))            return result;
-    if (isDirectory(result))              return result;
+    if (handleRegularFile(result))            return result;
+    if (isIndexed(result) || isDirectory(result))
+        return result;
+
     
     return result;
 }

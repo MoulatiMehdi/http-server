@@ -45,8 +45,11 @@ private:
     static std::string extractSuffix(const std::string& locPath, const std::string& reqPath);
     
     static bool pathExists(RouteResult &result);
-    static bool isRegularFile(RouteResult &result); // ++
+    static bool handleRegularFile(RouteResult &result); // ++
     static bool isDirectory(RouteResult &result);
+    static bool isIndexed(RouteResult& result);
+
+    static void indexResult(RouteResult& result, std::string& path);
 
     static bool checkPermission(const std::string &path, PermissionTarget target);
     
@@ -54,6 +57,11 @@ private:
     static bool canWrite(const char *p);
     static bool canExecute(const char *p);
     static bool canDelete(const char *p);
+    
+    static bool isFile(const std::string& path);
+
+    static bool findIndexFile(RouteResult& result, IndexTable& index,
+                               std::string& root);
 
     static PermissionTarget permissionFromRequest(const RouteResult& route, Method method);
  

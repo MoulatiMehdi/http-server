@@ -14,6 +14,8 @@ struct ListenConfig {
     ListenConfig() : host("0.0.0.0"), port(80) {}
 };
 
+typedef std::vector<std::string> IndexTable;
+
 struct LocationConfig {
     std::string path;                          // "/"
     std::vector<Method> allowed_methods;       // GET POST DELETE

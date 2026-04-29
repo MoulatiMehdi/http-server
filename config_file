@@ -6,11 +6,13 @@ server {
 
     location / {
         allowed_methods GET POST DELETE;
+        index config_file;
     }
 
     location /src {
         allowed_methods GET POST DELETE;
-        root /home/yel-guad/Desktop/webserv/src;
+        index index.html;
+        root /home/yel-guad/Desktop/webserv/www/;
     }
 
     location /router {

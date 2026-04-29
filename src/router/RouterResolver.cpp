@@ -1,3 +1,4 @@
+#include "Config.hpp"
 #include "HttpRequest.hpp"
 #include "Router.hpp"
 #include "RouteResult.hpp"
@@ -7,6 +8,8 @@
 #include <string>
 #include <sys/stat.h>
 #include <cstdio>
+#include <vector>
+#include <iostream>
 
 bool Router::isMethodAllowed(RouteResult& result, Method method)
 {
@@ -92,9 +95,8 @@ bool Router::pathExists(RouteResult& result) {
     return false;
 }
 
-bool Router::isRegularFile(RouteResult& result) {
-    struct stat st;
-    if (stat(result.path.c_str(), &st) == 0 && S_ISREG(st.st_mode)) {
+bool Router::handleRegularFile(RouteResult& result) {
+    if (isFile(result.path)) {
         result.action = ROUTE_STATIC_FILE;
         result.statusCode = status::OK;
         return true;
@@ -102,9 +104,47 @@ bool Router::isRegularFile(RouteResult& result) {
     return false;
 }
 
+// is file + canRead? + 
+
+bool Router::isFile(const std::string& path) {
+    struct stat st;
+    if (stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode)) {
+        return true;
+    }
+    return false;
+}
+
+void Router::indexResult(RouteResult& result, std::string& path) {
+    result.action = ROUTE_STATIC_FILE;
+    result.path = path;
+    result.statusCode = status::OK;
+}
+
+bool Router::findIndexFile(RouteResult& result, IndexTable& index, std::string& root)
+{
+    for (std::size_t i = 0; i < index.size(); i++) {
+        std::string path = root + index[i];
+        if (isFile(path) && canRead(path.c_str())) // TODO: must be a slash between them!
+            return indexResult(result, path), true;
+    }
+    return false;
+}
+
+bool Router::isIndexed(RouteResult& result)
+{
+    IndexTable  index = (result.location) ? result.location->index : result.server->index;
+    std::string root  = (result.location) ? result.location->root  : result.server->root;
+
+    if (result.location && result.location->index.empty())
+        return false;
+    return findIndexFile(result, index, root);
+}
+
 bool Router::isDirectory(RouteResult& result) {
     struct stat st;
     if (stat(result.path.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
+        // if (result.location && !result.location->index.empty()) T
+            // return functionServindexFile; 
         result.action = ROUTE_DIRECTORY_LISTING;
         result.statusCode = status::OK;
         return true;
