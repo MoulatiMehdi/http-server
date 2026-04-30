@@ -1,13 +1,13 @@
 #include "Client.hpp"
-#include "Cgi.hpp"
-#include "FileServe.hpp"
-#include "HttpRequest.hpp"
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
-#include <fcntl.h>
 #include <string>
-#include <sys/stat.h>
+#include "Cgi.hpp"
+#include "FileServe.hpp"
+#include "HttpRequest.hpp"
 // #include "HttpResponse.hpp"
 #include "Logger.hpp"
 #include "RouteResult.hpp"
@@ -16,215 +16,165 @@
 #include "helper.hpp"
 
 Client::Client(const ServerConfig &servConf, int fd)
-    : _fd(fd),
-      _servConf(servConf),
-      _req(servConf),
-      _file(NULL),
-      _cgi(NULL),
-      _connected_at(time(NULL))
-{
-    (void)servConf;
+	: _fd(fd),
+	  _servConf(servConf),
+	  _req(servConf),
+	  _file(NULL),
+	  _cgi(NULL),
+	  _connected_at(time(NULL)) {
+	(void)servConf;
 }
 
-Client::~Client()
-{
-    if (_fd >= 0)
-        close(_fd);
-    if (_file)
-        delete _file;
-    if (_cgi)
-        delete _cgi;
+Client::~Client() {
+	if (_fd >= 0) close(_fd);
+	if (_file) delete _file;
+	if (_cgi) delete _cgi;
 }
 
-bool Client::cgiPending() const
-{
-    return _cgi != NULL;
+bool Client::cgiPending() const { return _cgi != NULL; }
+
+void readFile(const char *path, std::vector<u_int8_t> &buffer) {
+	int fd = open(path, O_RDONLY);
+	if (fd < 0) exit(54);
+
+	char tmp[4096];
+	ssize_t bytes;
+
+	while ((bytes = read(fd, tmp, sizeof(tmp))) > 0) {
+		buffer.insert(buffer.end(), tmp, tmp + bytes);
+	}
+
+	close(fd);
 }
 
-void readFile(const char *path, std::vector<u_int8_t> &buffer)
-{
-    int fd = open(path, O_RDONLY);
-    if (fd < 0)
-        exit(54);
-
-    char    tmp[4096];
-    ssize_t bytes;
-
-    while ((bytes = read(fd, tmp, sizeof(tmp))) > 0)
-    {
-        buffer.insert(buffer.end(), tmp, tmp + bytes);
-    }
-
-    close(fd);
+void Client::queueResponse(const std::string &raw) {
+	_wrbuf.insert(_wrbuf.end(), raw.begin(), raw.end());
 }
 
-void Client::queueResponse(const std::string &raw)
-{
-    _wrbuf.insert(_wrbuf.end(), raw.begin(), raw.end());
+Cgi *Client::getCgi() const {
+	if (_cgi) return _cgi;
+	return NULL;
 }
 
-Cgi *Client::getCgi() const
-{
-    if (_cgi)
-        return _cgi;
-    return NULL;
+int Client::getFd() const { return _fd; }
+
+ClientStatus Client::onCgiDone() {
+	HttpResponse resp = _cgi->getResponse();
+	_file = new FileServe(resp.body().c_path());
+	queueResponse(_cgi->getResponse().to_string());
+	delete _cgi;
+	_cgi = NULL;
+	return WANT_WRITE;
 }
 
-int Client::getFd() const
-{
-    return _fd;
+ClientStatus Client::initCgi(const std::string &path) {
+	try {
+		_cgi = new Cgi(path, _req);
+	} catch (...) {
+		return serveErr(status::INTERNAL_SERVER_ERROR), WANT_WRITE;
+	}  // log Err
+	return INIT_CGI;  // EventLoop takes over from here
 }
 
-ClientStatus Client::onCgiDone()
-{
-    HttpResponse resp = _cgi->getResponse();
-    _file             = new FileServe(resp.body().c_path());
-    queueResponse(_cgi->getResponse().to_string());
-    delete _cgi;
-    _cgi = NULL;
-    return WANT_WRITE;
+void Client::serveErr(status::Status code) {
+	std::string errPath = _servConf.errorPage(code);
+	std::cout << "PATH:::" << errPath << "\n\n\n";
+
+	if (!errPath.empty()) {
+		try {
+			_file = new FileServe(errPath);
+			HttpResponse resp(code);
+			resp.setHeader("Content-Type", "text/html");
+			// resp.setHeader("Content-Length", to_stringg(_file->size()));
+			resp.setContentLength(_file->size());
+			resp.setHeader("Connection", "close");
+			std::cout << resp.to_string();
+			return queueResponse(resp.to_string());
+		} catch (...) {}  // fall through to built-in
+	}
+
+	HttpResponse resp(code);
+	std::string raw = resp.serve_page();
+
+	return queueResponse(raw);
 }
 
-ClientStatus Client::initCgi(const std::string &path)
-{
-    try
-    {
-        _cgi = new Cgi(path, _req);
-    }
-    catch (...)
-    {
-        return serveErr(status::INTERNAL_SERVER_ERROR), WANT_WRITE;
-    } // log Err
-    return INIT_CGI; // EventLoop takes over from here
+void Client::serveDir(const std::string &path) {
+	HttpResponse resp;
+	std::string raw = resp.serve_directory(path, "");
+
+	if (!resp.good()) return serveErr(resp.status());
+	return queueResponse(raw);
 }
 
-void Client::serveErr(status::Status code)
-{
-    std::string errPath = _servConf.errorPage(code);
-    std::cout << "PATH:::" << errPath << "\n\n\n";
+void Client::serveFile(const std::string &path, status::Status code,
+					   const std::string &type) {
+	try {
+		_file = new FileServe(path);
+	} catch (const std::exception &e) {
+		Logger::error(e.what());
+		return serveErr(status::INTERNAL_SERVER_ERROR);
+	}
 
-    if (!errPath.empty())
-    {
-        try
-        {
-            _file = new FileServe(errPath);
-            HttpResponse resp(code);
-            resp.setHeader("Content-Type", "text/html");
-            // resp.setHeader("Content-Length", to_stringg(_file->size()));
-            resp.setContentLength(_file->size());
-            resp.setHeader("Connection", "close");
-            std::cout << resp.to_string();
-            return queueResponse(resp.to_string());
-        }
-        catch (...)
-        {
-        } // fall through to built-in
-    }
-
-    HttpResponse resp(code);
-    std::string  raw = resp.serve_page();
-
-    return queueResponse(raw);
+	HttpResponse resp;
+	resp.setStatus(code);
+	resp.setContentLength(_file->size());
+	resp.setHeader("Content-type", type);
+	return queueResponse(resp.to_string());
 }
 
-void Client::serveDir(const std::string &path)
-{
-    HttpResponse resp;
-    std::string  raw = resp.serve_directory(path, "");
-
-    if (!resp.good())
-        return serveErr(resp.status());
-    return queueResponse(raw);
+ClientStatus Client::handleRoute(const RouteResult &route) {
+	Router::printRouteResult(route);
+	switch (route.action) {
+		case ROUTE_STATIC_FILE:
+			return serveFile(route.path, route.statusCode, route.type),
+				   WANT_WRITE;
+		case ROUTE_DIRECTORY_LISTING:
+			return serveDir(route.path), WANT_WRITE;
+		case ROUTE_ERROR:
+			return serveErr(route.statusCode), WANT_WRITE;
+		case ROUTE_CGI:
+			return initCgi(route.path), INIT_CGI;
+		case ROUTE_UPLOAD:
+			return queueResponse(HttpResponse(status::CREATED).to_string()),
+				   WANT_WRITE;
+	}
 }
 
-void Client::serveFile(
-    const std::string &path, status::Status code, const std::string &type
-)
-{
-    try
-    {
-        _file = new FileServe(path);
-    }
-    catch (const std::exception &e)
-    {
-        Logger::error(e.what());
-        return serveErr(status::INTERNAL_SERVER_ERROR);
-    }
+ClientStatus Client::onReadable() {
+	char buff[BUFF_SIZE];
+	int n = read(_fd, buff, sizeof(buff));
+	if (n <= 0) return DISCONNECT;
 
-    HttpResponse resp;
-    resp.setStatus(code);
-    resp.setContentLength(_file->size());
-    resp.setHeader("Content-type", type);
-    return queueResponse(resp.to_string());
+	_req.parse(buff, n);
+	// _req.parse(buff, n, _servConf);
+	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
+	if (!_req.complete()) return OK;
+
+	return handleRoute(Router::resolve(_servConf, _req));
 }
 
-ClientStatus Client::handleRoute(const RouteResult &route)
-{
-    Router::printRouteResult(route);
-    switch (route.action)
-    {
-        case ROUTE_STATIC_FILE:
-            return serveFile(route.path, route.statusCode, route.type),
-                   WANT_WRITE;
-        case ROUTE_DIRECTORY_LISTING:
-            return serveDir(route.path), WANT_WRITE;
-        case ROUTE_ERROR:
-            return serveErr(route.statusCode), WANT_WRITE;
-        case ROUTE_CGI:
-            return initCgi(route.path), INIT_CGI;
-        case ROUTE_UPLOAD:
-            return queueResponse(HttpResponse(status::CREATED).to_string()),
-                   WANT_WRITE;
-    }
-}
+time_t Client::connectedAt() const { return _connected_at; }
 
-ClientStatus Client::onReadable()
-{
-    char buff[BUFF_SIZE];
-    int  n = read(_fd, buff, sizeof(buff));
-    if (n <= 0)
-        return DISCONNECT;
+ClientStatus Client::onWritable() {
+	int n;
 
-    _req.parse(buff, n);
-    // _req.parse(buff, n, _servConf);
-    if (!_req.good())
-        return serveErr(_req.status()), WANT_WRITE;
-    if (!_req.complete())
-        return OK;
+	if (!_wrbuf.empty()) {
+		n = write(_fd, _wrbuf.data(), _wrbuf.size());
+		if (n <= 0) return DISCONNECT;
 
-    return handleRoute(Router::resolve(_servConf, _req));
-}
+		_wrbuf.erase(_wrbuf.begin(), _wrbuf.begin() + n);
+		return OK;
+	}
 
-time_t Client::connectedAt() const
-{
-    return _connected_at;
-}
-
-ClientStatus Client::onWritable()
-{
-    int n;
-
-    if (!_wrbuf.empty())
-    {
-        n = write(_fd, _wrbuf.data(), _wrbuf.size());
-        if (n <= 0)
-            return DISCONNECT;
-
-        _wrbuf.erase(_wrbuf.begin(), _wrbuf.begin() + n);
-        return OK;
-    }
-
-    if (_file)
-    {
-        if (_file->sendChunk(_fd) == ERROR)
-            return DISCONNECT;
-        if (_file->done())
-        {
-            delete _file;
-            _file = NULL;
-            return DONE_WRITE;
-        }
-        return OK;
-    }
-    return DONE_WRITE;
+	if (_file) {
+		if (_file->sendChunk(_fd) == ERROR) return DISCONNECT;
+		if (_file->done()) {
+			delete _file;
+			_file = NULL;
+			return DONE_WRITE;
+		}
+		return OK;
+	}
+	return DONE_WRITE;
 }

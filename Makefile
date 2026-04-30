@@ -1,5 +1,5 @@
 NAME    = webserv
-CONFIG_FILE = config_file
+CONFIG_FILE = config/default.conf
 
 CXX     = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -g
