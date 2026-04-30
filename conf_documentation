@@ -1,0 +1,77 @@
+# Webserv Config Directives
+
+## Server directives
+
+    ### listen
+        Syntax: `listen <port>;` or `listen <host>:<port>;`  
+        Params: port number, optional host/IP.  
+        Example: `listen 8080;`
+
+    ### server_name
+        Syntax: `server_name <name> [name...];`  
+        Params: one or more domain/server names.  
+        Example: `server_name example.com www.example.com;`
+
+    ### root
+        Syntax: `root <absolute_path>;`  
+        Params: absolute directory path.  
+        Example: `root /var/www/site;`
+
+    ### index
+        Syntax: `index <file> [file...];`  
+        Params: one or more default index filenames.  
+        Example: `index index.html index.htm;`
+
+    ### client_max_body_size
+        Syntax: `client_max_body_size <size>;`  
+        Params: max request body size in bytes.  
+        Example: `client_max_body_size 1048576;`
+
+    ### error_page
+        Syntax: `error_page <status_code> <path>;`  
+        Params: HTTP status code + error page path.  
+        Example: `error_page 404 /errors/404.html;`
+
+---
+
+## Location directives
+
+    ### allowed_methods
+        Syntax: `allowed_methods <method> [method...];`  
+        Params: allowed methods: `GET`, `POST`, `DELETE`.  
+        Example: `allowed_methods GET POST;`
+
+    ### return
+        Syntax: `return <status_code> <url>;`  
+        Params: redirect status code + target URL/path.  
+        Example: `return 301 /new-page;`
+
+    ### root
+        Syntax: `root <absolute_path>;`  
+        Params: absolute directory path, overrides server root.  
+        Example: `root /var/www/images;`
+
+    ### index
+        Syntax: `index <file> [file...];`  
+        Params: one or more default index filenames.  
+        Example: `index index.html;`
+
+    ### autoindex
+        Syntax: `autoindex <on|off>;`  
+        Params: enable/disable directory listing.  
+        Example: `autoindex on;`
+
+    ### upload_dir
+        Syntax: `upload_dir <absolute_path>;`  
+        Params: directory where uploaded files are stored.  
+        Example: `upload_dir /tmp/uploads;`
+        
+    ### client_max_body_size
+        Syntax: `client_max_body_size <size>;`  
+        Params: max request body size in bytes, overrides server value.  
+        Example: `client_max_body_size 2097152;`
+
+    ### cgi
+        Syntax: `cgi <extension> <executable_path>;`  
+        Params: file extension + CGI executable/interpreter path.  
+        Example: `cgi .py /usr/bin/python3;`

@@ -143,8 +143,6 @@ bool Router::isIndexed(RouteResult& result)
 bool Router::isDirectory(RouteResult& result) {
     struct stat st;
     if (stat(result.path.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
-        // if (result.location && !result.location->index.empty()) T
-            // return functionServindexFile; 
         result.action = ROUTE_DIRECTORY_LISTING;
         result.statusCode = status::OK;
         return true;

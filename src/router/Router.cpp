@@ -6,22 +6,6 @@
 #include <map>
 #include <string>
 
-RouteResult Router::errorPage(Status status, std::map<int, std::string> error_pages) // develop it.
-{
-    RouteResult result;
-
-    result.action = ROUTE_ERROR;
-    result.statusCode = status;
-    result.path = "";
-   
-    std::map<int, std::string>::iterator it = error_pages.find(static_cast<int>(status));
-    
-    if (it == error_pages.end()) // use function from configParser (should be create first)
-        return result;
-
-    return result;
-}
-
 RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& request)
 {
     RouteResult result;
@@ -31,7 +15,7 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
 
     result.server = &server;
     std::size_t pathPos = request.uri().find('?');
-    std::string path = request.uri().substr(0, pathPos);
+    std::string path = request.uri().substr(0, pathPos); // use funciton
 
     result.location = matchLocation(server, path); 
 
@@ -49,8 +33,26 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
     if (handleRegularFile(result))            return result;
     if (isIndexed(result) || isDirectory(result))
         return result;
+    else if (result.location && result.location->autoindex == false)
+        return errorPage(status::FORBIDDEN, server.error_pages);
 
     
+    return result;
+}
+
+RouteResult Router::errorPage(Status status, std::map<int, std::string> error_pages) // develop it.
+{
+    RouteResult result;
+
+    result.action = ROUTE_ERROR;
+    result.statusCode = status;
+    result.path = "";
+   
+    std::map<int, std::string>::iterator it = error_pages.find(static_cast<int>(status));
+    
+    if (it == error_pages.end()) // use function from configParser (should be create first)
+        return result;
+
     return result;
 }
 

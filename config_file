@@ -12,7 +12,7 @@ server {
     location /src {
         allowed_methods GET POST DELETE;
         index index.html;
-        root /home/yel-guad/Desktop/webserv/www/;
+        root /home/yel-guad/Desktop/webserv/;
     }
 
     location /router {
