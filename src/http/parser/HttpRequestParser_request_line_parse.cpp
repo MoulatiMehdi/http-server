@@ -437,7 +437,13 @@ void HttpRequestParser::parse_request_line(Buffer &buff)
     };
     while (!buff.empty())
     {
-        char         ch     = buff.getc();
+        char ch = buff.getc();
+        m_parsed++;
+        if (m_parsed > MAX_BUFFER)
+        {
+            setError(error::url_too_large);
+            return;
+        }
         unsigned int action = (this->*handlers[m_state])(ch);
         switch (static_cast<RequestLineResult>(action))
         {

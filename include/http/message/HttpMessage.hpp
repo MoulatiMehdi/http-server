@@ -35,7 +35,7 @@ class HttpMessage
     unsigned int   version_major() const;
     unsigned int   version_minor() const;
     unsigned int   version() const;
-    ssize_t        content_length() const;
+    size_t        content_length() const;
     Status         status() const;
     const_iterator getHeader(const std::string &name) const;
     const Headers &headers() const;

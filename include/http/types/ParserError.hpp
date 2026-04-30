@@ -29,8 +29,9 @@ namespace error
         unsupported_transfer,
         stale_parser,
         short_read,
-        header_field_name_too_large,
-        header_field_value_too_large
+        url_too_large,
+        header_too_large,
+        body_too_large,
     };
 } // namespace error
 

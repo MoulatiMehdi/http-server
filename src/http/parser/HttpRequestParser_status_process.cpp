@@ -1,6 +1,7 @@
 
 #include "HttpRequest.hpp"
 #include "HttpRequestParser.hpp"
+#include "Status.hpp"
 
 void HttpRequestParser::process_error()
 {
@@ -28,12 +29,16 @@ void HttpRequestParser::process_error()
             return request.setStatus(status::METHOD_NOT_ALLOWED);
         case error::unsupported_transfer:
             return request.setStatus(status::NOT_IMPLEMENTED);
-        case error::header_field_name_too_large:
-        case error::header_field_value_too_large:
+        case error::header_too_large:
             return request.setStatus(status::REQUEST_HEADER_FIELDS_TOO_LARGE);
         case error::stale_parser:
             return request.setStatus(status::BAD_REQUEST);
         case error::short_read:
+            break;
+        case error::url_too_large:
+            return request.setStatus(status::URI_TOO_LONG);
+        case error::body_too_large:
+            return request.setStatus(status::PAYLOAD_TOO_LARGE);
             break;
     }
 }

@@ -1,4 +1,5 @@
 #include "HttpRequest.hpp"
+#include "Config.hpp"
 #include "HttpMessage.hpp"
 #include "HttpRequestParser.hpp"
 #include "Method.hpp"
@@ -13,11 +14,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-HttpRequest::HttpRequest()
+HttpRequest::HttpRequest(const ServerConfig &config)
     : HttpMessage(),
       m_uri(),
       m_method(method::UNKNOWN),
-      m_parser(*this)
+      m_parser(*this),
+      config(config)
 {
 }
 

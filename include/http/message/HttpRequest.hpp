@@ -1,6 +1,7 @@
 #ifndef HTTP_REQUEST_HPP
 #define HTTP_REQUEST_HPP
 
+#include "Config.hpp"
 #include "HttpMessage.hpp"
 #include "HttpRequestParser.hpp"
 #include "Method.hpp"
@@ -14,7 +15,8 @@ class HttpRequest : public HttpMessage
     HttpRequestParser m_parser;
 
   public:
-    HttpRequest();
+    const ServerConfig &config;
+    HttpRequest(const ServerConfig &config);
     ~HttpRequest();
 
     bool good() const;

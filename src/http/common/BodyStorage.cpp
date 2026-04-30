@@ -26,7 +26,7 @@ int BodyStorage::open_file()
     return m_fd;
 }
 
-ssize_t BodyStorage::size() const
+size_t BodyStorage::size() const
 {
     return m_size;
 }

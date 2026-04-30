@@ -38,15 +38,18 @@ std::string to_string(ParserError err)
             return "stale parser";
         case error::short_read:
             return "bad_transfer_encoding";
-        case error::header_field_name_too_large:
-            return "header_field_name_too_large";
-        case error::header_field_value_too_large:
-            return "header_field_value_too_large";
+        case error::header_too_large:
+            return "header_too_large";
         case error::bad_header_name:
             return "bad_header_name";
         case error::bad_header_value:
             return "bad_header_value";
         case error::ok:
             return "OK";
+        case error::url_too_large:
+            return "url_too_large";
+        case error::body_too_large:
+            return "body_too_large";
+            break;
     }
 }
