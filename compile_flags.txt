@@ -1,0 +1,14 @@
+-std=c++98
+-pedantic
+-Wall
+-Wextra
+-Werror
+-Iinclude
+-Iinclude/cgi
+-Iinclude/common
+-Iinclude/config
+-Iinclude/http
+-Iinclude/server
+-Iinclude/request
+-Iinclude/parser
+-Iinclude/buffer

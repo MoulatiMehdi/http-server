@@ -6,7 +6,8 @@
 #include <sys/types.h>
 
 HttpParserState::HttpParserState(HttpMessage &request)
-    : m_state(0),
+    : m_parsed(0),
+      m_state(0),
       m_chunked(false),
       m_discard_body(true),
       m_phase(PHASE_REQUEST_LINE),
@@ -82,7 +83,13 @@ void HttpParserState::parse_headers(Buffer &buff)
     };
     while (!buff.empty())
     {
-        char         ch     = buff.getc();
+        char ch = buff.getc();
+        m_parsed++;
+        if (m_parsed > MAX_BUFFER)
+        {
+            setError(error::header_too_large);
+            return;
+        }
         unsigned int action = (this->*handlers[m_state])(ch);
 
         switch (action)

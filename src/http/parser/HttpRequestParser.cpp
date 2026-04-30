@@ -2,6 +2,7 @@
 #include "Buffer.hpp"
 #include "HttpParserState.hpp"
 #include "HttpRequest.hpp"
+#include "ParserError.hpp"
 
 #include <cstddef>
 #include <cstdio>
@@ -27,6 +28,9 @@ void HttpRequestParser::parse(const char *c_str, size_t len)
                 break;
             case HttpParserState::PHASE_HEADERS:
                 parse_headers(buffer);
+                if (request.config.client_max_body_size <
+                    request.content_length())
+                    setError(error::body_too_large);
                 break;
             case HttpParserState::PHASE_BODY:
                 parse_body(buffer);

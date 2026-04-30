@@ -1,9 +1,8 @@
 #include "Buffer.hpp"
-#include "HttpParserState.hpp"
+#include "HttpRequest.hpp"
+#include "HttpRequestParser.hpp"
 #include "ParserError.hpp"
-#include <algorithm>
 #include <climits>
-#include <cstddef>
 #include <sys/types.h>
 
 #define CR '\r'
@@ -22,7 +21,7 @@ enum ChunkState
     SW_BODY_ALMOST_DONE,
 };
 
-void HttpParserState::parse_body(Buffer &buffer)
+void HttpRequestParser::parse_body(Buffer &buffer)
 {
     if (m_chunked)
         parse_body_by_chunk(buffer);
@@ -30,7 +29,7 @@ void HttpParserState::parse_body(Buffer &buffer)
         parse_body_by_length(buffer);
 }
 
-void HttpParserState::parse_body_by_chunk(Buffer &buffer)
+void HttpRequestParser::parse_body_by_chunk(Buffer &buffer)
 {
     while (!buffer.empty())
     {
@@ -99,6 +98,11 @@ void HttpParserState::parse_body_by_chunk(Buffer &buffer)
             case SW_CHUNK_SIZE_ALMOST_DONE:
                 if (ch == LF)
                 {
+                    if (request.body().size() + m_chunk_max_size >
+                        request.config.client_max_body_size)
+                    {
+                        return setError(error::body_too_large);
+                    }
                     m_state = SW_CHUNK_DATA;
                     break;
                 }
@@ -171,7 +175,7 @@ void HttpParserState::parse_body_by_chunk(Buffer &buffer)
     }
 }
 
-void HttpParserState::parse_body_by_length(Buffer &buffer)
+void HttpRequestParser::parse_body_by_length(Buffer &buffer)
 {
     const size_t content_length = request.content_length();
     const size_t body_size      = request.body().size();

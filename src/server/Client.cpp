@@ -18,6 +18,7 @@
 Client::Client(const ServerConfig &servConf, int fd)
 	: _fd(fd),
 	  _servConf(servConf),
+	  _req(servConf),
 	  _file(NULL),
 	  _cgi(NULL),
 	  _connected_at(time(NULL)) {
@@ -57,6 +58,7 @@ Cgi *Client::getCgi() const {
 }
 
 int Client::getFd() const { return _fd; }
+
 ClientStatus Client::onCgiDone() {
 	HttpResponse resp = _cgi->getResponse();
 	_file = new FileServe(resp.body().c_path());
@@ -154,7 +156,6 @@ ClientStatus Client::onReadable() {
 }
 
 time_t Client::connectedAt() const { return _connected_at; }
-
 
 ClientStatus Client::onWritable() {
 	int n;

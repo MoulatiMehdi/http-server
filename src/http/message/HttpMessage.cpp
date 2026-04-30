@@ -47,7 +47,7 @@ void HttpMessage::setVersion(unsigned int major, unsigned int minor)
     m_version = major * 1000 + minor;
 }
 
-ssize_t HttpMessage::content_length() const
+size_t HttpMessage::content_length() const
 {
     return m_content_length;
 }
