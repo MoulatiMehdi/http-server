@@ -44,6 +44,10 @@ class HttpRequestParser : public HttpParserState
     void process_error();
     void parse_request_line(Buffer &buff);
 
+    void parse_body_by_length(Buffer &buffer);
+    void parse_body_by_chunk(Buffer &buffer);
+    void parse_body(Buffer &buffer);
+
   public:
     HttpRequestParser(HttpRequest &request);
     ~HttpRequestParser();

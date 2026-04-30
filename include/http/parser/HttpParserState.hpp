@@ -42,12 +42,8 @@ class HttpParserState
     void process_content_length(HttpMessage &request);
     void process_transfer_encoding(HttpMessage &request);
 
-    // body
-    void parse_body(Buffer &buffer);
-    void parse_body_by_chunk(Buffer &buffer);
-    void parse_body_by_length(Buffer &buffer);
-
   protected:
+    static const int MAX_BUFFER = 4096;
     HttpParserState(HttpMessage &request);
     ~HttpParserState();
 
@@ -63,6 +59,7 @@ class HttpParserState
         ssize_t m_minor;
     };
 
+    int          m_parsed;
     unsigned int m_state;
     bool         m_chunked;
     bool         m_discard_body;

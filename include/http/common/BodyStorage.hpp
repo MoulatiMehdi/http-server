@@ -26,7 +26,7 @@ class BodyStorage
 
     int open_file();
 
-    ssize_t            size() const;
+    size_t            size() const;
     std::string       &path();
     const std::string &path() const;
     const char        *c_path() const;
