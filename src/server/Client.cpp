@@ -47,6 +47,7 @@ void readFile(const char *path, std::vector<u_int8_t> &buffer) {
 }
 
 void Client::queueResponse(const std::string &raw) {
+	_wrbuf.clear();
 	_wrbuf.insert(_wrbuf.end(), raw.begin(), raw.end());
 }
 

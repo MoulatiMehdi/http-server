@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include "Cgi.hpp"
 #include "ClientTable.hpp"
+#include "Status.hpp"
 #include "helper.hpp"
 
 // #include <sys/epoll.h>
@@ -67,7 +68,8 @@ int EventLoop::handleStatus(Client *client, ClientStatus status) {
 
 	if (status == DISCONNECT) return -1;
 	else if (status == WANT_WRITE) epollMod(fd, EPOLLIN | EPOLLOUT);
-	else if (status == DONE_WRITE) epollMod(fd, EPOLLIN);
+	// else if (status == DONE_WRITE) epollMod(fd, EPOLLIN);
+	else if (status == DONE_WRITE) disconnectClient(client);
 	else if (status == INIT_CGI) registerCgiPipes(client);
 	return 0;
 }
@@ -140,7 +142,6 @@ void EventLoop::handleNewConnections(Socket *sock) {
 		cliFd = accept(sock->getFd(), (struct sockaddr *)&cliAddr, &len);
 		if (cliFd == -1) return;
 
-
 		makeNonBlocking(cliFd);
 		_cliTable.add(servConf, cliFd);
 		epollAdd(cliFd, EPOLLIN);
@@ -190,9 +191,8 @@ void EventLoop::runMaintenance() {
 			toDisconnect.push_back(it->second);
 		else if (client->cgiPending() &&
 				 now - client->getCgi()->startedAt() > CGI_TIMEOUT_MS)
-			toDisconnect.push_back(it->second);
+			client->serveErr(status::GATEWAY_TIMEOUT);
 	}
-
 	for (size_t i = 0; i < toDisconnect.size(); ++i) {
 		Logger::info("Client " + toString(toDisconnect[i]) + ": timed out");
 		disconnectClient(toDisconnect[i]);

@@ -56,8 +56,8 @@ Cgi::Cgi(const std::string &script, const HttpRequest &req)
 
 		envVec.push_back("REQUEST_METHOD=" + to_string(_req.method()));
 		std::cout << "NEED THESE\n\n\n";
-			// envVec.push_back("QUERY_STRING=" + _req.queryString());
-			// envVec.push_back("SCRIPT_NAME=" + _req.path());
+		// envVec.push_back("QUERY_STRING=" + _req.queryString());
+		// envVec.push_back("SCRIPT_NAME=" + _req.path());
 		envVec.push_back("SERVER_NAME=localhost");
 		envVec.push_back("SERVER_PORT=80");
 		envVec.push_back("SERVER_PROTOCOL=HTTP/1.1");
@@ -98,7 +98,6 @@ Cgi::Cgi(const std::string &script, const HttpRequest &req)
 
 		execve(script.c_str(), argv, env);
 
-		// execve failed — free env before exit
 		for (size_t i = 0; i < envVec.size(); ++i)
 			free(env[i]);
 		delete[] env;
@@ -156,7 +155,23 @@ CgiStatus Cgi::onReadable() {
 	if (n == 0) {
 		close(_out);
 		_out = -1;
-		waitpid(_pid, NULL, WNOHANG);
+
+		int status;
+		pid_t ret = waitpid(_pid, &status, WNOHANG);
+
+		if (ret <= 0 || WIFSIGNALED(status) ||
+			(WIFEXITED(status) && WEXITSTATUS(status) != 0) ||
+			!_resp.complete()) {
+			if (ret == 0) {
+				kill(_pid, SIGKILL);
+				waitpid(_pid, NULL, 0);
+			}
+
+			_resp.setStatus(status::BAD_GATEWAY);
+			_pid = -1;
+			return CGI_ERROR;
+		}
+
 		_pid = -1;
 		return CGI_DONE;
 	}
