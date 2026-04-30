@@ -13,11 +13,10 @@ Socket::Socket(const ServerConfig &servConf, const ListenConfig &listenConf)
 Socket::~Socket() {
 	if (_fd != -1) close(_fd);
 }
-void make_non_blocking(int fd);
 void Socket::configureSocket() {
 	int opt = 1;
 
-	make_non_blocking(_fd);
+	makeNonBlocking(_fd);
 	if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt,
 				   sizeof(opt)))
 		exitError("setsocket");

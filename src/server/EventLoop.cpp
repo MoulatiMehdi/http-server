@@ -116,18 +116,17 @@ void EventLoop::processCgi(struct epoll_event &ev) {
 }
 
 void EventLoop::processClients(struct epoll_event &ev) {
-	int fd = ev.data.fd;
-	Client *client = _cliTable.get(fd);
+	Client *client = _cliTable.get(ev.data.fd);
 	ClientStatus status = OK;
 
-	if (ev.events & EPOLLERR) disconnectClient(fd);
+	if (ev.events & EPOLLERR) disconnectClient(client);
 	else if (ev.events & EPOLLIN) {
 		status = client->onReadable();
 	} else if (ev.events & EPOLLOUT) {
 		status = client->onWritable();
 	}
 
-	if (handleStatus(client, status) == -1) disconnectClient(fd);
+	if (handleStatus(client, status) == -1) disconnectClient(client);
 	return;
 }
 
@@ -140,6 +139,7 @@ void EventLoop::handleNewConnections(Socket *sock) {
 	while (true) {
 		cliFd = accept(sock->getFd(), (struct sockaddr *)&cliAddr, &len);
 		if (cliFd == -1) return;
+
 
 		makeNonBlocking(cliFd);
 		_cliTable.add(servConf, cliFd);
@@ -157,14 +157,6 @@ void EventLoop::addSockets() {
 
 // TODO: maxfd
 
-// TODO: implement epoll_wait timeout for client maintenance
-//       replace ERROR (-1) timeout with a real value (e.g. 5000ms)
-//       on timeout: walk client table, disconnect clients that exceeded
-//       client_timeout (incomplete request) or keepalive_timeout (idle)
-
-#define CLI_TIMEOUT_MS 30000   // 30s
-#define EPOLL_TIMEOUT_MS 5000  // 5s
-#define CGI_TIMEOUT_MS 10000   // 10s
 void EventLoop::loop() {
 	int nfds;
 	struct epoll_event events[MAX_EVENTS];

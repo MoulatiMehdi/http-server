@@ -46,12 +46,6 @@ void readFile(const char *path, std::vector<u_int8_t> &buffer) {
 	close(fd);
 }
 
-// void Client::queueResponse(const HttpResponse &resp, const std::string &body)
-// { 	std::string s = resp.to_string(); 	_wrbuf.insert(_wrbuf.end(),
-// s.begin(), s.end()); 	_wrbuf.insert(_wrbuf.end(), body.begin(),
-// body.end());
-// }
-
 void Client::queueResponse(const std::string &raw) {
 	_wrbuf.insert(_wrbuf.end(), raw.begin(), raw.end());
 }
@@ -160,74 +154,6 @@ ClientStatus Client::onReadable() {
 
 time_t Client::connectedAt() const { return _connected_at; }
 
-/*
-TODO: Implement CGI timeout handling
-- Add _started_at timestamp in Cgi
-- During epoll timeout maintenance:
-- Check execution duration
-- If exceeded:
-- call cgikill()
-- return CGI_ERROR to client
-- Prevent hanging CGI processes
-*/
-
-/*
-TODO: Implement CGI response handling in onCgiDone()
-- Current behavior:
-- Deletes _cgi
-- Discards output
-- Required:
-- Parse _cgi->_output:
-- Status line
-- Headers
-- Body
-- Build proper HTTP response
-- Call queueResponse()
-*/
-
-/*
-TODO: Fix CGI environment variables (RFC 3875 compliance)
-- Current behavior:
-- Passing raw HTTP headers as env vars
-- Incorrect: CGI expects specific variables
-- Must include:
-- REQUEST_METHOD
-- CONTENT_LENGTH
-- CONTENT_TYPE
-- QUERY_STRING
-- PATH_INFO
-- SCRIPT_FILENAME
-- etc.
-- Properly map HTTP request → CGI env
-*/
-
-/*
-TODO: Handle env memory on execve failure
-- env[] is built with strdup()
-- On execve success: OK (process replaced)
-- On failure:
-- Must free allocated env entries before _exit
-- Minor leak but should be fixed
-*/
-
-/* ============================== PRIORITY ============================== */
-
-/*
-CRITICAL:
-- Fix pipe() bug
-
-HIGH:
-- epoll_wait timeout
-- client timeout tracking
-- disconnectClient cleanup
-- destructor leaks
-
-MEDIUM:
-- CGI timeout
-- CGI response parsing
-- CGI env correctness
-- env cleanup on execve failure
-*/
 
 ClientStatus Client::onWritable() {
 	int n;

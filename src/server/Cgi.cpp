@@ -29,14 +29,14 @@ Cgi::Cgi(const std::string &script, const HttpRequest &req)
 	  _req(req),
 	  _started_at(time(NULL)) {
 	if (_req.body().size() != 0)
-		_reqBodyFile = new FileServe(_req.body().c_path());	 // POST/PUT???
+		_reqBodyFile = new FileServe(_req.body().c_path());
 
 	_resp.body().open_file();
 
 	int in_pipe[2];
 	int out_pipe[2];
 
-	if (pipe(out_pipe) < 0 || pipe(in_pipe) < 0)
+	if (pipe(in_pipe) < 0 || pipe(out_pipe) < 0)
 		throw std::runtime_error("pipe failed");
 
 	_pid = fork();
@@ -51,21 +51,57 @@ Cgi::Cgi(const std::string &script, const HttpRequest &req)
 		close(out_pipe[0]);
 		close(out_pipe[1]);
 
-		const HttpMessage::Headers &hdrs = _req.headers();
-		char **env = new char *[hdrs.size() + 1];
+		// --- build env ---
+		std::vector<std::string> envVec;
 
-		int i = 0;
+		envVec.push_back("REQUEST_METHOD=" + to_string(_req.method()));
+		std::cout << "NEED THESE\n\n\n";
+			// envVec.push_back("QUERY_STRING=" + _req.queryString());
+			// envVec.push_back("SCRIPT_NAME=" + _req.path());
+		envVec.push_back("SERVER_NAME=localhost");
+		envVec.push_back("SERVER_PORT=80");
+		envVec.push_back("SERVER_PROTOCOL=HTTP/1.1");
+		envVec.push_back("GATEWAY_INTERFACE=CGI/1.1");
+
+		std::string contentType = _req.getHeader("Content-Type")->second;
+		std::string contentLength = _req.getHeader("Content-Length")->second;
+		if (!contentType.empty())
+			envVec.push_back("CONTENT_TYPE=" + contentType);
+		if (!contentLength.empty())
+			envVec.push_back("CONTENT_LENGTH=" + contentLength);
+
+		// HTTP_* variables: pass request headers as HTTP_HEADERNAME
+		const HttpMessage::Headers &hdrs = _req.headers();
 		for (HttpMessage::const_iterator it = hdrs.begin(); it != hdrs.end();
-			 it++) {
-			std::cout << it->first + "=" + it->second << std::endl;	 // DEBUG:
-			std::string entry = it->first + "=" + it->second;
-			env[i++] = strdup(entry.c_str());
+			 ++it) {
+			// skip headers already covered above
+			std::string name = it->first;
+			if (name == "Content-Type" || name == "Content-Length") continue;
+
+			// convert header name: lowercase with hyphens → uppercase with
+			// underscores
+			std::string envName = "HTTP_";
+			for (size_t i = 0; i < name.size(); ++i) {
+				if (name[i] == '-') envName += '_';
+				else envName += std::toupper(name[i]);
+			}
+			envVec.push_back(envName + "=" + it->second);
 		}
-		env[i] = NULL;
+
+		// build char** from vector
+		char **env = new char *[envVec.size() + 1];
+		for (size_t i = 0; i < envVec.size(); ++i)
+			env[i] = strdup(envVec[i].c_str());
+		env[envVec.size()] = NULL;
 
 		char *argv[] = {const_cast<char *>(script.c_str()), NULL};
 
 		execve(script.c_str(), argv, env);
+
+		// execve failed — free env before exit
+		for (size_t i = 0; i < envVec.size(); ++i)
+			free(env[i]);
+		delete[] env;
 		_exit(EXIT_FAILURE);
 	}
 
