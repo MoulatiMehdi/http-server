@@ -8,7 +8,6 @@
 #include "Cgi.hpp"
 #include "FileServe.hpp"
 #include "HttpRequest.hpp"
-// #include "HttpResponse.hpp"
 #include "Logger.hpp"
 #include "RouteResult.hpp"
 #include "Router.hpp"
@@ -31,52 +30,34 @@ Client::~Client() {
 	if (_cgi) delete _cgi;
 }
 
-bool Client::cgiPending() const { return _cgi != NULL; }
-
-void readFile(const char *path, std::vector<u_int8_t> &buffer) {
-	int fd = open(path, O_RDONLY);
-	if (fd < 0) exit(54);
-
-	char tmp[4096];
-	ssize_t bytes;
-
-	while ((bytes = read(fd, tmp, sizeof(tmp))) > 0) {
-		buffer.insert(buffer.end(), tmp, tmp + bytes);
-	}
-
-	close(fd);
-}
 
 void Client::queueResponse(const std::string &raw) {
 	_wrbuf.clear();
 	_wrbuf.insert(_wrbuf.end(), raw.begin(), raw.end());
 }
 
-Cgi *Client::getCgi() const {
-	if (_cgi) return _cgi;
-	return NULL;
-}
-
-int Client::getFd() const { return _fd; }
-
-bool flag = false;
-ClientStatus Client::onCgiDone() {
-	HttpResponse resp = _cgi->getResponse();
-	_file = new FileServe(resp.body().c_path());
-	queueResponse(_cgi->getResponse().to_string());
-	flag = true; // DBG
-	delete _cgi;
-	_cgi = NULL;
-	return WANT_WRITE;
-}
-
-ClientStatus Client::initCgi(const std::string &path) {
+void Client::serveFile(const std::string &path, status::Status code,
+					   const std::string &type) {
 	try {
-		_cgi = new Cgi(path, _req);
-	} catch (...) {
-		return serveErr(status::INTERNAL_SERVER_ERROR), WANT_WRITE;
-	}  // log Err
-	return INIT_CGI;
+		_file = new FileServe(path);
+	} catch (const std::exception &e) {
+		Logger::error(e.what());
+		return serveErr(status::INTERNAL_SERVER_ERROR);
+	}
+
+	HttpResponse resp;
+	resp.setStatus(code);
+	resp.setContentLength(_file->size());
+	resp.setHeader("Content-type", type);
+	return queueResponse(resp.to_string());
+}
+
+void Client::serveDir(const std::string &path) {
+	HttpResponse resp;
+	std::string raw = resp.serve_directory(path, "");
+
+	if (!resp.good()) return serveErr(resp.status());
+	return queueResponse(raw);
 }
 
 void Client::serveErr(status::Status code) {
@@ -102,30 +83,6 @@ void Client::serveErr(status::Status code) {
 	return queueResponse(raw);
 }
 
-void Client::serveDir(const std::string &path) {
-	HttpResponse resp;
-	std::string raw = resp.serve_directory(path, "");
-
-	if (!resp.good()) return serveErr(resp.status());
-	return queueResponse(raw);
-}
-
-void Client::serveFile(const std::string &path, status::Status code,
-					   const std::string &type) {
-	try {
-		_file = new FileServe(path);
-	} catch (const std::exception &e) {
-		Logger::error(e.what());
-		return serveErr(status::INTERNAL_SERVER_ERROR);
-	}
-
-	HttpResponse resp;
-	resp.setStatus(code);
-	resp.setContentLength(_file->size());
-	resp.setHeader("Content-type", type);
-	return queueResponse(resp.to_string());
-}
-
 ClientStatus Client::handleRoute(const RouteResult &route) {
 	Router::printRouteResult(route);
 	switch (route.action) {
@@ -144,23 +101,39 @@ ClientStatus Client::handleRoute(const RouteResult &route) {
 	}
 }
 
+ClientStatus Client::initCgi(const std::string &path) {
+	try {
+		_cgi = new Cgi(path, _req);
+	} catch (...) {
+		return serveErr(status::INTERNAL_SERVER_ERROR), WANT_WRITE;
+	}  // log Err
+	return INIT_CGI;
+}
+
+ClientStatus Client::onCgiDone() {
+	HttpResponse resp = _cgi->getResponse();
+	_file = new FileServe(resp.body().c_path());
+	queueResponse(_cgi->getResponse().to_string());
+	// flag = true; // DBG
+	delete _cgi;
+	_cgi = NULL;
+	return WANT_WRITE;
+}
+
 ClientStatus Client::onReadable() {
 	char buff[BUFF_SIZE];
 	int n = read(_fd, buff, sizeof(buff));
 	if (n <= 0) return DISCONNECT;
 
-	if (flag)
-		return WANT_WRITE;
-	return initCgi("./cgimock2.sh");
-	// _req.parse(buff, n);
-	// // _req.parse(buff, n, _servConf);
-	// if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
-	// if (!_req.complete()) return OK;
-	//
-	// return handleRoute(Router::resolve(_servConf, _req));
-}
+	// if (flag)
+	// 	return WANT_WRITE;
+	// return initCgi("./cgimock2.sh");
+	_req.parse(buff, n);
+	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
+	if (!_req.complete()) return OK;
 
-time_t Client::connectedAt() const { return _connected_at; }
+	return handleRoute(Router::resolve(_servConf, _req));
+}
 
 ClientStatus Client::onWritable() {
 	int n;
@@ -184,3 +157,8 @@ ClientStatus Client::onWritable() {
 	}
 	return DONE_WRITE;
 }
+
+time_t Client::connectedAt() const { return _connected_at; }
+int Client::getFd() const { return _fd; }
+Cgi *Client::getCgi() const { return _cgi; }
+bool Client::cgiPending() const { return _cgi != NULL; }

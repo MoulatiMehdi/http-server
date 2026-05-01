@@ -6,6 +6,7 @@
 #include "ClientTable.hpp"
 #include "Status.hpp"
 #include "helper.hpp"
+#include "Logger.hpp"
 
 // #include <sys/epoll.h>
 // #include <iostream>

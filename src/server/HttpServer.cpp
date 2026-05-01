@@ -1,6 +1,7 @@
 #include "HttpServer.hpp"
 #include "Config.hpp"
 #include "ConfigParser.hpp"
+#include "Logger.hpp"
 
 HttpServer::HttpServer(const std::string &path)
 	: _configPath(path), _eventLoop(_socketTable) {}
