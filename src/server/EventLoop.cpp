@@ -4,9 +4,9 @@
 #include <cstdlib>
 #include "Cgi.hpp"
 #include "ClientTable.hpp"
+#include "Logger.hpp"
 #include "Status.hpp"
 #include "helper.hpp"
-#include "Logger.hpp"
 
 // #include <sys/epoll.h>
 // #include <iostream>
@@ -115,7 +115,7 @@ void EventLoop::processCgi(struct epoll_event &ev) {
 		epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiFd, NULL);
 		_pipe_to_client.erase(cgiFd);
 
-		if (cgiFd == cgiOut) client->onCgiDone();
+		if (cgiFd == cgiOut) handleStatus(client, client->onCgiDone());
 	}
 }
 
