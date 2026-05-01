@@ -43,7 +43,8 @@ class HttpParserState
     void process_transfer_encoding(HttpMessage &request);
 
   protected:
-    static const int MAX_BUFFER = 4096;
+    static const int MAX_HEADERS_BUFFER = 4096;
+    static const int MAX_REQUEST_BUFFER = 1024;
     HttpParserState(HttpMessage &request);
     ~HttpParserState();
 

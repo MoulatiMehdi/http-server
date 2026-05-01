@@ -439,7 +439,7 @@ void HttpRequestParser::parse_request_line(Buffer &buff)
     {
         char ch = buff.getc();
         m_parsed++;
-        if (m_parsed > MAX_BUFFER)
+        if (m_parsed > MAX_REQUEST_BUFFER)
         {
             setError(error::url_too_large);
             return;
@@ -468,8 +468,9 @@ void HttpRequestParser::parse_request_line(Buffer &buff)
                     return setError(error::unsupported_version);
                 break;
             case RES_REQUEST_LINE_DONE:
-                m_phase = PHASE_HEADERS;
-                m_state = 0;
+                m_parsed = 0;
+                m_phase  = PHASE_HEADERS;
+                m_state  = 0;
                 return;
         }
     }

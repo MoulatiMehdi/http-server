@@ -85,7 +85,7 @@ void HttpParserState::parse_headers(Buffer &buff)
     {
         char ch = buff.getc();
         m_parsed++;
-        if (m_parsed > MAX_BUFFER)
+        if (m_parsed > MAX_HEADERS_BUFFER)
         {
             setError(error::header_too_large);
             return;
