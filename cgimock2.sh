@@ -1,5 +1,6 @@
 #!/bin/bash
 
+sleep  20s
 # Wipe environment
 for var in $(env | cut -d= -f1); do
     unset "$var"

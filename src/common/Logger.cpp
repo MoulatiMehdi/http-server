@@ -14,3 +14,4 @@ void Logger::log(const std::string &level, const std::string &msg) {
 
 void Logger::info(const std::string &msg) { log("INFO", msg); }
 void Logger::error(const std::string &msg) { log("ERROR", msg); }
+void Logger::warn(const std::string &msg) { log("WARN", msg); }

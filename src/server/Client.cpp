@@ -62,7 +62,6 @@ void Client::serveDir(const std::string &path) {
 
 void Client::serveErr(status::Status code) {
 	std::string errPath = _servConf.errorPage(code);
-	std::cout << "PATH:::" << errPath << "\n\n\n";
 
 	if (!errPath.empty()) {
 		try {
@@ -126,8 +125,8 @@ ClientStatus Client::onReadable() {
 	int n = read(_fd, buff, sizeof(buff));
 	if (n <= 0) return DISCONNECT;
 
-	if (flag)
-		return WANT_WRITE;
+	if (flag == false)
+		return flag = true, DISCONNECT;
 	return initCgi("./cgimock2.sh");
 	_req.parse(buff, n);
 	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
