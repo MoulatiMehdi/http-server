@@ -36,8 +36,9 @@ LocationConfig ConfigParser::parseLocationBlock() {
     // const std::string path = _tokens[_i].value;
     // std::cout << path << std::endl;
     // while(true) ;
-    if (isValidPath(_tokens[_i].value) == false)
-        throwError("location: path must start with '/'");
+    if (isValidPath(_tokens[_i].value) == false
+        && _tokens[_i].value[_tokens[_i].value.size() - 1] == '/') // update it later
+        throwError("location: path must start and end with '/'");
     LocationConfig location;
     location.path = _tokens[_i].value;
     advance();

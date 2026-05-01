@@ -27,7 +27,7 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
 
     if (isCgiRequest(result, path))       return result; 
     if (isUploadRequest(result, request)) return result; // path!?
-    if (!pathExists(result))              return errorPage(request.status(), server.error_pages);
+    if (!pathExists(result))              return errorPage(status::NOT_FOUND, server.error_pages);
     if (!checkPermission(result.path,permissionFromRequest(result, request.method())))
         return errorPage(status::FORBIDDEN, server.error_pages);
     if (handleRegularFile(result))            return result;

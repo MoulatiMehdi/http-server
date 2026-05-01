@@ -82,6 +82,6 @@ bool ConfigParser::isAllDigit(const std::string& num) {
 }
 
 bool ConfigParser::isValidPath(const std::string& path) {
-    return !path.empty() && path[0] == '/';
+    return !path.empty() && path[0];
 }
 
