@@ -1,18 +1,16 @@
 #ifndef EVENTLOOP_HPP
 #define EVENTLOOP_HPP
 
-#include "ClientTable.hpp"
-#include "Socket.hpp"
-
-#include <fcntl.h>
-#include <sys/epoll.h>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#include <string>
-#include "Logger.hpp"
+#include <map>
+
+#include <fcntl.h>
+
+#include "ClientTable.hpp"
+#include "Socket.hpp"
 #include "SocketTable.hpp"
-#include "helper.hpp"
 
 #define MAX_EVENTS 128
 #define MAX_CLIENTS 1000
@@ -21,28 +19,38 @@
 #define CGI_TIMEOUT_MS 10000
 
 class EventLoop {
+   public:
+	EventLoop(SocketTable &socketTable);
+	~EventLoop();
+
+   private:
+	void epollAdd(int fd, uint32_t events);
+	void epollMod(int fd, uint32_t events);
+
+	void disconnectClient(const Client *cli);
+
+
+	int handleStatus(Client *client, ClientStatus status);
+
+	void processClients(struct epoll_event &ev);
+	void processCgi(struct epoll_event &ev);
+
+	void handleNewConnections(Socket *sock);
+
+	void runMaintenance();
+
+	void registerCgiPipes(const Client *client);
+
+   public:
+	void addSockets();
+	void loop();
+
    private:
 	SocketTable &_sockTable;
 	ClientTable _cliTable;
 	int _epollfd;
-	std::map<int, int> _pipe_to_client;	 // abstract away
 
-	void handleNewConnections(Socket *sock);
-	void processClients(struct epoll_event &ev);
-	void disconnectClient(const Client *cli);
-	void epollMod(int fd, uint32_t events);
-	void epollAdd(int fd, uint32_t events);
-	int handleStatus(Client *client, ClientStatus status);
-	void registerCgiPipes(const Client *client);
-	void processCgi(struct epoll_event &ev);
-	void runMaintenance();
-
-   public:
-	EventLoop(SocketTable &_socketTable);
-	~EventLoop();
-
-	void addSockets();
-	void loop();
+	std::map<int, int> _pipe_to_client;
 };
 
 #endif

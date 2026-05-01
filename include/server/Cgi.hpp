@@ -6,6 +6,7 @@
 #include "FileServe.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
+#include "Status.hpp"
 
 enum CgiStatus { CGI_OK, CGI_DONE, CGI_ERROR };
 
@@ -34,6 +35,13 @@ class Cgi {
 	int getIn() const { return _in; }
 	int getOut() const { return _out; }
 	HttpResponse getResponse();
+	CgiStatus _consume(const char *buff, int n);
+	CgiStatus _finalize();
+
+	CgiStatus _fail(status::Status code);
+
+	// Process handling
+	bool _waitChild();
 };
 
 #endif	// !CGI_HPP

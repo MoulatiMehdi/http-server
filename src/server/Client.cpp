@@ -59,10 +59,12 @@ Cgi *Client::getCgi() const {
 
 int Client::getFd() const { return _fd; }
 
+bool flag = false;
 ClientStatus Client::onCgiDone() {
 	HttpResponse resp = _cgi->getResponse();
 	_file = new FileServe(resp.body().c_path());
 	queueResponse(_cgi->getResponse().to_string());
+	flag = true; // DBG
 	delete _cgi;
 	_cgi = NULL;
 	return WANT_WRITE;
@@ -74,7 +76,7 @@ ClientStatus Client::initCgi(const std::string &path) {
 	} catch (...) {
 		return serveErr(status::INTERNAL_SERVER_ERROR), WANT_WRITE;
 	}  // log Err
-	return INIT_CGI;  // EventLoop takes over from here
+	return INIT_CGI;
 }
 
 void Client::serveErr(status::Status code) {
@@ -147,12 +149,15 @@ ClientStatus Client::onReadable() {
 	int n = read(_fd, buff, sizeof(buff));
 	if (n <= 0) return DISCONNECT;
 
-	_req.parse(buff, n);
-	// _req.parse(buff, n, _servConf);
-	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
-	if (!_req.complete()) return OK;
-
-	return handleRoute(Router::resolve(_servConf, _req));
+	if (flag)
+		return WANT_WRITE;
+	return initCgi("./cgimock2.sh");
+	// _req.parse(buff, n);
+	// // _req.parse(buff, n, _servConf);
+	// if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
+	// if (!_req.complete()) return OK;
+	//
+	// return handleRoute(Router::resolve(_servConf, _req));
 }
 
 time_t Client::connectedAt() const { return _connected_at; }

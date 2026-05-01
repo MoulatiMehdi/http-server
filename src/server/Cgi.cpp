@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <cerrno>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -14,11 +15,6 @@
 #include "Method.hpp"
 #include "Status.hpp"
 #include "helper.hpp"
-
-// TODO: add CGI timeout — track start time, kill child if it exceeds config
-// limit
-//       waitpid(WNOHANG) in EventLoop maintenance tick, kill + CGI_ERROR if
-//       exceeded
 
 Cgi::Cgi(const std::string &script, const HttpRequest &req)
 	: _in(-1),
@@ -55,7 +51,6 @@ Cgi::Cgi(const std::string &script, const HttpRequest &req)
 		std::vector<std::string> envVec;
 
 		envVec.push_back("REQUEST_METHOD=" + to_string(_req.method()));
-		std::cout << "NEED THESE\n\n\n";
 		// envVec.push_back("QUERY_STRING=" + _req.queryString());
 		// envVec.push_back("SCRIPT_NAME=" + _req.path());
 		envVec.push_back("SERVER_NAME=localhost");
@@ -147,47 +142,55 @@ CgiStatus Cgi::onReadable() {
 	char buff[BUFF_SIZE];
 	int n = read(_out, buff, sizeof(buff));
 
-	if (n == -1) {
-		_resp.setStatus(status::BAD_GATEWAY);
-		return CGI_ERROR;
-	}
+	if (n == -1) return _fail(status::BAD_GATEWAY);
+	if (n == 0) return _finalize();
 
-	if (n == 0) {
-		close(_out);
-		_out = -1;
+	return _consume(buff, n);
+}
 
-		int status;
-		pid_t ret = waitpid(_pid, &status, WNOHANG);
+CgiStatus Cgi::_fail(status::Status code) {
+	_resp.setStatus(code);
+	return CGI_ERROR;
+}
+CgiStatus Cgi::_finalize() {
+	close(_out);
+	_out = -1;
 
-		if (ret <= 0 || WIFSIGNALED(status) ||
-			(WIFEXITED(status) && WEXITSTATUS(status) != 0) ||
-			!_resp.complete()) {
-			if (ret == 0) {
-				kill(_pid, SIGKILL);
-				waitpid(_pid, NULL, 0);
-			}
+	if (!_waitChild()) return _fail(status::BAD_GATEWAY);
 
-			_resp.setStatus(status::BAD_GATEWAY);
-			_pid = -1;
-			return CGI_ERROR;
-		}
+	_resp.setStatus(status::OK);
+	_resp.setContentLength(_resp.body().size());
+	return CGI_DONE;
+}
+bool Cgi::_waitChild() {
+	int status;
+	pid_t ret = waitpid(_pid, &status, WNOHANG);
 
+	if (ret == 0) {
+		kill(_pid, SIGKILL);
+		waitpid(_pid, NULL, 0);
 		_pid = -1;
-		return CGI_DONE;
+		return false;
 	}
 
+	_pid = -1;
+
+	if (ret == -1) return false;
+	if (WIFSIGNALED(status)) return false;
+	if (WIFEXITED(status) && WEXITSTATUS(status) != 0) return false;
+
+	return true;
+}
+CgiStatus Cgi::_consume(const char *buff, int n) {
 	try {
 		if (!_resp.complete()) {
 			_resp.parse(buff, n);
-			if (_resp.complete()) {
+			if (_resp.complete())
 				_resp.body().append(buff + _resp.gcount(), n - _resp.gcount());
-				_parsingHeaders = false;
-			}
-		} else if (!_parsingHeaders) _resp.body().append(buff, n);
-	} catch (const std::exception &e) {
-		_resp.setStatus(status::BAD_GATEWAY);
-		return CGI_ERROR;
-	}
+		} else {
+			_resp.body().append(buff, n);
+		}
+	} catch (const std::exception &) { return _fail(status::BAD_GATEWAY); }
 	return CGI_OK;
 }
 
