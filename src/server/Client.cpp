@@ -30,7 +30,6 @@ Client::~Client() {
 	if (_cgi) delete _cgi;
 }
 
-
 void Client::queueResponse(const std::string &raw) {
 	_wrbuf.clear();
 	_wrbuf.insert(_wrbuf.end(), raw.begin(), raw.end());
@@ -103,18 +102,17 @@ ClientStatus Client::handleRoute(const RouteResult &route) {
 ClientStatus Client::initCgi(const std::string &path) {
 	try {
 		_cgi = new Cgi(path, _req);
-	} catch (...) {
+	} catch (const std::exception &e) {
+		Logger::error(std::string("Cgi: ") + e.what());
 		return serveErr(status::INTERNAL_SERVER_ERROR), WANT_WRITE;
-	}  // log Err
+	}
 	return INIT_CGI;
 }
 
-bool flag = false;
 ClientStatus Client::onCgiDone() {
 	HttpResponse resp = _cgi->getResponse();
 	_file = new FileServe(resp.body().c_path());
 	queueResponse(_cgi->getResponse().to_string());
-	flag = true; // DBG
 	delete _cgi;
 	_cgi = NULL;
 	return WANT_WRITE;
@@ -125,9 +123,6 @@ ClientStatus Client::onReadable() {
 	int n = read(_fd, buff, sizeof(buff));
 	if (n <= 0) return DISCONNECT;
 
-	if (flag == false)
-		return flag = true, DISCONNECT;
-	return initCgi("./cgimock2.sh");
 	_req.parse(buff, n);
 	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
 	if (!_req.complete()) return OK;
