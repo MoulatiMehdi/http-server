@@ -110,11 +110,12 @@ ClientStatus Client::initCgi(const std::string &path) {
 	return INIT_CGI;
 }
 
+bool flag = false;
 ClientStatus Client::onCgiDone() {
 	HttpResponse resp = _cgi->getResponse();
 	_file = new FileServe(resp.body().c_path());
 	queueResponse(_cgi->getResponse().to_string());
-	// flag = true; // DBG
+	flag = true; // DBG
 	delete _cgi;
 	_cgi = NULL;
 	return WANT_WRITE;
@@ -125,9 +126,9 @@ ClientStatus Client::onReadable() {
 	int n = read(_fd, buff, sizeof(buff));
 	if (n <= 0) return DISCONNECT;
 
-	// if (flag)
-	// 	return WANT_WRITE;
-	// return initCgi("./cgimock2.sh");
+	if (flag)
+		return WANT_WRITE;
+	return initCgi("./cgimock2.sh");
 	_req.parse(buff, n);
 	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
 	if (!_req.complete()) return OK;
