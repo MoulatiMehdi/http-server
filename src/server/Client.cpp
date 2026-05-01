@@ -67,12 +67,13 @@ void Client::serveErr(status::Status code) {
 			_file = new FileServe(errPath);
 			HttpResponse resp(code);
 			resp.setHeader("Content-Type", "text/html");
-			// resp.setHeader("Content-Length", to_stringg(_file->size()));
 			resp.setContentLength(_file->size());
 			resp.setHeader("Connection", "close");
 			std::cout << resp.to_string();
 			return queueResponse(resp.to_string());
-		} catch (...) {}  // fall through to built-in
+		} catch (const std::exception &e) {
+			Logger::error(std::string("serveErr: ") + e.what());
+		}
 	}
 
 	HttpResponse resp(code);
@@ -142,7 +143,8 @@ ClientStatus Client::onWritable() {
 	}
 
 	if (_file) {
-		if (_file->sendChunk(_fd) == ERROR) return DISCONNECT;
+		if (_file->sendChunk(_fd) == ERROR)
+			return serveErr(status::INTERNAL_SERVER_ERROR), WANT_WRITE;
 		if (_file->done()) {
 			delete _file;
 			_file = NULL;
