@@ -6,6 +6,7 @@
 #include "ClientTable.hpp"
 #include "Status.hpp"
 #include "helper.hpp"
+#include "Logger.hpp"
 
 // #include <sys/epoll.h>
 // #include <iostream>
@@ -74,21 +75,22 @@ int EventLoop::handleStatus(Client *client, ClientStatus status) {
 	return 0;
 }
 
-void EventLoop::registerCgiPipes(const Client *client) {
-	Cgi *cgi = client->getCgi();
-	int clientFd = client->getFd();
+void EventLoop::processClients(struct epoll_event &ev) {
+	Client *client = _cliTable.get(ev.data.fd);
+	ClientStatus status = OK;
 
-	int in = cgi->getIn();
-	int out = cgi->getOut();
+	if (ev.events & EPOLLERR) disconnectClient(client);
+	else if (ev.events & EPOLLIN) {
+		status = client->onReadable();
+	} else if (ev.events & EPOLLOUT) {
+		status = client->onWritable();
+	}
 
-	epollAdd(in, EPOLLOUT);
-	epollAdd(out, EPOLLIN);
-
-	_pipe_to_client[in] = clientFd;
-	_pipe_to_client[out] = clientFd;
+	if (handleStatus(client, status) == -1) disconnectClient(client);
+	return;
 }
+
 void EventLoop::processCgi(struct epoll_event &ev) {
-	// std::cout << "EventLoop::processCgi\n";
 	int cgiFd = ev.data.fd;
 	int clientFd = _pipe_to_client[cgiFd];
 
@@ -117,21 +119,6 @@ void EventLoop::processCgi(struct epoll_event &ev) {
 	}
 }
 
-void EventLoop::processClients(struct epoll_event &ev) {
-	Client *client = _cliTable.get(ev.data.fd);
-	ClientStatus status = OK;
-
-	if (ev.events & EPOLLERR) disconnectClient(client);
-	else if (ev.events & EPOLLIN) {
-		status = client->onReadable();
-	} else if (ev.events & EPOLLOUT) {
-		status = client->onWritable();
-	}
-
-	if (handleStatus(client, status) == -1) disconnectClient(client);
-	return;
-}
-
 void EventLoop::handleNewConnections(Socket *sock) {
 	int cliFd;
 	struct sockaddr_in cliAddr;
@@ -148,34 +135,6 @@ void EventLoop::handleNewConnections(Socket *sock) {
 		Logger::info("New Client: " + std::string(inet_ntoa(cliAddr.sin_addr)) +
 					 ":" + toString(ntohs(cliAddr.sin_port)) + " through " +
 					 sock->getAddr() + ":" + toString(sock->getPort()));
-	}
-}
-
-void EventLoop::addSockets() {
-	for (size_t i = 0; i < _sockTable.size(); ++i)
-		epollAdd(_sockTable[i]->getFd(), EPOLLIN);
-}
-
-// TODO: maxfd
-
-void EventLoop::loop() {
-	int nfds;
-	struct epoll_event events[MAX_EVENTS];
-	int sockIndex;
-
-	while (true) {
-		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, EPOLL_TIMEOUT_MS);
-		if (nfds == ERROR) exitError("epoll_wait");
-		if (nfds == 0) { runMaintenance(); }
-		for (int n = 0; n < nfds; ++n) {
-			sockIndex = _sockTable.getSocket(events[n].data.fd);
-			if (sockIndex >= 0) handleNewConnections(_sockTable[sockIndex]);
-			else if (_cliTable.get(events[n].data.fd) != NULL)
-				processClients(events[n]);
-			else if (_pipe_to_client.find(events[n].data.fd) !=
-					 _pipe_to_client.end())
-				processCgi(events[n]);
-		}
 	}
 }
 
@@ -196,5 +155,46 @@ void EventLoop::runMaintenance() {
 	for (size_t i = 0; i < toDisconnect.size(); ++i) {
 		Logger::info("Client " + toString(toDisconnect[i]) + ": timed out");
 		disconnectClient(toDisconnect[i]);
+	}
+}
+
+void EventLoop::registerCgiPipes(const Client *client) {
+	Cgi *cgi = client->getCgi();
+	int clientFd = client->getFd();
+
+	int in = cgi->getIn();
+	int out = cgi->getOut();
+
+	epollAdd(in, EPOLLOUT);
+	epollAdd(out, EPOLLIN);
+
+	_pipe_to_client[in] = clientFd;
+	_pipe_to_client[out] = clientFd;
+}
+
+void EventLoop::addSockets() {
+	for (size_t i = 0; i < _sockTable.size(); ++i)
+		epollAdd(_sockTable[i]->getFd(), EPOLLIN);
+}
+
+void EventLoop::loop() {
+	// TODO: maxfd
+	int nfds;
+	struct epoll_event events[MAX_EVENTS];
+	int sockIndex;
+
+	while (true) {
+		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, EPOLL_TIMEOUT_MS);
+		if (nfds == ERROR) exitError("epoll_wait");
+		if (nfds == 0) { runMaintenance(); }
+		for (int n = 0; n < nfds; ++n) {
+			sockIndex = _sockTable.getSocket(events[n].data.fd);
+			if (sockIndex >= 0) handleNewConnections(_sockTable[sockIndex]);
+			else if (_cliTable.get(events[n].data.fd) != NULL)
+				processClients(events[n]);
+			else if (_pipe_to_client.find(events[n].data.fd) !=
+					 _pipe_to_client.end())
+				processCgi(events[n]);
+		}
 	}
 }
