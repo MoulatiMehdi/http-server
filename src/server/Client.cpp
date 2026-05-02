@@ -4,10 +4,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
+#include <queue>
 #include <string>
 #include "Cgi.hpp"
 #include "FileServe.hpp"
 #include "HttpRequest.hpp"
+#include "HttpResponse.hpp"
 #include "Logger.hpp"
 #include "RouteResult.hpp"
 #include "Router.hpp"
@@ -82,6 +84,13 @@ void Client::serveErr(status::Status code) {
 	return queueResponse(raw);
 }
 
+void Client::serveRedir(const std::string &path, status::Status code) {
+	HttpResponse resp(code);
+	resp.setHeader("Location", path);
+
+	queueResponse(resp.to_string());
+}
+
 ClientStatus Client::handleRoute(const RouteResult &res) {
 	Router::printRouteResult(res);
 	switch (res.action) {
@@ -93,13 +102,87 @@ ClientStatus Client::handleRoute(const RouteResult &res) {
 			return serveErr(res.statusCode), WANT_WRITE;
 		case ROUTE_CGI:
 			return initCgi(res.path), INIT_CGI;
+		case ROUTE_REDIRECT:
+			return serveRedir(res.path, res.statusCode), WANT_WRITE;
 		case ROUTE_UPLOAD:
-			return queueResponse(HttpResponse(status::CREATED).to_string()),
+			return queueResponse(HttpResponse(res.statusCode).to_string()),
 				   WANT_WRITE;
 	}
 }
+ClientStatus fakeRoute(Client *cli) {
+    RouteResult res;
 
-ClientStatus Client::initCgi(const std::string &path) {
+    // --- STATIC FILE ---
+    // res.action = ROUTE_STATIC_FILE;
+    // res.path = "/home/ihajji/github/http-server/www/index.html";
+    // res.statusCode = status::OK;
+    // res.type = "text/html";
+
+    // --- STATIC FILE: missing file (should 404) ---
+    // res.action = ROUTE_STATIC_FILE;
+    // res.path = "/home/ihajji/github/http-server/www/nonexistent.html";
+    // res.statusCode = status::OK;
+    // res.type = "text/html";
+
+    // --- DIRECTORY LISTING ---
+    // res.action = ROUTE_DIRECTORY_LISTING;
+    // res.path = "/home/ihajji/github/http-server/www/listing/";
+
+    // --- DIRECTORY LISTING: empty dir ---
+    // res.action = ROUTE_DIRECTORY_LISTING;
+    // res.path = "/home/ihajji/github/http-server/www/listing/empty/";
+
+    // --- ERROR: 400 (has custom page in config) ---
+    // res.action = ROUTE_ERROR;
+    // res.statusCode = status::BAD_REQUEST;
+
+    // --- ERROR: 404 (has custom page in config) ---
+    // res.action = ROUTE_ERROR;
+    // res.statusCode = status::NOT_FOUND;
+
+    // --- ERROR: 418 (no custom page, should fallback to built-in) ---
+    // res.action = ROUTE_ERROR;
+    // res.statusCode = status::IM_A_TEAPOT;
+
+    // --- CGI: GET ---
+    // res.action = ROUTE_CGI;
+    // res.path = "/home/ihajji/github/http-server/www/cgi-bin/cgi_test.py";
+
+    // --- CGI: POST with body ---
+    // res.action = ROUTE_CGI;
+    // res.path = "/home/ihajji/github/http-server/www/cgi-bin/cgi_test.py";
+    // _req.setBody("name=test&value=42"); // inject body if setter exists
+
+    // --- CGI: script that exits non-zero (should 502) ---
+    // res.action = ROUTE_CGI;
+    // res.path = "/home/ihajji/github/http-server/www/cgi-bin/bad_exit.py";
+
+    // --- CGI: script that hangs (should 504 after CGI_TIMEOUT_MS) ---
+    // res.action = ROUTE_CGI;
+    // res.path = "/home/ihajji/github/http-server/www/cgi-bin/hang.py";
+
+    // --- REDIRECT: permanent ---
+    // res.action = ROUTE_REDIRECT;
+    // res.path = "/";
+    // res.statusCode = status::MOVED_PERMANENTLY;
+
+    // --- REDIRECT: to external URL ---
+    // res.action = ROUTE_REDIRECT;
+    // res.path = "https://example.com";
+    // res.statusCode = status::MOVED_PERMANENTLY;
+
+    // --- UPLOAD: success 201 ---
+    // res.action = ROUTE_UPLOAD;
+    // res.statusCode = status::CREATED;
+
+    // --- UPLOAD: forbidden dir (should 403) ---
+    // res.action = ROUTE_UPLOAD;
+    // res.statusCode = status::FORBIDDEN;
+
+    return cli->handleRoute(res);
+}
+
+ClientStatus Client::initCgi(const std::string &path)  {
 	try {
 		_cgi = new Cgi(path, _req);
 	} catch (const std::exception &e) {
@@ -127,6 +210,7 @@ ClientStatus Client::onReadable() {
 	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
 	if (!_req.complete()) return OK;
 
+	// return fakeRoute(this);
 	return handleRoute(Router::resolve(_servConf, _req));
 }
 

@@ -21,7 +21,6 @@ class Client {
 	~Client();
 
    private:
-	ClientStatus handleRoute(const RouteResult &routeResult);
 	ClientStatus initCgi(const std::string &path);
 
    public:
@@ -31,8 +30,9 @@ class Client {
 				   const std::string &type);
 	void serveDir(const std::string &path);
 	void serveErr(status::Status status);
+	void serveRedir(const std::string &path, status::Status code);
 
-
+	ClientStatus handleRoute(const RouteResult &routeResult);
 	ClientStatus onCgiDone();
 	ClientStatus onReadable();
 	ClientStatus onWritable();
