@@ -82,18 +82,17 @@ void Client::serveErr(status::Status code) {
 	return queueResponse(raw);
 }
 
-ClientStatus Client::handleRoute(const RouteResult &route) {
-	Router::printRouteResult(route);
-	switch (route.action) {
+ClientStatus Client::handleRoute(const RouteResult &res) {
+	Router::printRouteResult(res);
+	switch (res.action) {
 		case ROUTE_STATIC_FILE:
-			return serveFile(route.path, route.statusCode, route.type),
-				   WANT_WRITE;
+			return serveFile(res.path, res.statusCode, res.type), WANT_WRITE;
 		case ROUTE_DIRECTORY_LISTING:
-			return serveDir(route.path), WANT_WRITE;
+			return serveDir(res.path), WANT_WRITE;
 		case ROUTE_ERROR:
-			return serveErr(route.statusCode), WANT_WRITE;
+			return serveErr(res.statusCode), WANT_WRITE;
 		case ROUTE_CGI:
-			return initCgi(route.path), INIT_CGI;
+			return initCgi(res.path), INIT_CGI;
 		case ROUTE_UPLOAD:
 			return queueResponse(HttpResponse(status::CREATED).to_string()),
 				   WANT_WRITE;
