@@ -8,6 +8,7 @@
 #include "Cgi.hpp"
 #include "FileServe.hpp"
 #include "HttpRequest.hpp"
+#include "HttpResponse.hpp"
 #include "Logger.hpp"
 #include "RouteResult.hpp"
 #include "Router.hpp"
@@ -82,6 +83,13 @@ void Client::serveErr(status::Status code) {
 	return queueResponse(raw);
 }
 
+void Client::serveRedir(const std::string &path, status::Status code) {
+	HttpResponse resp(code);
+	resp.setHeader("Location", path);
+
+	return queueResponse(resp.to_string());
+}
+
 ClientStatus Client::handleRoute(const RouteResult &res) {
 	Router::printRouteResult(res);
 	switch (res.action) {
@@ -93,8 +101,10 @@ ClientStatus Client::handleRoute(const RouteResult &res) {
 			return serveErr(res.statusCode), WANT_WRITE;
 		case ROUTE_CGI:
 			return initCgi(res.path), INIT_CGI;
+		case ROUTE_REDIRECT:
+			return serveRedir(res.path, res.statusCode), WANT_WRITE;
 		case ROUTE_UPLOAD:
-			return queueResponse(HttpResponse(status::CREATED).to_string()),
+			return queueResponse(HttpResponse(res.statusCode).to_string()),
 				   WANT_WRITE;
 	}
 }

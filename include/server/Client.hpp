@@ -31,7 +31,7 @@ class Client {
 				   const std::string &type);
 	void serveDir(const std::string &path);
 	void serveErr(status::Status status);
-
+	void serveRedir(const std::string &path, status::Status code);
 
 	ClientStatus onCgiDone();
 	ClientStatus onReadable();
