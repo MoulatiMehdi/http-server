@@ -30,7 +30,6 @@ Client::~Client() {
 	if (_cgi) delete _cgi;
 }
 
-
 void Client::queueResponse(const std::string &raw) {
 	_wrbuf.clear();
 	_wrbuf.insert(_wrbuf.end(), raw.begin(), raw.end());
@@ -62,19 +61,19 @@ void Client::serveDir(const std::string &path) {
 
 void Client::serveErr(status::Status code) {
 	std::string errPath = _servConf.errorPage(code);
-	std::cout << "PATH:::" << errPath << "\n\n\n";
 
 	if (!errPath.empty()) {
 		try {
 			_file = new FileServe(errPath);
 			HttpResponse resp(code);
 			resp.setHeader("Content-Type", "text/html");
-			// resp.setHeader("Content-Length", to_stringg(_file->size()));
 			resp.setContentLength(_file->size());
 			resp.setHeader("Connection", "close");
 			std::cout << resp.to_string();
 			return queueResponse(resp.to_string());
-		} catch (...) {}  // fall through to built-in
+		} catch (const std::exception &e) {
+			Logger::error(std::string("serveErr: ") + e.what());
+		}
 	}
 
 	HttpResponse resp(code);
@@ -104,9 +103,10 @@ ClientStatus Client::handleRoute(const RouteResult &route) {
 ClientStatus Client::initCgi(const std::string &path) {
 	try {
 		_cgi = new Cgi(path, _req);
-	} catch (...) {
+	} catch (const std::exception &e) {
+		Logger::error(std::string("Cgi: ") + e.what());
 		return serveErr(status::INTERNAL_SERVER_ERROR), WANT_WRITE;
-	}  // log Err
+	}
 	return INIT_CGI;
 }
 
@@ -114,7 +114,6 @@ ClientStatus Client::onCgiDone() {
 	HttpResponse resp = _cgi->getResponse();
 	_file = new FileServe(resp.body().c_path());
 	queueResponse(_cgi->getResponse().to_string());
-	// flag = true; // DBG
 	delete _cgi;
 	_cgi = NULL;
 	return WANT_WRITE;
@@ -125,9 +124,6 @@ ClientStatus Client::onReadable() {
 	int n = read(_fd, buff, sizeof(buff));
 	if (n <= 0) return DISCONNECT;
 
-	// if (flag)
-	// 	return WANT_WRITE;
-	// return initCgi("./cgimock2.sh");
 	_req.parse(buff, n);
 	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
 	if (!_req.complete()) return OK;
@@ -147,7 +143,8 @@ ClientStatus Client::onWritable() {
 	}
 
 	if (_file) {
-		if (_file->sendChunk(_fd) == ERROR) return DISCONNECT;
+		if (_file->sendChunk(_fd) == ERROR)
+			return serveErr(status::INTERNAL_SERVER_ERROR), WANT_WRITE;
 		if (_file->done()) {
 			delete _file;
 			_file = NULL;

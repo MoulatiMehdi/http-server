@@ -6,7 +6,7 @@
 namespace status
 {
 
-    enum Status : unsigned
+    enum Status
     {
         UNKNOWN = 0,
 
@@ -83,7 +83,7 @@ namespace status
 namespace status_class
 {
 
-    enum StatusClass : unsigned
+    enum StatusClass
     {
         UNKNOWN       = 0,
         INFORMATIONAL = 1,

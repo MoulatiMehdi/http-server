@@ -1,12 +1,15 @@
 #include "EventLoop.hpp"
 #include <sys/epoll.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <cstdlib>
+#include <ctime>
 #include "Cgi.hpp"
+#include "Client.hpp"
 #include "ClientTable.hpp"
+#include "Logger.hpp"
 #include "Status.hpp"
 #include "helper.hpp"
-#include "Logger.hpp"
 
 // #include <sys/epoll.h>
 // #include <iostream>
@@ -52,8 +55,10 @@ void EventLoop::disconnectClient(const Client *cli) {
 	if (cli->getCgi()) {
 		int cgiIn = cli->getCgi()->getIn();
 		int cgiOut = cli->getCgi()->getOut();
-		if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiIn, NULL) == ERROR ||
-			epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiOut, NULL) == ERROR)
+		if ((cgiIn != ERROR &&
+			 epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiIn, NULL) == ERROR) ||
+			(cgiOut != ERROR &&
+			 epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiOut, NULL) == ERROR))
 			exitError("epoll_ctl: EPOLL_CTL_DEL");
 		_pipe_to_client.erase(cgiIn);
 		_pipe_to_client.erase(cgiOut);
@@ -69,7 +74,6 @@ int EventLoop::handleStatus(Client *client, ClientStatus status) {
 
 	if (status == DISCONNECT) return -1;
 	else if (status == WANT_WRITE) epollMod(fd, EPOLLIN | EPOLLOUT);
-	// else if (status == DONE_WRITE) epollMod(fd, EPOLLIN);
 	else if (status == DONE_WRITE) disconnectClient(client);
 	else if (status == INIT_CGI) registerCgiPipes(client);
 	return 0;
@@ -115,7 +119,7 @@ void EventLoop::processCgi(struct epoll_event &ev) {
 		epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiFd, NULL);
 		_pipe_to_client.erase(cgiFd);
 
-		if (cgiFd == cgiOut) client->onCgiDone();
+		if (cgiFd == cgiOut) handleStatus(client, client->onCgiDone());
 	}
 }
 
@@ -137,25 +141,40 @@ void EventLoop::handleNewConnections(Socket *sock) {
 					 sock->getAddr() + ":" + toString(sock->getPort()));
 	}
 }
+void EventLoop::disconnectTimedOut(const std::vector<Client *> &clients) {
+	for (size_t i = 0; i < clients.size(); ++i) {
+		Logger::info("Client " + toString(clients[i]->getFd()) + ": timed out");
+		disconnectClient(clients[i]);
+	}
+}
+
+void EventLoop::handleCgiTimeout(Client *client) {
+	Logger::warn("CGI timeout for client " + toString(client->getFd()));
+	client->serveErr(status::GATEWAY_TIMEOUT);
+	handleStatus(client, WANT_WRITE);
+}
+
+bool EventLoop::cgiTimedOut(Client *client, time_t now) {
+	time_t passedSec = now - client->getCgi()->startedAt();
+	return client->cgiPending() && (passedSec * 1000 > CGI_TIMEOUT_MS);
+}
+
+bool EventLoop::clientTimedOut(Client *client, time_t now) {
+	return (now - client->connectedAt()) * 1000 > CLI_TIMEOUT_MS;
+}
 
 void EventLoop::runMaintenance() {
 	time_t now = time(NULL);
 	std::vector<Client *> toDisconnect;
 
-	const ClientMap &clients = _cliTable.getAll();
-	for (ClientMap::const_iterator it = clients.begin(); it != clients.end();
-		 ++it) {
+	const ClientMap &cli = _cliTable.getAll();
+	for (ClientMap::const_iterator it = cli.begin(); it != cli.end(); ++it) {
 		Client *client = it->second;
-		if (now - client->connectedAt() > CLI_TIMEOUT_MS)
-			toDisconnect.push_back(it->second);
-		else if (client->cgiPending() &&
-				 now - client->getCgi()->startedAt() > CGI_TIMEOUT_MS)
-			client->serveErr(status::GATEWAY_TIMEOUT);
+		if (clientTimedOut(client, now)) toDisconnect.push_back(client);
+		else if (client->cgiPending() && cgiTimedOut(client, now))
+			handleCgiTimeout(client);
 	}
-	for (size_t i = 0; i < toDisconnect.size(); ++i) {
-		Logger::info("Client " + toString(toDisconnect[i]) + ": timed out");
-		disconnectClient(toDisconnect[i]);
-	}
+	disconnectTimedOut(toDisconnect);
 }
 
 void EventLoop::registerCgiPipes(const Client *client) {

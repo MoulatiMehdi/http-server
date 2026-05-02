@@ -172,8 +172,9 @@ CgiStatus Cgi::_consume(const char *buff, int n) {
 	try {
 		if (!_resp.complete()) {
 			_resp.parse(buff, n);
-			if (_resp.complete())
+			if (_resp.complete()) {
 				_resp.body().append(buff + _resp.gcount(), n - _resp.gcount());
+			}
 		} else {
 			_resp.body().append(buff, n);
 		}
