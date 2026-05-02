@@ -127,7 +127,7 @@ bool Router::findIndexFile(RouteResult& result, IndexTable& index, std::string& 
 {
     for (std::size_t i = 0; i < index.size(); i++) {
         std::string path = root + index[i];
-        std::cout << "index: root+index= " << path << "\n";
+        // std::cout << "index: root+index= " << path << "\n";
         if (isFile(path) && canRead(path.c_str()))
             return indexResult(result, path), true;
     }
@@ -139,7 +139,7 @@ bool Router::isIndexed(RouteResult& result)
     if (result.action == ROUTE_REDIRECT)
         return true;
     if ((result.location &&
-        ((result.location->index.empty()) || result.location->autoindex == true)))
+        ((result.location->index.empty()) && result.location->autoindex == true)))
         return false;
     if (result.location == NULL && result.server->index.empty())
         return false;
@@ -261,6 +261,9 @@ void Router::printRouteResult(const RouteResult& r) {
 
     std::cout << "Path:     "
               << r.path << "\n";
+
+    std::cout << "Type:     "
+              << r.type << "\n";
 
     std::cout << "Status:   "
               << static_cast<int>(r.statusCode)   // 👈 numeric code

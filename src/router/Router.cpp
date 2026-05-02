@@ -24,7 +24,6 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
         return errorPage(status::METHOD_NOT_ALLOWED, server.error_pages);
 
     result.path = buildTargetPath(server, result.location, path);
-    // result.type = ServerConfig::mimetype.getContentType(getExtension(result.path)); // I think must be for regulare files only
 
     if (isCgiRequest(result, path))       return result; 
     if (isUploadRequest(result, request)) return result; // path!?
@@ -33,7 +32,6 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
     if (!checkPermission(result.path, permissionFromRequest(result, request.method())))
         return errorPage(status::FORBIDDEN, server.error_pages);
     
-    std::cout << "index: root+index= " << "[non]" << "\n";
     
     if (handleRegularFile(result))            return result;
     if (isDirectory(result, path) && isIndexed(result))
