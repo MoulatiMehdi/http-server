@@ -124,7 +124,8 @@ bool Router::findIndexFile(RouteResult& result, IndexTable& index, std::string& 
 {
     for (std::size_t i = 0; i < index.size(); i++) {
         std::string path = root + index[i];
-        if (isFile(path) && canRead(path.c_str())) // TODO: must be a slash between them!
+        std::cout << "index: root+index= " << path << "\n";
+        if (isFile(path) && canRead(path.c_str()))
             return indexResult(result, path), true;
     }
     return false;
@@ -134,7 +135,8 @@ bool Router::isIndexed(RouteResult& result)
 {
     IndexTable  index = (result.location) ? result.location->index : result.server->index;
     std::string root  = (result.location) ? result.location->root  : result.server->root;
-
+    root = result.server->root;
+        std::cout << "index[0]: root= " << root << "\n";
     if (result.location && result.location->index.empty())
         return false;
     return findIndexFile(result, index, root);
