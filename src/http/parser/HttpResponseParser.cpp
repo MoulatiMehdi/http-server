@@ -6,7 +6,7 @@
 
 HttpResponseParser::HttpResponseParser(HttpResponse &request)
     : HttpParserState(request),
-      request(request),
+      response(request),
       m_size(0)
 
 {
@@ -22,13 +22,13 @@ size_t HttpResponseParser::gcount() const
 
 void HttpResponseParser::parse(const char *c_str, size_t len)
 {
-    if (request.complete() || !request.good())
+    if (response.complete() || !response.good())
         return;
     Buffer buffer(c_str, len);
     while (!buffer.empty())
     {
         parse_headers(buffer);
-        if (!good() || request.complete())
+        if (!good() || response.complete())
             break;
     }
     m_size = buffer.capacity() - buffer.size();

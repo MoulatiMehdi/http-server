@@ -1,9 +1,7 @@
 #ifndef PARSER_ERROR_HPP
 #define PARSER_ERROR_HPP
-#ifndef ERROR_HPP
-    #define ERROR_HPP
 
-    #include <string>
+#include <string>
 
 namespace error
 {
@@ -39,5 +37,4 @@ namespace error
 using error::ParserError;
 std::string   to_string(ParserError error);
 std::ostream &operator<<(std::ostream &os, const ParserError &error);
-#endif
 #endif

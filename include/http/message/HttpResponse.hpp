@@ -22,6 +22,7 @@ class HttpResponse : public HttpMessage
     void                parse(const char *c_str, size_t len);
     HttpResponseParser &parser();
 
+    void        add_server_headers();
     std::string to_string() const;
     std::string serve_page();
     std::string serve_directory(const std::string &root, std::string path);

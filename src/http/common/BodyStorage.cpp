@@ -26,6 +26,16 @@ int BodyStorage::open_file()
     return m_fd;
 }
 
+int BodyStorage::open_file(const std::string& path)
+{
+    m_path = path;
+    m_fd   = open(m_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT | O_EXCL, 0600);
+    if (m_fd < 0)
+    {
+        perror("BodyStorage::open");
+    }
+    return m_fd;
+}
 size_t BodyStorage::size() const
 {
     return m_size;

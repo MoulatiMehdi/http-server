@@ -1,10 +1,8 @@
 #include "HttpMessage.hpp"
 #include "BodyStorage.hpp"
 #include "Status.hpp"
-#include <bits/types/struct_timeval.h>
 #include <cstring>
 #include <string>
-#include <sys/time.h>
 
 HttpMessage::HttpMessage()
     : m_version(HTTP_V10),
