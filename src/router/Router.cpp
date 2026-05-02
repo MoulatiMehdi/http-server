@@ -19,7 +19,8 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
     std::string path = request.uri().substr(0, pathPos); // use funciton
 
     result.location = matchLocation(server, path); 
-
+    if (result.location)
+        std::cout << "Matched location: " << result.location->path << "\n";
     if (!isMethodAllowed(result, request.method()))
         return errorPage(status::METHOD_NOT_ALLOWED, server.error_pages);
 
@@ -27,7 +28,7 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
 
     if (isCgiRequest(result, path))       return result; 
     if (isUploadRequest(result, request)) return result; // path!?
-    if (!pathExists(result))
+    if (!pathExists(result.path))
         return errorPage(status::NOT_FOUND, server.error_pages);
     if (!checkPermission(result.path, permissionFromRequest(result, request.method())))
         return errorPage(status::FORBIDDEN, server.error_pages);

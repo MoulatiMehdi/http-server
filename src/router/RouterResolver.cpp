@@ -55,9 +55,47 @@ bool Router::isCgiRequest(RouteResult& result, const std::string& path) {
     return false;
 }
 
-bool Router::putFileOnDir(const std::string& src, const std::string& dest) {
-    if (std::rename(src.c_str(), dest.c_str()) != 0)
+// ---------------
+#include <cerrno>
+#include <cstring>   // for strerror
+
+
+bool copyFile(const std::string& src, const std::string& dest)
+{
+    int in = open(src.c_str(), O_RDONLY);
+    if (in < 0)
         return false;
+
+    int out = open(dest.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if (out < 0) {
+        close(in);
+        return false;
+    }
+
+    char buf[4096000];
+    ssize_t n;
+    while ((n = read(in, buf, sizeof(buf))) > 0) {
+        if (write(out, buf, n) != n) {
+            close(in);
+            close(out);
+            return false;
+        }
+    }
+
+    close(in);
+    close(out);
+
+    return n == 0;
+}
+
+bool Router::putFileOnDir(const std::string& src, const std::string& dest) {
+    std::cout << "src  = [" << src << "]\n";
+    std::cout << "dest = [" << dest << "]\n";
+
+    if (std::rename(src.c_str(), dest.c_str()) != 0) {
+        std::cout << "rename failed: " << std::strerror(errno) << "\n";
+        return false;
+    }
     return true;
 }
 
@@ -75,21 +113,22 @@ bool Router::isUploadRequest(RouteResult &result, const HttpRequest& request) {
     }
     result.action = ROUTE_UPLOAD;
     result.path = result.location->upload_dir;
-    result.statusCode = status::OK;
-    if (!putFileOnDir(request.body().path(), result.path + "file1"))
+    result.statusCode = status::CREATED;
+    // if (!putFileOnDir(request.body().path(), result.path + "file1"))
+    //     return false;
+    if (!copyFile(request.body().path(), result.path + "file1.png"))
         return false;
+    std::cout << "UPLOADING... success\n";
     return true;
 }
 
 //  TODO: check syntax later
 //  re check
 
-bool Router::pathExists(RouteResult& result) {
+bool Router::pathExists(std::string& path) {
     struct stat st;
 
-    if (stat(result.path.c_str(), &st) == 0) {
-        // result.action = ROUTE_ERROR;
-        // result.statusCode = status::NOT_FOUND;
+    if (stat(path.c_str(), &st) == 0) {
         return true;
     }
     return false;

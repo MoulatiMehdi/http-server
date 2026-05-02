@@ -44,7 +44,7 @@ private:
 
     static std::string extractSuffix(const std::string& locPath, const std::string& reqPath);
     
-    static bool pathExists(RouteResult &result);
+    static bool pathExists(std::string &path);
     static bool handleRegularFile(RouteResult &result); // ++
     static bool isDirectory(RouteResult &result, std::string& requestPath);
     static bool isIndexed(RouteResult& result);
