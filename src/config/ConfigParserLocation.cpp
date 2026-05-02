@@ -150,7 +150,7 @@ void ConfigParser::handleLocCgi(LocationConfig& loc) { // cgi .py /usr/bin/pytho
     if (_tokens[_i].type != TOK_WORD)
         throwError("cgi: expected executable path");
     std::string exec = _tokens[_i].value;
-    if (!isValidPath(exec))
+    if (!isValidFilePath(exec))
         throwError("cgi: invalid executable path");
 
     loc.cgi[ext] = exec;

@@ -1,3 +1,5 @@
+#ifndef CONFIG_PARSER_HPP
+#define CONFIG_PARSER_HPP
 #ifndef   CONFIGPARSER_HPP
 # define  CONFIGPARSER_HPP
 
@@ -80,6 +82,7 @@ private:
     bool isValidIPv4(const std::string& ip);
     bool isAllDigit(const std::string& num);
     bool isValidPath(const std::string& path);
+    bool isValidFilePath(const std::string& path);
     std::size_t parseSize(const std::string& raw);
 
 public:
@@ -90,4 +93,5 @@ public:
     void  printConfig(const Config& config);
 };
 
+#endif
 #endif

@@ -2,41 +2,41 @@ server {
     listen 127.0.0.1:8080;
     server_name localhost;
 
-    root /home/yel-guad/Desktop/webserv;
+    root /home/yel-guad/Desktop/webserv/;
 
     location / {
         allowed_methods GET POST DELETE;
         index config_file;
     }
 
-    location /src {
+    location /src/ {
         allowed_methods GET POST DELETE;
         index index.html;
         root /home/yel-guad/Desktop/webserv/;
     }
 
-    location /router {
+    location /router/ {
         allowed_methods GET;
-        root /home/yel-guad/Desktop/webserv/src/router;
+        root /home/yel-guad/Desktop/webserv/src/router/;
     }
 
-    location /src/http {
+    location /src/http/ {
         allowed_methods GET;
-        root /home/yel-guad/Desktop/webserv/src/http;
+        root /home/yel-guad/Desktop/webserv/src/http/;
     }
 
-    location /src/config {
+    location /src/config/ {
         allowed_methods GET;
-        root /home/yel-guad/Desktop/webserv/src/config;
+        root /home/yel-guad/Desktop/webserv/src/config/;
     }
 
-    location /src/uploads {
+    location /src/uploads/ {
         allowed_methods GET;
         cgi .py /usr/bin/python3;
     }
 
-    location /cgi-bin {
-        root /home/yel-guad/Desktop/webserv;
+    location /cgi-bin/ {
+        root /home/yel-guad/Desktop/webserv/;
         allowed_methods GET POST;
     }
 }

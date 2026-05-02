@@ -85,3 +85,7 @@ bool ConfigParser::isValidPath(const std::string& path) {
     return !path.empty() && path[0] && path[path.size() - 1] == '/';
 }
 
+bool ConfigParser::isValidFilePath(const std::string& path) {
+    return !path.empty() && path[0] && path[path.size() - 1] != '/';
+}
+
