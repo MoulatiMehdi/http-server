@@ -46,7 +46,7 @@ private:
     
     static bool pathExists(RouteResult &result);
     static bool handleRegularFile(RouteResult &result); // ++
-    static bool isDirectory(RouteResult &result);
+    static bool isDirectory(RouteResult &result, std::string& requestPath);
     static bool isIndexed(RouteResult& result);
 
     static void indexResult(RouteResult& result, std::string& path);

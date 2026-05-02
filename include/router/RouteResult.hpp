@@ -1,7 +1,5 @@
 #ifndef ROUTE_RESULT_HPP
 #define ROUTE_RESULT_HPP
-#ifndef   ROUTERESULT_HPP
-# define  ROUTERESULT_HPP
 
 # include <string>
 # include "Config.hpp"
@@ -15,6 +13,7 @@ enum RouteAction {
     ROUTE_CGI,
     ROUTE_DIRECTORY_LISTING,
     ROUTE_UPLOAD,
+    ROUTE_REDIRECT,
     ROUTE_ERROR
 };
 
@@ -25,7 +24,7 @@ struct RouteResult {
     RouteAction           action;
     std::string           path;
     status::Status        statusCode;
-    std::string           type; // ----
+    std::string           type;
 
     RouteResult()
         : server(NULL),
@@ -36,5 +35,4 @@ struct RouteResult {
           type("") {}
 };
 
-#endif
 #endif

@@ -27,11 +27,12 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
 
     if (isCgiRequest(result, path))       return result; 
     if (isUploadRequest(result, request)) return result; // path!?
-    if (!pathExists(result))              return errorPage(status::NOT_FOUND, server.error_pages);
+    if (!pathExists(result))
+        return errorPage(status::NOT_FOUND, server.error_pages);
     if (!checkPermission(result.path, permissionFromRequest(result, request.method())))
         return errorPage(status::FORBIDDEN, server.error_pages);
     if (handleRegularFile(result))            return result;
-    if (isIndexed(result) || isDirectory(result))
+    if (isDirectory(result, path) && isIndexed(result))
         return result;
     else if (result.location && result.location->autoindex == false)
         return errorPage(status::FORBIDDEN, server.error_pages);

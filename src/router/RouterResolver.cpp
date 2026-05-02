@@ -96,6 +96,7 @@ bool Router::pathExists(RouteResult& result) {
 }
 
 bool Router::handleRegularFile(RouteResult& result) {
+    // if (result.path[result.path.size() - 1] != '/' && isFile(result.path)) {
     if (isFile(result.path)) {
         result.action = ROUTE_STATIC_FILE;
         result.statusCode = status::OK;
@@ -133,7 +134,12 @@ bool Router::findIndexFile(RouteResult& result, IndexTable& index, std::string& 
 
 bool Router::isIndexed(RouteResult& result)
 {
-    if (result.location && result.location->index.empty())
+    if (result.action == ROUTE_REDIRECT)
+        return true;
+    if ((result.location &&
+        ((result.location->index.empty()) || result.location->autoindex == true)))
+        return false;
+    if (result.location == NULL && result.server->index.empty())
         return false;
 
     IndexTable  index = (result.location && !result.location->index.empty()) ?
@@ -144,9 +150,15 @@ bool Router::isIndexed(RouteResult& result)
     return findIndexFile(result, index, root);
 }
 
-bool Router::isDirectory(RouteResult& result) {
+bool Router::isDirectory(RouteResult& result, std::string& requestPath) {
     struct stat st;
     if (stat(result.path.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
+        if (result.path[result.path.size() - 1] != '/') {
+            result.action = ROUTE_REDIRECT;
+            result.statusCode = status::MOVED_PERMANENTLY;
+            result.path = requestPath + "/";
+            return true;
+        }
         result.action = ROUTE_DIRECTORY_LISTING;
         result.statusCode = status::OK;
         return true;
