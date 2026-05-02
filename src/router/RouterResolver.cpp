@@ -100,6 +100,7 @@ bool Router::handleRegularFile(RouteResult& result) {
     if (isFile(result.path)) {
         result.action = ROUTE_STATIC_FILE;
         result.statusCode = status::OK;
+        result.type = ServerConfig::mimetype.getContentType(getExtension(result.path)); // I think must be for regulare files only
         return true;
     }
     return false;
@@ -119,6 +120,7 @@ void Router::indexResult(RouteResult& result, std::string& path) {
     result.action = ROUTE_STATIC_FILE;
     result.path = path;
     result.statusCode = status::OK;
+    result.type = ServerConfig::mimetype.getContentType(getExtension(result.path)); // I think must be for regulare files only
 }
 
 bool Router::findIndexFile(RouteResult& result, IndexTable& index, std::string& root)
@@ -146,7 +148,6 @@ bool Router::isIndexed(RouteResult& result)
                          result.location->index : result.server->index;
     std::string root  = (result.location && !result.location->root.empty())  ?
                          result.location->root  : result.server->root;
-
     return findIndexFile(result, index, root);
 }
 
