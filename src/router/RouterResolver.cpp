@@ -133,12 +133,14 @@ bool Router::findIndexFile(RouteResult& result, IndexTable& index, std::string& 
 
 bool Router::isIndexed(RouteResult& result)
 {
-    IndexTable  index = (result.location) ? result.location->index : result.server->index;
-    std::string root  = (result.location) ? result.location->root  : result.server->root;
-    root = result.server->root;
-        std::cout << "index[0]: root= " << root << "\n";
     if (result.location && result.location->index.empty())
         return false;
+
+    IndexTable  index = (result.location && !result.location->index.empty()) ?
+                         result.location->index : result.server->index;
+    std::string root  = (result.location && !result.location->root.empty())  ?
+                         result.location->root  : result.server->root;
+
     return findIndexFile(result, index, root);
 }
 
