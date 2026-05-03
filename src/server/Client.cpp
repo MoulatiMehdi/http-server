@@ -84,6 +84,7 @@ void Client::serveErr(status::Status code) {
 }
 
 void Client::serveRedir(const std::string &path, status::Status code) {
+	std::cerr << "code: " << code << "\n\n\n";
 	HttpResponse resp(code);
 	resp.setHeader("Location", path);
 
