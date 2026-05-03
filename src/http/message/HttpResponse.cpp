@@ -28,8 +28,30 @@ void HttpResponse::parse(const char *c_str, size_t len)
     m_parser.parse(c_str, len);
 }
 
-std::string HttpResponse::to_string() const
+void HttpResponse::clear()
 {
+    HttpMessage::clear();
+    m_parser.clear();
+}
+
+std::string HttpResponse::to_string()
+{
+    add_server_headers();
+
+    // static std::string headers[] = {
+    //     "date",
+    //     "server",
+    //     "content-type",
+    //     "content-length",
+    //     "content-encoding",
+    //     "last-modified",
+    //     "expires",
+    //     "location",
+    //     "www-authenticate",
+    //     "allow",
+    //     "pragma"
+    // };
+    // size_t size = sizeof(headers) / sizeof(headers[0]);
     std::ostringstream oss("");
 
     oss << "HTTP/" << version_major() << "." << version_minor() << " ";
@@ -140,7 +162,6 @@ HttpResponse::serve_directory(const std::string &root, std::string path)
     closedir(fd);
     setHeader("content-type", "text/html");
     m_content_length = oss.str().length();
-    add_server_headers();
     return to_string() + oss.str();
 }
 
@@ -230,7 +251,6 @@ std::string HttpResponse::serve_page()
     oss << "</html>";
     setHeader("content-type", "text/html");
     m_content_length = oss.str().length();
-    add_server_headers();
     return to_string() + oss.str();
 }
 
@@ -238,7 +258,7 @@ static std::string http_date()
 {
 
     time_t now = std::time(NULL);
-    tm *gmt = std::localtime(&now);
+    tm    *gmt = std::localtime(&now);
 
     // format according to RFC 1123
     char buf[64];

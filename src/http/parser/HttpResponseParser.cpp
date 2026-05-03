@@ -34,6 +34,12 @@ void HttpResponseParser::parse(const char *c_str, size_t len)
     m_size = buffer.capacity() - buffer.size();
 }
 
+void HttpResponseParser::clear()
+{
+    m_size = 0;
+    HttpParserState::clear();
+}
+
 HttpResponseParser::~HttpResponseParser()
 {
 }

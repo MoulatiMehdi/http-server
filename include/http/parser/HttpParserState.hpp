@@ -8,7 +8,7 @@
 
 class HttpParserState
 {
-  protected:
+  public:
     enum HeaderResult
     {
         RES_ERROR,
@@ -45,8 +45,6 @@ class HttpParserState
   protected:
     static const int MAX_HEADERS_BUFFER = 4096;
     static const int MAX_REQUEST_BUFFER = 1024;
-    HttpParserState(HttpMessage &request);
-    ~HttpParserState();
 
     union
     {
@@ -69,15 +67,18 @@ class HttpParserState
     ParserError  m_error;
     HttpMessage &request;
 
-    virtual void process_error() = 0;
-    void         setError(ParserError err);
-    void         clear();
+    void setError(ParserError err);
+    void clear();
 
   public:
+    HttpParserState(HttpMessage &request);
+    virtual ~HttpParserState();
+    void process_error();
+
     bool good() const;
-    friend std::ostream &
-    operator<<(std::ostream &os, const HttpParserState &hps);
+    // friend std::ostream &
+    // operator<<(std::ostream &os, const HttpParserState &hps);
 };
 
-std::ostream &operator<<(std::ostream &os, const HttpParserState &hps);
+// std::ostream &operator<<(std::ostream &os, const HttpParserState &hps);
 #endif

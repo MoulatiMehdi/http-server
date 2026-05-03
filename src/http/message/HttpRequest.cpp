@@ -53,21 +53,6 @@ std::string &HttpRequest::uri()
     return m_uri;
 }
 
-bool HttpRequest::good() const
-{
-    return m_status == status::OK;
-}
-
-const HttpRequest::Headers &HttpRequest::headers() const
-{
-    return m_headers;
-}
-
-HttpRequest::Headers &HttpRequest::headers()
-{
-    return m_headers;
-}
-
 void HttpRequest::parse(const char *c_str, size_t len)
 {
     m_parser.parse(c_str, len);

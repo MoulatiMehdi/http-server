@@ -3,6 +3,7 @@
 #include "HttpRequestParser.hpp"
 #include "Method.hpp"
 #include "ParserError.hpp"
+#include "Router.hpp"
 
 enum RequestLineState
 {
@@ -452,19 +453,19 @@ void HttpRequestParser::parse_request_line(Buffer &buff)
             case RES_CONTINUE:
                 break;
             case RES_METHOD_DONE:
-                request.setMethod(m_buff);
-                if (request.method() == method::UNKNOWN)
+                m_request.setMethod(m_buff);
+                if (m_request.method() == method::UNKNOWN)
                     return setError(error::unsupported_method);
-                m_discard_body = request.method() != method::POST;
+                m_discard_body = m_request.method() != method::POST;
                 m_buff.clear();
                 break;
             case RES_URI_DONE:
-                request.setUri(m_buff);
+                m_request.setUri(m_buff);
                 m_buff.clear();
                 break;
             case RES_VERSION_DONE:
-                request.setVersion(m_major, m_minor);
-                if (request.version() == 9)
+                m_request.setVersion(m_major, m_minor);
+                if (m_request.version() == 9)
                     return setError(error::unsupported_version);
                 break;
             case RES_REQUEST_LINE_DONE:

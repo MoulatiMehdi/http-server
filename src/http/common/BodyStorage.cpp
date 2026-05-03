@@ -17,6 +17,7 @@ BodyStorage::BodyStorage() : m_fd(-1), m_path(), m_size(0)
 
 int BodyStorage::open_file()
 {
+    BodyStorage::close();
     m_path = m_dir + "/" + generateName();
     m_fd   = open(m_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT | O_EXCL, 0600);
     if (m_fd < 0)
@@ -26,16 +27,18 @@ int BodyStorage::open_file()
     return m_fd;
 }
 
-int BodyStorage::open_file(const std::string& path)
+int BodyStorage::open_file(const std::string &path)
 {
+    BodyStorage::close();
     m_path = path;
-    m_fd   = open(m_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT | O_EXCL, 0600);
+    m_fd   = open(m_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0600);
     if (m_fd < 0)
     {
-        perror("BodyStorage::open");
+        perror((path+": BodyStorage::open").c_str());
     }
     return m_fd;
 }
+
 size_t BodyStorage::size() const
 {
     return m_size;

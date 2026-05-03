@@ -57,8 +57,8 @@ class HttpMessage
     };
 
     typedef std::multimap<const std::string, std::string, iless> Headers;
-    typedef Headers::const_iterator const_iterator;
-    typedef Headers::iterator       iterator;
+    typedef Headers::const_iterator                              const_iterator;
+    typedef Headers::iterator                                    iterator;
 
     static const unsigned int HTTP_V11 = 1001;
     static const unsigned int HTTP_V10 = 1000;
@@ -98,5 +98,9 @@ class HttpMessage
     void setContentLength(size_t size);
     void setStatus(Status code);
     void setHeader(const std::string &name, const std::string &value);
+
+    void clear();
+    std::string
+    extract_key(const std::string &name, const std::string &key);
 };
 #endif
