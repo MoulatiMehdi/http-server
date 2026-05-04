@@ -58,7 +58,7 @@ void ConfigParser::handleServErrorPage(ServerConfig& server) {
             throwError("error_pages: expected <code>");
         if (isAllDigit(_tokens[_i].value)) {
             std::size_t code = std::strtoul(_tokens[_i].value.c_str(), NULL, 10);
-            if (code < 100 || code > 599)
+            if (code < 400 || code > 599)
                 throwError("error_pages: invalid code");
             codes.push_back(code);
             advance();
