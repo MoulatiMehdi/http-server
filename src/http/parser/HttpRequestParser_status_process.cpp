@@ -2,6 +2,7 @@
 #include "HttpRequest.hpp"
 #include "HttpRequestParser.hpp"
 #include "Status.hpp"
+#include <cerrno>
 
 void HttpRequestParser::process_error()
 {
@@ -35,6 +36,36 @@ void HttpRequestParser::process_error()
             return m_request.setStatus(status::URI_TOO_LONG);
         case error::body_too_large:
             return m_request.setStatus(status::PAYLOAD_TOO_LARGE);
+            break;
+        case error::bad_upload:
+            switch (errno)
+            {
+                // Disk / storage issues
+                case ENOSPC: // No space left on device
+                case EDQUOT: // Disk quota exceeded
+                    m_request.setStatus(
+                        status::INSUFFICIENT_STORAGE
+                    );       // Insufficient Storage
+
+                // Permission issues
+                case EACCES:                                // Permission denied
+                case EPERM:
+                    m_request.setStatus(status::FORBIDDEN); // Forbidden
+
+                // File already exists
+                case EEXIST:
+                    m_request.setStatus(status::CONFLICT); // Conflict
+
+                // Bad input / invalid path
+                case EINVAL:
+                case ENAMETOOLONG:
+                case EISDIR:
+                    m_request.setStatus(status::BAD_REQUEST); // Bad Request
+
+                // Default fallback
+                default:
+                    m_request.setStatus(status::INTERNAL_SERVER_ERROR);
+            }
             break;
     }
 }

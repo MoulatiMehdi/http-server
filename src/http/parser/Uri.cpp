@@ -20,6 +20,7 @@ Uri::Uri(const std::string &uri)
 
 void Uri::setUri(const std::string &uri)
 {
+    m_origin = uri;
     std::string::size_type query_pos;
     std::string::size_type param_pos;
     std::string::size_type fragm_pos;
@@ -144,7 +145,7 @@ const std::string Uri::params() const
 
 const std::string Uri::origin() const
 {
-    return m_params;
+    return m_origin;
 }
 bool Uri::isvalid() const
 {
