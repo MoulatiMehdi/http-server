@@ -54,6 +54,11 @@ char Buffer::getc()
     return m_ptr[m_read_pos++];
 }
 
+char Buffer::ugetc()
+{
+    return m_ptr[m_read_pos--];
+}
+
 void Buffer::consume(size_t n)
 {
     m_read_pos += n;

@@ -7,21 +7,7 @@
 
 void HttpResponseParser::process_header_line()
 {
-    static std::string headers[] = {
-        "date",
-        "server",
-        "content-type",
-        "content-length",
-        "content-encoding",
-        "last-modified",
-        "expires",
-        "location",
-        "www-authenticate",
-        "allow",
-        "pragma"
-    };
-    size_t size = sizeof(headers) / sizeof(headers[0]);
-    m_state     = 0;
+    m_state = 0;
     if (*m_buff.rbegin() == ' ')
     {
         size_t i = m_buff.size();
@@ -32,14 +18,7 @@ void HttpResponseParser::process_header_line()
 
     std::string name = m_buff.substr(0, m_chunk_size);
 
-    for (size_t i = 0; i < size; i++)
-    {
-        if (headers[0] == name)
-        {
-            response.setHeader(name, m_buff.substr(m_chunk_size));
-            break;
-        }
-    }
+    response.setHeader(name, m_buff.substr(m_chunk_size));
     m_buff.clear();
 }
 
@@ -102,4 +81,3 @@ void HttpResponseParser::process_error()
             break;
     }
 }
-

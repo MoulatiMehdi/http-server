@@ -24,6 +24,40 @@ HttpMessage::HttpMessage(status::Status status)
 {
 }
 
+std::string
+HttpMessage::extract_key(const std::string &name, const std::string &key)
+{
+    const_iterator it = getHeader(name);
+
+    if (it == m_headers.end())
+        return "";
+    std::string content_type = it->second;
+
+    std::size_t pos = content_type.find(key + "=");
+    if (pos == std::string::npos)
+        return "";
+
+    pos += key.size() + 1; // skip "boundary="
+
+    // boundary might be quoted: boundary="----WebKit..."
+    if (pos < content_type.size() && content_type[pos] == '"')
+    {
+        ++pos; // skip opening "
+        std::size_t end = content_type.find('"', pos);
+        if (end == std::string::npos)
+            return "";
+        return content_type.substr(pos, end - pos);
+    }
+
+    // unquoted: boundary=----WebKit...
+    // ends at ; or end of string
+    std::size_t end = content_type.find(';', pos);
+    if (end == std::string::npos)
+        return content_type.substr(pos);
+
+    return content_type.substr(pos, end - pos);
+}
+
 void HttpMessage::setHeader(const std::string &name, const std::string &value)
 {
     m_headers.insert(Headers::value_type(name, value));
@@ -72,7 +106,7 @@ bool HttpMessage::complete() const
 
 void HttpMessage::setComplete(bool val)
 {
-    m_complete = m_status == status::OK && val;
+    m_complete = good() && val;
 }
 
 unsigned int HttpMessage::version_major() const
@@ -109,6 +143,16 @@ HttpMessage::Headers &HttpMessage::headers()
 const HttpMessage::Headers &HttpMessage::headers() const
 {
     return m_headers;
+}
+
+void HttpMessage::clear()
+{
+    m_version = HTTP_V10;
+    m_headers.clear();
+    m_status         = status::OK;
+    m_content_length = 0;
+    m_body.clear();
+    m_complete = false;
 }
 
 HttpMessage::~HttpMessage() {};

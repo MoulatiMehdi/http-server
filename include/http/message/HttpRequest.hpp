@@ -19,19 +19,18 @@ class HttpRequest : public HttpMessage
     HttpRequest(const ServerConfig &config);
     ~HttpRequest();
 
-    bool good() const;
+    using HttpMessage::good;
 
     Method             method() const;
-    const Headers     &headers() const;
     const std::string &uri() const;
     std::string        to_string() const;
 
     std::string &uri();
-    Headers     &headers();
 
     void setMethod(std::string &method);
     void setMethod(Method method);
     void setUri(const std::string &uri);
+    using HttpMessage::extract_key;
 
     HttpRequestParser &parser();
     void               parse(const char *c_str, size_t len);

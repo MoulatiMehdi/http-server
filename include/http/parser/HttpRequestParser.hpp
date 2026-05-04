@@ -2,7 +2,10 @@
 #define HTTP_REQUEST_PARSER_HPP
 
 #include "HttpParserState.hpp"
+#include "HttpResponse.hpp"
+#include "RouteResult.hpp"
 #include <cstddef>
+#include <string>
 
 class HttpRequest;
 
@@ -20,7 +23,7 @@ class HttpRequestParser : public HttpParserState
     };
 
     typedef unsigned int (HttpRequestParser::*Handler)(u_char);
-    HttpRequest &request;
+    HttpRequest &m_request;
 
     //  request
     unsigned int req_start(u_char ch);
@@ -41,6 +44,10 @@ class HttpRequestParser : public HttpParserState
     unsigned int req_spaces_after_digit(u_char ch);
     unsigned int req_almost_done(u_char ch);
 
+    static std::string
+    extract_key(const std::string &value, const std::string &key);
+
+    void process_content_type();
     void process_error();
     void parse_request_line(Buffer &buff);
 
@@ -48,7 +55,15 @@ class HttpRequestParser : public HttpParserState
     void parse_body_by_chunk(Buffer &buffer);
     void parse_body(Buffer &buffer);
 
+    std::string  m_filename;
+    std::string  m_boundary;
+    size_t       m_index;
+    int          fd;
+    HttpResponse m_response;
+
   public:
+    void        parse_upload_body(Buffer &buffer);
+    RouteResult route;
     HttpRequestParser(HttpRequest &request);
     ~HttpRequestParser();
 

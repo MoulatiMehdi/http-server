@@ -18,11 +18,13 @@ class HttpResponseParser : public HttpParserState
     void process_content_length();
     void process_status();
     void process_header_line();
-    void parse_headers(Buffer &buff);
 
   public:
+    void parse_headers(Buffer &buff);
     HttpResponseParser(HttpResponse &request);
     ~HttpResponseParser();
+
+    void clear();
 
     size_t gcount() const;
     void   parse(const char *c_str, size_t len);

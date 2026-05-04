@@ -1,4 +1,6 @@
 #include "BodyStorage.hpp"
+// #include "Debug.hpp"
+#include "Logger.hpp"
 #include "sys/time.h"
 #include <cstddef>
 #include <cstdio>
@@ -17,25 +19,24 @@ BodyStorage::BodyStorage() : m_fd(-1), m_path(), m_size(0)
 
 int BodyStorage::open_file()
 {
+    BodyStorage::close();
     m_path = m_dir + "/" + generateName();
-    m_fd   = open(m_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT | O_EXCL, 0600);
+    m_fd   = open(m_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0600);
     if (m_fd < 0)
-    {
-        perror("BodyStorage::open");
-    }
+        Logger::error((m_path + ": BodyStorage::open").c_str());
     return m_fd;
 }
 
-int BodyStorage::open_file(const std::string& path)
+int BodyStorage::open_file(const std::string &path)
 {
+    BodyStorage::close();
     m_path = path;
-    m_fd   = open(m_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT | O_EXCL, 0600);
+    m_fd   = open(m_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0600);
     if (m_fd < 0)
-    {
-        perror("BodyStorage::open");
-    }
+        Logger::error((m_path + ": BodyStorage::open").c_str());
     return m_fd;
 }
+
 size_t BodyStorage::size() const
 {
     return m_size;
@@ -43,18 +44,21 @@ size_t BodyStorage::size() const
 
 ssize_t BodyStorage::append(char ch)
 {
+    // print_ptr_nl(&ch,1);
     m_size += 1;
     return write(m_fd, &ch, 1);
 }
 
 ssize_t BodyStorage::append(const std::string &str)
 {
+    // print_string_nl(str);
     m_size += str.size();
     return write(m_fd, str.c_str(), str.size());
 }
 
 ssize_t BodyStorage::append(const char *str, size_t len)
 {
+    // print_ptr_nl(str,len);
     m_size += len;
     return write(m_fd, str, len);
 }
