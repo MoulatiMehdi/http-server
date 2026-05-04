@@ -31,10 +31,6 @@ void HttpRequestParser::process_error()
             return m_request.setStatus(status::NOT_IMPLEMENTED);
         case error::header_too_large:
             return m_request.setStatus(status::REQUEST_HEADER_FIELDS_TOO_LARGE);
-        case error::stale_parser:
-            return m_request.setStatus(status::BAD_REQUEST);
-        case error::short_read:
-            break;
         case error::url_too_large:
             return m_request.setStatus(status::URI_TOO_LONG);
         case error::body_too_large:

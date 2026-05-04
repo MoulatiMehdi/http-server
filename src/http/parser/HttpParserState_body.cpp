@@ -195,8 +195,6 @@ void HttpRequestParser::parse_body_by_length(Buffer &buffer)
             return setError(error::bad_request);
         buffer.consume(size);
     }
-    if (m_request.content_length() < m_request.body().size())
-        return setError(error::stale_parser);
     else if (m_request.content_length() == m_request.body().size())
         m_request.setComplete(true);
 }
