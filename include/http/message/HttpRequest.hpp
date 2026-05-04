@@ -5,12 +5,13 @@
 #include "HttpMessage.hpp"
 #include "HttpRequestParser.hpp"
 #include "Method.hpp"
+#include "Uri.hpp"
 #include <string>
 
 class HttpRequest : public HttpMessage
 {
   private:
-    std::string       m_uri; // uri
+    Uri               m_uri; // uri
     Method            m_method;
     HttpRequestParser m_parser;
 
@@ -21,15 +22,16 @@ class HttpRequest : public HttpMessage
 
     using HttpMessage::good;
 
-    Method             method() const;
-    const std::string &uri() const;
-    std::string        to_string() const;
+    Method      method() const;
+    std::string to_string() const;
 
-    std::string &uri();
+    Uri       &uri();
+    const Uri &uri() const;
 
     void setMethod(std::string &method);
     void setMethod(Method method);
     void setUri(const std::string &uri);
+
     using HttpMessage::extract_key;
 
     HttpRequestParser &parser();

@@ -4,7 +4,21 @@
 #include <list>
 #include <string>
 
-Uri::Uri(const std::string &uri) : isvalid(true)
+Uri::Uri() : m_origin(), m_path(), m_query(), m_params(),m_isvalid(true)
+{
+}
+
+Uri::Uri(const std::string &uri)
+    : m_origin(uri),
+      m_path(),
+      m_query(),
+      m_params(),
+    m_isvalid(true)
+{
+    setUri(uri);
+}
+
+void Uri::setUri(const std::string &uri)
 {
     std::string::size_type query_pos;
     std::string::size_type param_pos;
@@ -22,7 +36,7 @@ Uri::Uri(const std::string &uri) : isvalid(true)
     query_pos = uri.find('?');
     if (query_pos != std::string::npos && query_pos < end_pos)
     {
-        query   = uri.substr(query_pos + 1, end_pos - query_pos - 1);
+        m_query = uri.substr(query_pos + 1, end_pos - query_pos - 1);
         end_pos = query_pos;
     }
 
@@ -30,12 +44,12 @@ Uri::Uri(const std::string &uri) : isvalid(true)
     param_pos = uri.find(';');
     if (param_pos != std::string::npos && param_pos < end_pos)
     {
-        params  = uri.substr(param_pos + 1, end_pos - param_pos - 1);
-        end_pos = param_pos;
+        m_params = uri.substr(param_pos + 1, end_pos - param_pos - 1);
+        end_pos  = param_pos;
     }
 
     // handle path
-    path = uri.substr(0, end_pos);
+    m_path = uri.substr(0, end_pos);
     process_path();
     process_params();
     process_query();
@@ -46,12 +60,10 @@ void Uri::process_path()
     std::list<std::string> segments;
     std::string            segment;
 
-    segments.push_back("/");
-
-    for (size_t i = 0; i < path.size(); i++)
+    for (size_t i = 0; i < m_path.size(); i++)
     {
         std::cerr << segment << std::endl;
-        if (path[i] == '/')
+        if (m_path[i] == '/')
         {
             segment += '/';
             if (segment == "../")
@@ -59,23 +71,23 @@ void Uri::process_path()
                 if (segments.size() > 0)
                     segments.pop_back();
             }
-            else if (!segment.empty() && segment != "./")
+            else if (!segment.empty() && segment != "./" && segment != "/")
                 segments.push_back(segment);
             segment.clear();
         }
-        else if (path[i] == '%')
+        else if (m_path[i] == '%')
         {
-            if (path.size() > i + 1 && path[i + 1] == '%')
+            if (m_path.size() > i + 1 && m_path[i + 1] == '%')
             {
                 segment += '%';
                 i++;
                 continue;
             }
-            if (path.size() > i + 2 && isxdigit(path[i + 1]) &&
-                isxdigit(path[i + 2]))
+            if (m_path.size() > i + 2 && isxdigit(m_path[i + 1]) &&
+                isxdigit(m_path[i + 2]))
             {
-                unsigned char hi = path[i + 1];
-                unsigned char lo = path[i + 2];
+                unsigned char hi = m_path[i + 1];
+                unsigned char lo = m_path[i + 2];
 
                 char c  = (hi >= 'a') ? hi - 'a' + 10
                         : (hi >= 'A') ? hi - 'A' + 10
@@ -86,29 +98,58 @@ void Uri::process_path()
                                       : lo - '0';
                 if (c == '\0' || c == '/')
                 {
-                    isvalid = false;
+                    m_isvalid = false;
                     return;
                 }
                 segment += c;
                 i       += 2;
                 continue;
             }
-            isvalid = false;
+            m_isvalid = false;
             return;
         }
         else
-            segment += path[i];
+            segment += m_path[i];
     }
-    if (!segment.empty())
-        segments.push_back(segment);
+    if (!segment.empty() && segment != ".")
+    {
+        if (segment != "..")
+            segments.push_back(segment);
+        else
+            segments.pop_back();
+    }
 
-    path.clear();
+    m_path                              = "/";
     std::list<std::string>::iterator it = segments.begin();
     while (it != segments.end())
     {
-        path += *it;
+        m_path += *it;
         it++;
     }
+}
+
+const std::string Uri::path() const
+{
+    return m_path;
+}
+
+const std::string Uri::query() const
+{
+    return m_query;
+}
+
+const std::string Uri::params() const
+{
+    return m_params;
+}
+
+const std::string Uri::origin() const
+{
+    return m_params;
+}
+bool Uri::isvalid() const
+{
+    return m_isvalid;
 }
 
 void Uri::process_query()
