@@ -3,7 +3,6 @@
 #include "HttpRequestParser.hpp"
 #include "Method.hpp"
 #include "ParserError.hpp"
-#include "Router.hpp"
 
 enum RequestLineState
 {
@@ -461,6 +460,8 @@ void HttpRequestParser::parse_request_line(Buffer &buff)
                 break;
             case RES_URI_DONE:
                 m_request.setUri(m_buff);
+                if (!m_request.uri().isvalid())
+                    return setError(error::bad_request);
                 m_buff.clear();
                 break;
             case RES_VERSION_DONE:

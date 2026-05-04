@@ -60,7 +60,8 @@ SRCS = \
 	   ./src/http/types/Status.cpp \
 	   ./src/router/Router.cpp \
 	   ./src/router/RouterResolver.cpp \
-	   ./src/http/parser/HttpRequestParser_upload.cpp
+	   ./src/http/parser/HttpRequestParser_upload.cpp \
+	   ./src/http/parser/Uri.cpp
 
 OBJS    = $(SRCS:.cpp=.o)
 

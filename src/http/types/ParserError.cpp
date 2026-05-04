@@ -34,10 +34,6 @@ std::string to_string(ParserError err)
             return "Bad content length";
         case error::multiple_content_length:
             return "multiple_content_length";
-        case error::stale_parser:
-            return "stale parser";
-        case error::short_read:
-            return "bad_transfer_encoding";
         case error::header_too_large:
             return "header_too_large";
         case error::bad_header_name:
