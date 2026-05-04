@@ -17,11 +17,14 @@ class Buffer
     ~Buffer();
 
     bool        empty() const;
-    char        peek() const;
     const char *current() const;
-    size_t      size() const;
-    size_t      capacity() const;
-    char        getc();
+
+    size_t size() const;
+    size_t capacity() const;
+
+    char peek() const;
+    char getc();
+    char ugetc();
 
     void consume(size_t n);
 };

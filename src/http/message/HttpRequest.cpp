@@ -3,7 +3,6 @@
 #include "HttpMessage.hpp"
 #include "HttpRequestParser.hpp"
 #include "Method.hpp"
-#include "Status.hpp"
 #include <cctype>
 #include <cstdio>
 #include <cstring>
@@ -67,41 +66,8 @@ std::string HttpRequest::to_string() const
 {
     std::ostringstream oss("");
 
-    oss << "HTTP/" << version_major() << "." << version_minor() << " ";
-    oss << status() << " " << phrase_reason(status()) << "\r\n";
-    Headers::const_iterator begin = headers().begin();
-    Headers::const_iterator end   = headers().end();
-    while (begin != end)
-    {
-        oss << begin->first << ": " << begin->second << "\r\n";
-        begin++;
-    }
-    oss << "\r\n";
-
-    if (method() != method::POST)
-        oss << "<discarded body (size : " << body().size() << ")>";
-    else
-    {
-        int fd = open(body().c_path(), O_RDONLY);
-        if (fd < 0)
-        {
-            perror("HttpRequest::to_string::open");
-            return oss.str();
-        }
-        char buffer[1024];
-        while (true)
-        {
-            ssize_t size = read(fd, buffer, 1024);
-            if (size == 0)
-                break;
-            if (size < 0)
-            {
-                perror("read");
-                break;
-            }
-            oss.write(buffer, size);
-        }
-    }
+    oss << m_method << " " << m_uri << " HTTP/" << version_major() << "."
+        << version_minor() << " \n";
     return oss.str();
 }
 

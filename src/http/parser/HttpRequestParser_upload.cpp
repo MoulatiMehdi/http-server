@@ -22,11 +22,15 @@ enum UploadState
 #define CR '\r'
 #define LF '\n'
 
+// TODO : fix transfer images
+
 void HttpRequestParser::parse_upload_body(Buffer &buffer)
 {
     while (!buffer.empty())
     {
-        const char ch = buffer.getc();
+        char ch;
+        if (m_state != SW_UPLOAD_HEADERS)
+            ch = buffer.getc();
         switch (m_state)
         {
             case SW_UPLOAD_BOUNDARY_START:
@@ -60,7 +64,8 @@ void HttpRequestParser::parse_upload_body(Buffer &buffer)
                 m_state = SW_UPLOAD_HEADERS;
                 break;
             case SW_UPLOAD_HEADERS:
-                m_response.parse(&ch, 1);
+
+                m_response.parser().parse_headers(buffer);
                 if (!m_response.good())
                     return setError(error::bad_request);
                 if (m_response.complete())
@@ -91,6 +96,7 @@ void HttpRequestParser::parse_upload_body(Buffer &buffer)
                     break;
                 }
                 m_response.body().append(ch);
+
                 break;
             case SW_UPLOAD_FILE_ALMOST_DONE:
                 if (ch == LF)
@@ -101,8 +107,13 @@ void HttpRequestParser::parse_upload_body(Buffer &buffer)
                 else
                 {
                     m_response.body().append("\r");
-                    m_response.body().append(ch);
-                    m_state = SW_UPLOAD_FILE_DATA;
+                    if (ch == CR)
+                        m_state = SW_UPLOAD_FILE_ALMOST_DONE;
+                    else
+                    {
+                        m_response.body().append(ch);
+                        m_state = SW_UPLOAD_FILE_DATA;
+                    }
                 }
                 break;
 
@@ -125,27 +136,32 @@ void HttpRequestParser::parse_upload_body(Buffer &buffer)
                 }
                 if (m_boundary[m_index] != ch)
                 {
-                    m_response.body().append(m_boundary.substr(0, m_index + 1));
-                    if (ch == '-')
+                    m_response.body().append("\r\n", 2);
+                    m_response.body().append(m_boundary.c_str(), m_index);
+                    switch (ch)
                     {
-                        m_state = SW_UPLOAD_FILE_BOUNDARY;
-                        m_index = 1;
-                        break;
+                        case CR:
+                            m_state = SW_UPLOAD_FILE_ALMOST_DONE;
+                            break;
+                        default:
+                            m_response.body().append(ch);
+                            m_state = SW_UPLOAD_FILE_DATA;
                     }
-                    else
-                        m_state = SW_UPLOAD_FILE_DATA;
                     break;
                 }
                 m_index++;
                 break;
             case SW_UPLOAD_BODY_ALMOST_DONE:
-                if (ch == '-')
+                switch (ch)
                 {
-                    m_request.setComplete(true);
-                    m_request.setStatus(status::CREATED);
-                    break;
+                    case '-':
+                        m_request.setComplete(true);
+                        m_request.setStatus(status::CREATED);
+                        break;
+                    default:
+                        setError(error::bad_request);
                 }
-                return;
+                break;
         }
     }
 }
