@@ -37,6 +37,28 @@ std::string Router::getExtension(const std::string& path) { // utils
     return path.substr(dotPos + 1);
 }
 
+bool Router::isRedirect(RouteResult& result)
+{
+    if (!result.location)
+        return false;
+
+    if (result.location->redirect_code == 0)
+        return false;
+
+    if (result.location->redirect_url.empty()) {
+        result.action = ROUTE_ERROR;
+        result.statusCode = status::INTERNAL_SERVER_ERROR;
+        return true;
+    }
+
+    result.action = ROUTE_REDIRECT;
+    result.statusCode =
+        static_cast<status::Status>(result.location->redirect_code);
+    result.path = result.location->redirect_url;
+
+    return true;
+}
+
 bool Router::isCgiRequest(RouteResult& result, const std::string& path) {
     if (result.location == NULL || result.location->cgi.empty())
         return false;

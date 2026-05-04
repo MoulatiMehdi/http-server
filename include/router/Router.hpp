@@ -35,6 +35,7 @@ private:
     
     static bool pathMatchesLocation(const std::string& requestPath, const std::string& locationPath);
     
+    static bool isRedirect(RouteResult& result);
     static bool isMethodAllowed(RouteResult &result, Method method);
     static bool isCgiRequest(RouteResult &result, const std::string& path);
     static bool isUploadRequest(RouteResult &result, const HttpRequest& request);

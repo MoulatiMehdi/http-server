@@ -26,6 +26,7 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
 
     result.path = buildTargetPath(server, result.location, path);
 
+    if (isRedirect(result))            return result;
     if (isCgiRequest(result, path))       return result; 
     if (isUploadRequest(result, request)) return result; // path!?
     if (!pathExists(result.path))
