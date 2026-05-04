@@ -126,8 +126,8 @@ void ConfigParser::handleLocUploadDir(LocationConfig& loc) {
     if (_tokens[_i].type != TOK_WORD)
         throwError("upload_dir: expected path");
     const std::string path = _tokens[_i].value;
-    // if (!isValidRootPath(path))   // make one function for all of them
-    //     throwError("upload_dir: invalid path");
+    if (!isValidPath(path))
+        throwError("upload_dir: invalid path");
     loc.upload_dir = path;
     advance();
     expect(TOK_SEMICOLON, "upload_dir: expected ';' after " + loc.upload_dir, true);
