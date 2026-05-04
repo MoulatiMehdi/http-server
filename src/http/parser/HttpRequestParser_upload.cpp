@@ -22,8 +22,6 @@ enum UploadState
 #define CR '\r'
 #define LF '\n'
 
-// TODO : fix transfer images
-
 void HttpRequestParser::parse_upload_body(Buffer &buffer)
 {
     while (!buffer.empty())
@@ -75,7 +73,7 @@ void HttpRequestParser::parse_upload_body(Buffer &buffer)
                     );
                     if (m_filename.empty())
                         return setError(error::bad_request);
-                    m_filename = route.location->root + m_filename;
+                    m_filename = route.path + m_filename;
 
                     if (m_response.body().open_file(m_filename) < 0)
                     {

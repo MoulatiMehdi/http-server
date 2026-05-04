@@ -62,7 +62,6 @@ void Uri::process_path()
 
     for (size_t i = 0; i < m_path.size(); i++)
     {
-        std::cerr << segment << std::endl;
         if (m_path[i] == '/')
         {
             segment += '/';

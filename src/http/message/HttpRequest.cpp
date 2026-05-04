@@ -40,7 +40,7 @@ void HttpRequest::setMethod(std::string &method)
 
 void HttpRequest::setUri(const std::string &uri)
 {
-    m_uri = uri;
+    m_uri.setUri(uri);
 }
 
 const Uri &HttpRequest::uri() const
