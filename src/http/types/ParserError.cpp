@@ -47,5 +47,8 @@ std::string to_string(ParserError err)
         case error::body_too_large:
             return "body_too_large";
             break;
+        case error::bad_upload:
+            return "body_upload";
+            break;
     }
 }

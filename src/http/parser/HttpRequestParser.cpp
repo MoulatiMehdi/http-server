@@ -45,9 +45,6 @@ void HttpRequestParser::parse(const char *c_str, size_t len)
                 if (m_request.config.client_max_body_size <
                     m_request.content_length())
                     return setError(error::body_too_large);
-
-                route = Router::resolve(m_request.config, m_request);
-                Router::printRouteResult(route);
                 if (route.action == ROUTE_UPLOAD)
                     process_content_type();
                 break;

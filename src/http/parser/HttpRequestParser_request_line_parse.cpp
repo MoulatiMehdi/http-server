@@ -1,8 +1,10 @@
 #include "HttpParserState.hpp"
 #include "HttpRequest.hpp"
 #include "HttpRequestParser.hpp"
+#include "Logger.hpp"
 #include "Method.hpp"
 #include "ParserError.hpp"
+#include "Router.hpp"
 
 enum RequestLineState
 {
@@ -470,6 +472,9 @@ void HttpRequestParser::parse_request_line(Buffer &buff)
                     return setError(error::unsupported_version);
                 break;
             case RES_REQUEST_LINE_DONE:
+                Logger::info(m_request.to_string());
+                route = Router::resolve(m_request.config, m_request);
+                Router::printRouteResult(route);
                 m_parsed = 0;
                 m_phase  = PHASE_HEADERS;
                 m_state  = 0;

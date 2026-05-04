@@ -2,6 +2,7 @@
 // #include "Debug.hpp"
 #include "Logger.hpp"
 #include "sys/time.h"
+#include <cerrno>
 #include <cstddef>
 #include <cstdio>
 #include <fcntl.h>
@@ -23,7 +24,7 @@ int BodyStorage::open_file()
     m_path = m_dir + "/" + generateName();
     m_fd   = open(m_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0600);
     if (m_fd < 0)
-        Logger::error((m_path + ": BodyStorage::open").c_str());
+        Logger::error((m_path + ": BodyStorage::open: " + strerror(errno)).c_str());
     return m_fd;
 }
 
@@ -33,7 +34,7 @@ int BodyStorage::open_file(const std::string &path)
     m_path = path;
     m_fd   = open(m_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0600);
     if (m_fd < 0)
-        Logger::error((m_path + ": BodyStorage::open").c_str());
+        Logger::error((m_path + ": BodyStorage::open: " + strerror(errno)).c_str());
     return m_fd;
 }
 

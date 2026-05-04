@@ -21,6 +21,7 @@ namespace error
         bad_header_value,
         bad_value,
         bad_content_length,
+        bad_upload,
         multiple_content_length,
         unsupported_version,
         unsupported_method,
