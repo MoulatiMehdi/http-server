@@ -8,7 +8,6 @@
 #include "ParserError.hpp"
 #include "Status.hpp"
 #include <cerrno>
-#include <iostream>
 
 enum UploadState
 {
@@ -27,6 +26,17 @@ enum UploadState
 
 void HttpRequestParser::parse_upload_body(Buffer &buffer)
 {
+    if (m_content_type == "multipart/form-data")
+        parse_multipart(buffer);
+    else
+    {
+        setError(error::unsupported_media_type);
+    }
+}
+
+
+void HttpRequestParser::parse_multipart(Buffer &buffer)
+{
     while (!buffer.empty())
     {
         char ch;
@@ -38,7 +48,10 @@ void HttpRequestParser::parse_upload_body(Buffer &buffer)
                 if (m_boundary.size() > m_index)
                 {
                     if (m_boundary[m_index] != ch)
+                    {
+                        Logger::error("Error in SW_UPLOAD_BOUNDARY_START");
                         return setError(error::bad_request);
+                    }
 
                     m_index++;
                     break;
@@ -49,6 +62,7 @@ void HttpRequestParser::parse_upload_body(Buffer &buffer)
                         m_state = SW_UPLOAD_BOUNDARY_ALMOST_DONE;
                         break;
                     default:
+                        Logger::error("Error in SW_UPLOAD_BOUNDARY_START");
                         return setError(error::bad_request);
                 }
                 break;
@@ -60,6 +74,7 @@ void HttpRequestParser::parse_upload_body(Buffer &buffer)
                         m_response.clear();
                         break;
                     default:
+                        Logger::error("SW_UPLOAD_BOUNDARY_ALMOST_DONE");
                         return setError(error::bad_request);
                 }
                 m_state = SW_UPLOAD_HEADERS;
@@ -68,18 +83,27 @@ void HttpRequestParser::parse_upload_body(Buffer &buffer)
 
                 m_response.parser().parse_headers(buffer);
                 if (!m_response.good())
+                {
+                    Logger::error("SW_UPLOAD_HEADERS pad response");
                     return setError(error::bad_request);
+                }
                 if (m_response.complete())
                 {
                     m_filename = m_response.extract_key(
                         "Content-Disposition", "filename"
                     );
                     if (m_filename.empty())
+                    {
+                        Logger::error("SW_UPLOAD_HEADERS empty file name");
                         return setError(error::bad_request);
+                    }
                     m_filename = route.path + m_filename;
 
                     if (m_response.body().open_file(m_filename) < 0)
+                    {
+                        Logger::error("SW_UPLOAD_HEADERS");
                         return setError(error::bad_upload);
+                    }
                     else
                         Logger::info(m_filename + " created");
 
@@ -128,6 +152,7 @@ void HttpRequestParser::parse_upload_body(Buffer &buffer)
                             m_state = SW_UPLOAD_BODY_ALMOST_DONE;
                             break;
                         default:
+                            Logger::error("Error in SW_UPLOAD_FILE_BOUNDARY");
                             return setError(error::bad_request);
                     }
                     break;
@@ -153,12 +178,16 @@ void HttpRequestParser::parse_upload_body(Buffer &buffer)
                 switch (ch)
                 {
                     case '-':
+                        Logger::info("Upload finished successfully");
                         m_request.setComplete(true);
                         m_request.setStatus(status::CREATED);
                         m_response.body().close();
+                        m_state = 0;
+                        return;
                         break;
                     default:
-                        setError(error::bad_request);
+                        Logger::error("Error in SW_UPLOAD_BODY_ALMOST_DONE");
+                        return setError(error::bad_request);
                 }
                 break;
         }

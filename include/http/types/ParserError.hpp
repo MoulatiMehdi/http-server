@@ -26,6 +26,7 @@ namespace error
         unsupported_version,
         unsupported_method,
         unsupported_transfer,
+        unsupported_media_type,
         url_too_large,
         header_too_large,
         body_too_large,
