@@ -7,18 +7,18 @@ PASS=0
 FAIL=0
 
 check() {
-    local desc="$1"
-    local expected="$2"
-    local actual="$3"
-    if echo "$actual" | grep -q "$expected"; then
-        echo "[PASS] $desc"
-        PASS=$((PASS + 1))
-    else
-        echo "[FAIL] $desc"
-        echo "       expected: $expected"
-        echo "       got:      $actual"
-        FAIL=$((FAIL + 1))
-    fi
+	local desc="$1"
+	local expected="$2"
+	local actual="$3"
+	if echo "$actual" | grep -q "$expected"; then
+		echo "[PASS] $desc"
+		PASS=$((PASS + 1))
+	else
+		echo "[FAIL] $desc"
+		echo "       expected: $expected"
+		echo "       got:      $actual"
+		FAIL=$((FAIL + 1))
+	fi
 }
 
 echo "================================================"
@@ -67,10 +67,12 @@ R=$(curl -s -o /dev/null -w "%{http_code}" $BASE/post-only/)
 check "GET /post-only/ returns 405" "405" "$R"
 
 # body size limit — send more than 1k to port 7070
-R=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-    --data "$(python3 -c "print('x' * 2000)")" \
-    http://localhost:7070/)
+R=$(BLA=$(python3 -c "print('x' * 2000)"); \
+	BASE="http://localhost:8080"; curl -s -D - -o /dev/null \
+	-w "%{http_code}" -X POST --data "$BLA" $BASE/post-only/)
 check "POST body exceeding client_max_body_size returns 413" "413" "$R"
+
+
 
 # ─── POST ─────────────────────────────────────────────────────────────────────
 
@@ -79,26 +81,26 @@ echo "--- POST ---"
 
 # basic POST to upload route
 R=$(curl -s -o /dev/null -w "%{http_code}" \
-    -X POST \
-    -F "file=@README.md" \
-    $BASE/upload)
-check "POST /upload returns 201" "201" "$R"
+	-X POST \
+	-F "file=@README.md" \
+	$BASE/upload)
+	check "POST /upload returns 201" "201" "$R"
 
 # verify file actually landed on disk
 check "uploaded file exists on disk" "0" "$(test -f www/upload/README.md; echo $?)"
 
 # POST to GET-only route returns 405
 R=$(curl -s -o /dev/null -w "%{http_code}" \
-    -X POST -d "data=test" \
-    $BASE/)
-check "POST / (GET-only route) returns 405" "405" "$R"
+	-X POST -d "data=test" \
+	$BASE/)
+	check "POST / (GET-only route) returns 405" "405" "$R"
 
 # POST with no body
 R=$(curl -s -o /dev/null -w "%{http_code}" \
-    -X POST \
-    -F "file=@README.md" \
-    $BASE/upload)
-check "POST /upload with empty body still returns 2xx" "20" "$R"
+	-X POST \
+	-F "file=@README.md" \
+	$BASE/upload)
+	check "POST /upload with empty body still returns 2xx" "20" "$R"
 
 # ─── DELETE ───────────────────────────────────────────────────────────────────
 
@@ -110,24 +112,24 @@ echo "temporary file" > www/upload/todelete.txt
 
 # delete it
 R=$(curl -s -o /dev/null -w "%{http_code}" \
-    -X DELETE \
-    $BASE/upload/todelete.txt)
-check "DELETE existing file returns 204" "204" "$R"
+	-X DELETE \
+	$BASE/upload/todelete.txt)
+	check "DELETE existing file returns 204" "204" "$R"
 
 # verify it's gone
 check "deleted file no longer exists" "1" "$(test -f www/upload/todelete.txt; echo $?)"
 
 # delete nonexistent file
 R=$(curl -s -o /dev/null -w "%{http_code}" \
-    -X DELETE \
-    $BASE/upload/ghost.txt)
-check "DELETE nonexistent file returns 404" "404" "$R"
+	-X DELETE \
+	$BASE/upload/ghost.txt)
+	check "DELETE nonexistent file returns 404" "404" "$R"
 
 # delete on route that doesn't allow DELETE
 R=$(curl -s -o /dev/null -w "%{http_code}" \
-    -X DELETE \
-    $BASE/listing/file1.txt)
-check "DELETE on no-delete route returns 405" "405" "$R"
+	-X DELETE \
+	$BASE/listing/file1.txt)
+	check "DELETE on no-delete route returns 405" "405" "$R"
 
 # ─── HEADERS ──────────────────────────────────────────────────────────────────
 
