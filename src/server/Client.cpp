@@ -125,8 +125,13 @@ ClientStatus Client::initCgi(const std::string &path) {
 
 ClientStatus Client::onCgiDone() {
 	HttpResponse resp = _cgi->getResponse();
-	_file = new FileServe(resp.body().c_path());
-	queueResponse(_cgi->getResponse().to_string());
+	try {
+		_file = new FileServe(resp.body().c_path());
+	} catch (const std::exception &e) {
+		Logger::error(std::string("FileServe: ") + e.what());
+		return serveErr(resp.status()), WANT_WRITE;
+	}
+	queueResponse(resp.to_string());
 	delete _cgi;
 	_cgi = NULL;
 	return WANT_WRITE;

@@ -59,7 +59,7 @@ R=$(curl -s -o /dev/null -w "%{http_code}" $BASE/old)
 check "GET /old returns 3xx redirect" "30" "$R"
 
 # redirect location header points to /
-R=$(curl -s -I $BASE/old)
+R=$(curl -s -D - -o/dev/null $BASE/old)
 check "GET /old Location header is /" "Location" "$R"
 
 # method not allowed — POST-only route
