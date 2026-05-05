@@ -50,5 +50,8 @@ std::string to_string(ParserError err)
         case error::bad_upload:
             return "body_upload";
             break;
+        case error::unsupported_media_type:
+            return "unsupported_media_type";
+            break;
     }
 }

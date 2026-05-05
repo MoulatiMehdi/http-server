@@ -2,6 +2,7 @@
 #include "Buffer.hpp"
 #include "HttpParserState.hpp"
 #include "HttpRequest.hpp"
+#include "Logger.hpp"
 #include "ParserError.hpp"
 #include "RouteResult.hpp"
 #include "Router.hpp"
@@ -9,6 +10,8 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <iostream>
+#include <sstream>
 #include <strings.h>
 
 HttpRequestParser::HttpRequestParser(HttpRequest &request)
@@ -22,10 +25,24 @@ HttpRequestParser::HttpRequestParser(HttpRequest &request)
 
 void HttpRequestParser::process_content_type()
 {
-    m_boundary = request.extract_key("content-type", "boundary");
-    if (m_boundary.empty())
+    HttpRequest::const_iterator it = m_request.getHeader("content-type");
+
+    if (it == m_request.headers().end())
         return setError(error::bad_request);
-    m_boundary = "--" + m_boundary;
+
+    Logger::error("content-type: " + it->second);
+    std::istringstream iss(it->second);
+    iss >> m_content_type;
+    if (m_content_type[m_content_type.size() - 1] == ';')
+        m_content_type.erase(m_content_type.size() - 1);
+
+    if (m_content_type == "multipart/form-data")
+    {
+        m_boundary = request.extract_key("content-type", "boundary");
+        if (m_boundary.empty())
+            return setError(error::bad_request);
+        m_boundary = "--" + m_boundary;
+    }
 }
 
 void HttpRequestParser::parse(const char *c_str, size_t len)

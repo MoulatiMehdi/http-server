@@ -54,9 +54,12 @@ class HttpRequestParser : public HttpParserState
     void parse_body_by_length(Buffer &buffer);
     void parse_body_by_chunk(Buffer &buffer);
     void parse_body(Buffer &buffer);
+    void parse_text_plain(Buffer &buffer);
+    void parse_multipart(Buffer &buffer);
 
     std::string  m_filename;
     std::string  m_boundary;
+    std::string  m_content_type;
     size_t       m_index;
     int          fd;
     HttpResponse m_response;

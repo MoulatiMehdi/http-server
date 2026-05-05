@@ -6,6 +6,7 @@
 #include "Status.hpp"
 #include <climits>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <sys/types.h>
 

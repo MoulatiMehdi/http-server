@@ -67,5 +67,8 @@ void HttpRequestParser::process_error()
                     m_request.setStatus(status::INTERNAL_SERVER_ERROR);
             }
             break;
+        case error::unsupported_media_type:
+            m_request.setStatus(status::UNSUPPORTED_MEDIA_TYPE);
+            break;
     }
 }
