@@ -55,16 +55,16 @@ R=$(curl -s -o /dev/null -w "%{http_code}" $BASE/no-listing/)
 check "GET /no-listing/ with directory_listing off returns 403" "403" "$R"
 
 # redirect
-R=$(curl -s -o /dev/null -w "%{http_code}" $BASE/old)
-check "GET /old returns 3xx redirect" "30" "$R"
+R=$(curl -s -o /dev/null -w "%{http_code}" $BASE/old/)
+check "GET /old/ returns 301 redirect" "301" "$R"
 
 # redirect location header points to /
-R=$(curl -s -D - -o/dev/null $BASE/old)
-check "GET /old Location header is /" "Location" "$R"
+R=$(curl -s -D - -o/dev/null $BASE/old/)
+check "GET /old/ Location header is /" "Location" "$R"
 
 # method not allowed — POST-only route
-R=$(curl -s -o /dev/null -w "%{http_code}" $BASE/post-only)
-check "GET /post-only returns 405" "405" "$R"
+R=$(curl -s -o /dev/null -w "%{http_code}" $BASE/post-only/)
+check "GET /post-only/ returns 405" "405" "$R"
 
 # body size limit — send more than 1k to port 7070
 R=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
