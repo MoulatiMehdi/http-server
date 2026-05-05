@@ -69,14 +69,13 @@ bool Router::deleteFile(const std::string& path, status::Status& code)
 {
     struct stat st;
 
-    std::cout << "ALLO \n";
     if (stat(path.c_str(), &st) != 0) {
         Logger::error(path + ": " + "not found.");
         code = status::NOT_FOUND;
         return false;
     }
 
-    if (S_ISDIR(st.st_mode) == 0) {
+    if (S_ISDIR(st.st_mode) != 0) {
         Logger::error(path + ": " + "is a directory.");
         code = status::FORBIDDEN;
         return false;

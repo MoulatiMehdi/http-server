@@ -107,9 +107,6 @@ bool Router::isUploadRequest(RouteResult &result, const HttpRequest& request) {
     return true;
 }
 
-//  TODO: check syntax later
-//  re check
-
 bool Router::pathExists(std::string& path) {
     struct stat st;
 
@@ -130,7 +127,6 @@ bool Router::handleRegularFile(RouteResult& result) {
     return false;
 }
 
-// is file + canRead? + 
 
 bool Router::isFile(const std::string& path) {
     struct stat st;
@@ -150,7 +146,6 @@ bool Router::findIndexFile(RouteResult& result, IndexTable& index, std::string& 
 {
     for (std::size_t i = 0; i < index.size(); i++) {
         std::string path = root + index[i];
-        // std::cout << "index: root+index= " << path << "\n";
         if (isFile(path) && canRead(path.c_str()))
             return indexResult(result, path), true;
     }
@@ -239,7 +234,7 @@ bool Router::canDelete(const char *p)
 std::string Router::getParentDirectory(const std::string &path) // not sure if full correct!
 {
     std::size_t pos = path.rfind('/');
-    if (pos != std::string::npos)
+    if (pos == std::string::npos)
         return "/";
     return path.substr(0, pos);
 }
@@ -267,6 +262,7 @@ static std::string actionToString(RouteAction action) {
         case ROUTE_UPLOAD:            return "UPLOAD";
         case ROUTE_ERROR:             return "ERROR";
         case ROUTE_REDIRECT:          return "REDIRECT";
+        case ROUTE_DELETE:            return "DELETE";
         default:                      return "UNKNOWN";
     }
 }
