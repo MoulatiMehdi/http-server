@@ -73,7 +73,7 @@ class HttpParserState
   public:
     HttpParserState(HttpMessage &request);
     virtual ~HttpParserState();
-    void process_error();
+    virtual void process_error() = 0;
 
     bool good() const;
     // friend std::ostream &

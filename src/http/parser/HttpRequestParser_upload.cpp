@@ -6,6 +6,9 @@
 #include "HttpResponse.hpp"
 #include "Logger.hpp"
 #include "ParserError.hpp"
+#include "Status.hpp"
+#include <cerrno>
+#include <iostream>
 
 enum UploadState
 {
@@ -21,8 +24,6 @@ enum UploadState
 
 #define CR '\r'
 #define LF '\n'
-
-// TODO : fix transfer images
 
 void HttpRequestParser::parse_upload_body(Buffer &buffer)
 {
@@ -75,13 +76,10 @@ void HttpRequestParser::parse_upload_body(Buffer &buffer)
                     );
                     if (m_filename.empty())
                         return setError(error::bad_request);
-                    m_filename = route.location->root + m_filename;
+                    m_filename = route.path + m_filename;
 
                     if (m_response.body().open_file(m_filename) < 0)
-                    {
-                        setError(error::bad_request);
-                        Logger::error(m_filename + ": failed to create file");
-                    }
+                        return setError(error::bad_upload);
                     else
                         Logger::info(m_filename + " created");
 
@@ -157,6 +155,7 @@ void HttpRequestParser::parse_upload_body(Buffer &buffer)
                     case '-':
                         m_request.setComplete(true);
                         m_request.setStatus(status::CREATED);
+                        m_response.body().close();
                         break;
                     default:
                         setError(error::bad_request);

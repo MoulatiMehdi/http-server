@@ -3,6 +3,7 @@
 #include "HttpMessage.hpp"
 #include "HttpRequestParser.hpp"
 #include "Method.hpp"
+#include "Uri.hpp"
 #include <cctype>
 #include <cstdio>
 #include <cstring>
@@ -39,15 +40,15 @@ void HttpRequest::setMethod(std::string &method)
 
 void HttpRequest::setUri(const std::string &uri)
 {
-    m_uri = uri;
+    m_uri.setUri(uri);
 }
 
-const std::string &HttpRequest::uri() const
+const Uri &HttpRequest::uri() const
 {
     return m_uri;
 }
 
-std::string &HttpRequest::uri()
+Uri &HttpRequest::uri()
 {
     return m_uri;
 }
@@ -66,8 +67,8 @@ std::string HttpRequest::to_string() const
 {
     std::ostringstream oss("");
 
-    oss << m_method << " " << m_uri << " HTTP/" << version_major() << "."
-        << version_minor() << " \n";
+    oss << m_method << " " << m_uri.origin() << " HTTP/" << version_major()
+        << "." << version_minor() << " \n";
     return oss.str();
 }
 

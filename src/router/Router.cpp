@@ -15,8 +15,7 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
         return errorPage(request.status(), server.error_pages);
 
     result.server = &server;
-    std::size_t pathPos = request.uri().find('?');
-    std::string path = request.uri().substr(0, pathPos); // use funciton
+    std::string path = request.uri().path(); // use funciton
 
     result.location = matchLocation(server, path); 
     if (result.location)
