@@ -33,11 +33,7 @@ const std::size_t ConfigParser::locationDirCount =
 LocationConfig ConfigParser::parseLocationBlock() {
     advance();
     expect(TOK_WORD, "expected location path", false);
-    // const std::string path = _tokens[_i].value;
-    // std::cout << path << std::endl;
-    // while(true) ;
-    if (isValidPath(_tokens[_i].value) == false
-        && _tokens[_i].value[_tokens[_i].value.size() - 1] == '/') // update it later
+    if (!isValidPath(_tokens[_i].value))
         throwError("location: path must start and end with '/'");
     LocationConfig location;
     location.path = _tokens[_i].value;

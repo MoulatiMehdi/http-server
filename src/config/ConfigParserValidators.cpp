@@ -1,5 +1,6 @@
 #include "ConfigParser.hpp"
 #include <cstdlib>
+#include <iostream>
 #include <limits>
 
 bool ConfigParser::isValidIPv4(const std::string& ip) {
@@ -82,10 +83,12 @@ bool ConfigParser::isAllDigit(const std::string& num) {
 }
 
 bool ConfigParser::isValidPath(const std::string& path) {
-    return !path.empty() && path[0] && path[path.size() - 1] == '/';
+    if (path == "/images")
+        std::cout << "path = " << path << " path[last] = " << path[path.size() - 1] << "\n";
+    return !path.empty() && path[0] == '/' && path[path.size() - 1] == '/';
 }
 
 bool ConfigParser::isValidFilePath(const std::string& path) {
-    return !path.empty() && path[0] && path[path.size() - 1] != '/';
+    return !path.empty() && path[0] == '/';
 }
 

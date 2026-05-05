@@ -89,8 +89,10 @@ bool Router::isUploadRequest(RouteResult &result, const HttpRequest& request) {
         result.statusCode = status::INTERNAL_SERVER_ERROR;
         return true;
     }
+    std::string root = result.location->root.empty() ?
+                       result.server->root : result.location->root;
     result.action = ROUTE_UPLOAD;
-    result.path = result.location->upload_dir;
+    result.path = root + result.location->upload_dir;
     result.statusCode = status::CREATED;
     return true;
 }
