@@ -14,6 +14,7 @@ enum RouteAction {
     ROUTE_DIRECTORY_LISTING,
     ROUTE_UPLOAD,
     ROUTE_REDIRECT,
+    ROUTE_DELETE,
     ROUTE_ERROR
 };
 

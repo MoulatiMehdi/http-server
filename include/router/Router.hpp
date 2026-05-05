@@ -39,6 +39,7 @@ private:
     static bool isMethodAllowed(RouteResult &result, Method method);
     static bool isCgiRequest(RouteResult &result, const std::string& path);
     static bool isUploadRequest(RouteResult &result, const HttpRequest& request);
+    static bool isDeleteMethod(RouteResult& result, Method method);
 
     static std::string buildTargetPath(const ServerConfig& server, const LocationConfig* location,
                                        const std::string& requestPath);
@@ -69,6 +70,8 @@ private:
     static bool putFileOnDir(const std::string &src, const std::string &dest);   
 
     static std::string getParentDirectory(const std::string &path);
+
+    static bool deleteFile(const std::string& path, status::Status& code);
     // Error
     static RouteResult errorPage(Status status, std::map<int, std::string> error_pages);
 };

@@ -4,6 +4,7 @@
 #include "RouteResult.hpp"
 #include "Method.hpp"
 #include "Status.hpp"
+#include "helper.hpp"
 #include <cstddef>
 #include <string>
 #include <sys/stat.h>
@@ -66,9 +67,18 @@ bool Router::isCgiRequest(RouteResult& result, const std::string& path) {
     std::string ext = getExtension(path);
     if (ext.empty())
         return false;
-    ext += ".";
-
+    ext = "." + ext;
     if (result.location->cgi.find(ext) != result.location->cgi.end()) {
+        if (!isFile(result.path.c_str())) {
+            result.action = ROUTE_ERROR;
+            result.statusCode = status::NOT_FOUND;
+            return true; 
+        }
+        if (!canExecute(result.path.c_str()) || !canRead(result.path.c_str())) {
+            result.action = ROUTE_ERROR;
+            result.statusCode = status::FORBIDDEN;
+            return true;
+        }
         result.action = ROUTE_CGI;
         result.statusCode = status::OK;
         return true;
@@ -124,9 +134,8 @@ bool Router::handleRegularFile(RouteResult& result) {
 
 bool Router::isFile(const std::string& path) {
     struct stat st;
-    if (stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode)) {
+    if (stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode))
         return true;
-    }
     return false;
 }
 
@@ -257,6 +266,7 @@ static std::string actionToString(RouteAction action) {
         case ROUTE_DIRECTORY_LISTING: return "DIRECTORY_LISTING";
         case ROUTE_UPLOAD:            return "UPLOAD";
         case ROUTE_ERROR:             return "ERROR";
+        case ROUTE_REDIRECT:          return "REDIRECT";
         default:                      return "UNKNOWN";
     }
 }

@@ -104,6 +104,9 @@ ClientStatus Client::handleRoute(const RouteResult &res) {
 			return initCgi(res.path), INIT_CGI;
 		case ROUTE_REDIRECT:
 			return serveRedir(res.path, res.statusCode), WANT_WRITE;
+        case ROUTE_DELETE:
+            return queueResponse(HttpResponse(res.statusCode).to_string()),
+                    WANT_WRITE;
 		case ROUTE_UPLOAD:
 			return queueResponse(HttpResponse(res.statusCode).to_string()),
 				   WANT_WRITE;

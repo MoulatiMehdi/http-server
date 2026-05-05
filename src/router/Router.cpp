@@ -1,11 +1,17 @@
 #include "Router.hpp"
 #include "Config.hpp"
+#include "Logger.hpp"
 #include "RouteResult.hpp"
 #include "HttpRequest.hpp"
 #include "Status.hpp"
+#include <cerrno>
+#include <cstring>
+#include <iostream>
 #include <map>
 #include <string>
-#include <iostream>
+// #include <iostream>
+#include <cstdio>
+#include <sys/stat.h>
 
 RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& request)
 {
@@ -18,29 +24,28 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
     std::string path = request.uri().path(); // use funciton
 
     result.location = matchLocation(server, path); 
-    if (result.location)
-        std::cout << "Matched location: " << result.location->path << "\n";
     if (!isMethodAllowed(result, request.method()))
         return errorPage(status::METHOD_NOT_ALLOWED, server.error_pages);
 
     result.path = buildTargetPath(server, result.location, path);
 
-    if (isRedirect(result))            return result;
-    if (isCgiRequest(result, path))       return result; 
-    if (isUploadRequest(result, request)) return result; // path!?
+    if (isRedirect(result))
+        return result;
+    if (isCgiRequest(result, path))
+        return result;
+    if (isUploadRequest(result, request))
+        return result;
     if (!pathExists(result.path))
         return errorPage(status::NOT_FOUND, server.error_pages);
     if (!checkPermission(result.path, permissionFromRequest(result, request.method())))
         return errorPage(status::FORBIDDEN, server.error_pages);
-    
-    
+    if (isDeleteMethod(result, request.method()))
+        return result;
     if (handleRegularFile(result))            return result;
     if (isDirectory(result, path) && isIndexed(result))
         return result;
     else if (result.location && result.location->autoindex == false)
         return errorPage(status::FORBIDDEN, server.error_pages);
-
-    
     return result;
 }
 
@@ -58,6 +63,46 @@ RouteResult Router::errorPage(Status status, std::map<int, std::string> error_pa
         return result;
 
     return result;
+}
+
+bool Router::deleteFile(const std::string& path, status::Status& code)
+{
+    struct stat st;
+
+    std::cout << "ALLO \n";
+    if (stat(path.c_str(), &st) != 0) {
+        Logger::error(path + ": " + "not found.");
+        code = status::NOT_FOUND;
+        return false;
+    }
+
+    if (S_ISDIR(st.st_mode) == 0) {
+        Logger::error(path + ": " + "is a directory.");
+        code = status::FORBIDDEN;
+        return false;
+    }
+
+    if (std::remove(path.c_str()) != 0) {
+        Logger::error(path + ": " + strerror(errno));
+        code = status::INTERNAL_SERVER_ERROR;
+        return false;
+    }
+    return true;
+}
+
+bool Router::isDeleteMethod(RouteResult& result, Method method) {
+    if (method != method::DELETE)
+        return false;
+
+    status::Status code;
+    if (!deleteFile(result.path, code)) {
+        result.action = ROUTE_ERROR;
+        result.statusCode = code;
+        return true;
+    }
+    result.action = ROUTE_DELETE;
+    result.statusCode = status::NO_CONTENT;
+    return true;
 }
 
 const LocationConfig* Router::matchLocation(const ServerConfig& server,
