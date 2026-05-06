@@ -480,9 +480,8 @@ void HttpRequestParser::parse_request_line(Buffer &buff)
                 m_parsed = 0;
                 m_phase  = PHASE_HEADERS;
                 m_state  = 0;
-                if (m_request.status() == status::OK)
+                if (m_request.good())
                 {
-                    m_request.setStatus(route.statusCode);
                     switch (route.action)
                     {
                         case ROUTE_CGI:
@@ -494,10 +493,12 @@ void HttpRequestParser::parse_request_line(Buffer &buff)
                         case ROUTE_UPLOAD:
                             break;
                         case ROUTE_REDIRECT:
+                            m_request.setStatus(route.statusCode);
                             return m_request.setComplete(true);
                         case ROUTE_DELETE:
                             break;
                         case ROUTE_ERROR:
+                            m_request.setStatus(route.statusCode);
                             return;
                     }
                 }

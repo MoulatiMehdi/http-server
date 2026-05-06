@@ -38,6 +38,11 @@ void HttpResponseParser::process_content_length()
 
     if (count > 1)
         return setError(error::multiple_content_length);
+    if (count == 0)
+    {
+        m_response.setContentLength(0);
+        return;
+    }
 
     HttpMessage::Headers::const_iterator it =
         m_response.getHeader("content-length");
