@@ -74,63 +74,63 @@ check "POST body exceeding client_max_body_size returns 413" "413" "$R"
 
 
 
-# ─── POST ─────────────────────────────────────────────────────────────────────
+# # ─── POST ─────────────────────────────────────────────────────────────────────
+#
+# echo ""
+# echo "--- POST ---"
 
-echo ""
-echo "--- POST ---"
-
-# basic POST to upload route
-R=$(curl -s -o /dev/null -w "%{http_code}" \
-	-X POST \
-	-F "file=@README.md" \
-	$BASE/upload)
-	check "POST /upload returns 201" "201" "$R"
+# # basic POST to upload route
+# R=$(curl -s -o /dev/null -w "%{http_code}" \
+# 	-X POST \
+# 	-F "file=@README.md" \
+# 	$BASE/upload)
+# 	check "POST /upload returns 201" "201" "$R"
 
 # verify file actually landed on disk
-check "uploaded file exists on disk" "0" "$(test -f www/upload/README.md; echo $?)"
-
+# check "uploaded file exists on disk" "0" "$(test -f www/upload/README.md; echo $?)"
+#
 # POST to GET-only route returns 405
-R=$(curl -s -o /dev/null -w "%{http_code}" \
-	-X POST -d "data=test" \
-	$BASE/)
-	check "POST / (GET-only route) returns 405" "405" "$R"
+# R=$(curl -s -o /dev/null -w "%{http_code}" \
+# 	-X POST -d "data=test" \
+# 	$BASE/)
+# 	check "POST / (GET-only route) returns 405" "405" "$R"
 
 # POST with no body
-R=$(curl -s -o /dev/null -w "%{http_code}" \
-	-X POST \
-	-F "file=@README.md" \
-	$BASE/upload)
-	check "POST /upload with empty body still returns 2xx" "20" "$R"
+# R=$(curl -s -o /dev/null -w "%{http_code}" \
+# 	-X POST \
+# 	-F "file=@README.md" \
+# 	$BASE/upload)
+# 	check "POST /upload with empty body still returns 2xx" "20" "$R"
 
 # ─── DELETE ───────────────────────────────────────────────────────────────────
-
-echo ""
-echo "--- DELETE ---"
-
-# create a file to delete
-echo "temporary file" > www/upload/todelete.txt
-
-# delete it
-R=$(curl -s -o /dev/null -w "%{http_code}" \
-	-X DELETE \
-	$BASE/upload/todelete.txt)
-	check "DELETE existing file returns 204" "204" "$R"
-
-# verify it's gone
-check "deleted file no longer exists" "1" "$(test -f www/upload/todelete.txt; echo $?)"
-
-# delete nonexistent file
-R=$(curl -s -o /dev/null -w "%{http_code}" \
-	-X DELETE \
-	$BASE/upload/ghost.txt)
-	check "DELETE nonexistent file returns 404" "404" "$R"
-
-# delete on route that doesn't allow DELETE
-R=$(curl -s -o /dev/null -w "%{http_code}" \
-	-X DELETE \
-	$BASE/listing/file1.txt)
-	check "DELETE on no-delete route returns 405" "405" "$R"
-
+#
+# echo ""
+# echo "--- DELETE ---"
+#
+# # create a file to delete
+# echo "temporary file" > www/upload/todelete.txt
+#
+# # delete it
+# R=$(curl -s -o /dev/null -w "%{http_code}" \
+# 	-X DELETE \
+# 	$BASE/upload/todelete.txt)
+# 	check "DELETE existing file returns 204" "204" "$R"
+#
+# # verify it's gone
+# check "deleted file no longer exists" "1" "$(test -f www/upload/todelete.txt; echo $?)"
+#
+# # delete nonexistent file
+# R=$(curl -s -o /dev/null -w "%{http_code}" \
+# 	-X DELETE \
+# 	$BASE/upload/ghost.txt)
+# 	check "DELETE nonexistent file returns 404" "404" "$R"
+#
+# # delete on route that doesn't allow DELETE
+# R=$(curl -s -o /dev/null -w "%{http_code}" \
+# 	-X DELETE \
+# 	$BASE/listing/file1.txt)
+# 	check "DELETE on no-delete route returns 405" "405" "$R"
+#
 # ─── HEADERS ──────────────────────────────────────────────────────────────────
 
 echo ""

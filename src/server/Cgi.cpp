@@ -172,6 +172,8 @@ CgiStatus Cgi::_consume(const char *buff, int n) {
 	try {
 		if (!_resp.complete()) {
 			_resp.parse(buff, n);
+            // if(!_resp.parser().good())
+            //     throw std::runtime_error("hello");
 			if (_resp.complete()) {
 				_resp.body().append(buff + _resp.gcount(), n - _resp.gcount());
 			}
