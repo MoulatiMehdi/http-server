@@ -85,7 +85,6 @@ void Client::serveErr(status::Status code) {
 }
 
 void Client::serveRedir(const std::string &path, status::Status code) {
-	std::cerr << "code: " << code << "\n\n\n";
 	HttpResponse resp(code);
 	resp.setHeader("Location", path);
 
@@ -126,8 +125,7 @@ ClientStatus Client::initCgi(const std::string &path) {
 
 ClientStatus Client::onCgiDone() {
 	HttpResponse resp = _cgi->getResponse();
-	if (resp.status() == status::BAD_GATEWAY)
-		return serveErr(status::BAD_GATEWAY), WANT_WRITE;
+	if (!resp.good()) return serveErr(status::BAD_GATEWAY), WANT_WRITE;
 	try {
 		_file = new FileServe(resp.body().c_path());
 	} catch (const std::exception &e) {
@@ -147,7 +145,7 @@ ClientStatus Client::onReadable() {
 	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
 	if (!_req.complete()) return OK;
 
-	return handleRoute(Router::resolve(_servConf, _req));
+	return handleRoute(_req.parser().route);
 }
 
 ClientStatus Client::onWritable() {
