@@ -73,7 +73,7 @@ int EventLoop::handleStatus(Client *client, ClientStatus status) {
 	int fd = client->getFd();
 
 	if (status == DISCONNECT) return -1;
-	else if (status == WANT_WRITE) epollMod(fd, EPOLLIN | EPOLLOUT);
+	else if (status == WANT_WRITE) epollMod(fd, EPOLLOUT);
 	else if (status == DONE_WRITE) disconnectClient(client);
 	else if (status == INIT_CGI) registerCgiPipes(client);
 	return 0;
