@@ -4,13 +4,17 @@
 #include "HttpMessage.hpp"
 #include "HttpResponseParser.hpp"
 #include "Status.hpp"
+#include <set>
 #include <string>
 
 class HttpResponseParser;
 
 class HttpResponse : public HttpMessage
 {
+    typedef std::set<std::string, HttpMessage::iless> Set;
+
   private:
+    Set                allowed_headers;
     HttpResponseParser m_parser;
 
   public:

@@ -10,17 +10,17 @@ class HttpResponseParser : public HttpParserState
 {
   private:
     typedef unsigned int (HttpResponseParser::*Handler)(u_char);
-    HttpResponse &response;
+    HttpResponse &m_response;
     size_t        m_size;
 
-    void process_error();
-    void process_headers();
-    void process_content_length();
-    void process_status();
-    void process_header_line();
-
   public:
-    void parse_headers(Buffer &buff);
+    size_t m_code;
+    void   process_error();
+    void   process_headers();
+    void   process_content_length();
+    void   process_status();
+    void   process_header_line();
+    void   parse_headers(Buffer &buff);
     HttpResponseParser(HttpResponse &request);
     ~HttpResponseParser();
 

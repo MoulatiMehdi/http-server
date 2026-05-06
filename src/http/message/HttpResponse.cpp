@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cerrno>
 #include <cmath>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <ctime>
@@ -38,32 +39,33 @@ std::string HttpResponse::to_string()
 {
     add_server_headers();
 
-    // static std::string headers[] = {
-    //     "date",
-    //     "server",
-    //     "content-type",
-    //     "content-length",
-    //     "content-encoding",
-    //     "last-modified",
-    //     "expires",
-    //     "location",
-    //     "www-authenticate",
-    //     "allow",
-    //     "pragma"
-    // };
-    // size_t size = sizeof(headers) / sizeof(headers[0]);
+    static std::string names[] = {
+        "date",
+        "server",
+        "content-type",
+        "content-length",
+        "content-encoding",
+        "last-modified",
+        "expires",
+        "location",
+        "www-authenticate",
+        "allow",
+        "pragma"
+    };
+    const size_t       size = sizeof(names) / sizeof(names[0]);
     std::ostringstream oss("");
 
+    if (m_parser.m_code != 200)
+        m_status = static_cast<Status>(m_parser.m_code);
     oss << "HTTP/" << version_major() << "." << version_minor() << " ";
     oss << status() << " " << phrase_reason(status()) << "\r\n";
-    Headers::const_iterator begin = headers().begin();
-    Headers::const_iterator end   = headers().end();
-    oss << "content-length: " << m_content_length << "\r\n";
-    while (begin != end)
+    Headers::const_iterator it;
+    // oss << "content-length: " << m_content_length << "\r\n";
+    for (size_t i = 0; i < size; i++)
     {
-        if (begin->first != "content-length")
-            oss << begin->first << ": " << begin->second << "\r\n";
-        begin++;
+        it = getHeader(names[i]);
+        if (it != headers().end())
+            oss << it->first << ": " << it->second << "\r\n";
     }
     oss << "\r\n";
     return oss.str();

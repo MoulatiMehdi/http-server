@@ -141,7 +141,7 @@ const std::string phrase_reason(Status v)
         default:
             break;
     }
-    return "<unknown-status>";
+    return "Unknown";
 }
 
 StatusClass to_status_class(Status v)

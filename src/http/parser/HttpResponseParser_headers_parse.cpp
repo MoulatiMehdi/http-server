@@ -24,7 +24,7 @@ void HttpResponseParser::parse_headers(Buffer &buff)
                 return;
             case RES_HEADER_DONE:
                 process_headers();
-                response.setComplete(true);
+                m_response.setComplete(true);
                 m_phase = PHASE_BODY;
                 return;
             case RES_HEADER_LINE_DONE:

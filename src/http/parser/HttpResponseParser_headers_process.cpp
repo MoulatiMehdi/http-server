@@ -1,7 +1,11 @@
 
 #include "HttpResponse.hpp"
 #include "HttpResponseParser.hpp"
+#include "Logger.hpp"
+#include "ParserError.hpp"
+#include "Status.hpp"
 #include <cstddef>
+#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -18,7 +22,7 @@ void HttpResponseParser::process_header_line()
 
     std::string name = m_buff.substr(0, m_chunk_size);
 
-    response.setHeader(name, m_buff.substr(m_chunk_size));
+    m_response.setHeader(name, m_buff.substr(m_chunk_size));
     m_buff.clear();
 }
 
@@ -30,13 +34,13 @@ void HttpResponseParser::process_headers()
 
 void HttpResponseParser::process_content_length()
 {
-    int count = response.headers().count("content-length");
+    int count = m_response.headers().count("content-length");
 
     if (count > 1)
         return setError(error::multiple_content_length);
 
     HttpMessage::Headers::const_iterator it =
-        response.getHeader("content-length");
+        m_response.getHeader("content-length");
     ssize_t            content_length;
     std::istringstream iss(it->second);
 
@@ -46,28 +50,31 @@ void HttpResponseParser::process_content_length()
         setError(error::bad_content_length);
         return;
     }
-    response.setContentLength(content_length);
+    m_response.setContentLength(content_length);
 }
 
 void HttpResponseParser::process_status()
 {
-    HttpMessage::Headers::const_iterator it = response.getHeader("status");
+    HttpMessage::Headers::const_iterator it = m_response.getHeader("status");
 
-    if (it == response.headers().end())
+    if (it == m_response.headers().end())
     {
-        response.setStatus(status::OK);
+        Logger::info("Status:  not found");
+        m_response.setStatus(status::OK);
         return;
     }
-    ssize_t            content_length;
     std::istringstream iss(it->second);
 
-    iss >> std::noskipws >> content_length;
-    if (iss.bad() || !iss.eof())
+    iss >> m_code;
+    if (iss.bad())
     {
+        Logger::info("Status : " + it->second + ": bad status");
         setError(error::bad_status);
         return;
     }
-    response.setContentLength(content_length);
+    Logger::info("Status :" + it->second);
+    if (m_code > 599 || m_code < 100)
+        setError(error::bad_status);
 }
 
 void HttpResponseParser::process_error()
@@ -75,9 +82,9 @@ void HttpResponseParser::process_error()
     switch (m_error)
     {
         case error::ok:
-            return response.setStatus(status::OK);
+            return m_response.setStatus(status::OK);
         default:
-            return response.setStatus(status::BAD_GATEWAY);
+            return m_response.setStatus(status::BAD_GATEWAY);
             break;
     }
 }
