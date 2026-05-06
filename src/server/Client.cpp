@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
+#include <queue>
 #include <string>
 #include "Cgi.hpp"
 #include "FileServe.hpp"
@@ -104,9 +105,9 @@ ClientStatus Client::handleRoute(const RouteResult &res) {
 			return initCgi(res.path), INIT_CGI;
 		case ROUTE_REDIRECT:
 			return serveRedir(res.path, res.statusCode), WANT_WRITE;
-        case ROUTE_DELETE:
-            return queueResponse(HttpResponse(res.statusCode).to_string()),
-                    WANT_WRITE;
+		case ROUTE_DELETE:
+			return queueResponse(HttpResponse(res.statusCode).to_string()),
+				   WANT_WRITE;
 		case ROUTE_UPLOAD:
 			return queueResponse(HttpResponse(res.statusCode).to_string()),
 				   WANT_WRITE;
@@ -125,16 +126,16 @@ ClientStatus Client::initCgi(const std::string &path) {
 
 ClientStatus Client::onCgiDone() {
 	HttpResponse resp = _cgi->getResponse();
+	if (resp.status() == status::BAD_GATEWAY)
+		return serveErr(status::BAD_GATEWAY), WANT_WRITE;
 	try {
 		_file = new FileServe(resp.body().c_path());
 	} catch (const std::exception &e) {
 		Logger::error(std::string("FileServe: ") + e.what());
-		return serveErr(resp.status()), WANT_WRITE;
+		return serveErr(status::INTERNAL_SERVER_ERROR), WANT_WRITE;
 	}
 	queueResponse(resp.to_string());
-	delete _cgi;
-	_cgi = NULL;
-	return WANT_WRITE;
+	return delete _cgi, _cgi = NULL, WANT_WRITE;
 }
 
 ClientStatus Client::onReadable() {
