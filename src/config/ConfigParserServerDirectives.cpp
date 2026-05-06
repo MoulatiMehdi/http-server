@@ -64,7 +64,7 @@ void ConfigParser::handleServErrorPage(ServerConfig& server) {
             advance();
             continue ;
         }
-        if (isValidPath(_tokens[_i].value)) {
+        if (isValidFilePath(_tokens[_i].value)) {
             path = _tokens[_i].value;
             advance();
             break ;
