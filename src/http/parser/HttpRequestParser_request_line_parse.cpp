@@ -4,7 +4,9 @@
 #include "Logger.hpp"
 #include "Method.hpp"
 #include "ParserError.hpp"
+#include "RouteResult.hpp"
 #include "Router.hpp"
+#include "Status.hpp"
 
 enum RequestLineState
 {
@@ -478,6 +480,27 @@ void HttpRequestParser::parse_request_line(Buffer &buff)
                 m_parsed = 0;
                 m_phase  = PHASE_HEADERS;
                 m_state  = 0;
+                if (m_request.status() == status::OK)
+                {
+                    m_request.setStatus(route.statusCode);
+                    switch (route.action)
+                    {
+                        case ROUTE_CGI:
+                            break;
+                        case ROUTE_STATIC_FILE:
+                            break;
+                        case ROUTE_DIRECTORY_LISTING:
+                            break;
+                        case ROUTE_UPLOAD:
+                            break;
+                        case ROUTE_REDIRECT:
+                            return m_request.setComplete(true);
+                        case ROUTE_DELETE:
+                            break;
+                        case ROUTE_ERROR:
+                            return;
+                    }
+                }
                 return;
         }
     }
