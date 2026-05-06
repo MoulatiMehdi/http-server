@@ -94,15 +94,10 @@ bool Router::isUploadRequest(RouteResult &result, const HttpRequest& request) {
     if (request.method() != method::POST)
         return false;
 
-    if (result.location->upload_dir.empty()) { // can be empty!? also upload_enabled should be checked
-        result.action = ROUTE_ERROR;
-        result.statusCode = status::INTERNAL_SERVER_ERROR;
-        return true;
-    }
     std::string root = result.location->root.empty() ?
                        result.server->root : result.location->root;
     result.action = ROUTE_UPLOAD;
-    result.path = root + result.location->upload_dir;
+    result.path = root; // error here!
     result.statusCode = status::CREATED;
     return true;
 }

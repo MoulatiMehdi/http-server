@@ -84,6 +84,7 @@ private:
     bool isValidPath(const std::string& path);
     bool isValidFilePath(const std::string& path);
     std::size_t parseSize(const std::string& raw);
+    void checkMandatoryServerDirectives(ServerConfig& server);
 
 public:
     // -- Parent function --

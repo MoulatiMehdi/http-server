@@ -169,12 +169,6 @@ void ConfigParser::printConfig(const Config& config) {
             std::cout << "      Autoindex:          "
                       << (loc.autoindex ? "on" : "off") << "\n";
 
-            std::cout << "      Upload enabled:     "
-                      << (loc.upload_enabled ? "yes" : "no") << "\n";
-
-            std::cout << "      Upload dir:         "
-                      << (loc.upload_dir.empty() ? "(none)" : loc.upload_dir) << "\n";
-
             std::cout << "      Client max body:    ";
             if (loc.client_max_body_size == 0)
                 std::cout << "(inherit)";

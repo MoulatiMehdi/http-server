@@ -1,6 +1,9 @@
 #include "ConfigParser.hpp"
+#include "Config.hpp"
 #include "Tokenizer.hpp"
 #include "sys/stat.h"
+#include <stdexcept>
+#include <sys/socket.h>
 
 
 bool isRegularFile(const std::string &path) {
@@ -31,8 +34,14 @@ Config ConfigParser::parseTokens(const std::vector<Token>& tokens) {
     _tokens = tokens;
     _i = 0;
     Config cfg;
+    ServerConfig server;
+
     while (_tokens[_i].type != TOK_EOF) {
-        cfg.servers.push_back(parseServerBlock()); // try catch!
+        server = parseServerBlock();
+        checkMandatoryServerDirectives(server);
+        cfg.servers.push_back(server); // try catch!
+        // check mandatory directives!
+
     }
     return cfg;
 }

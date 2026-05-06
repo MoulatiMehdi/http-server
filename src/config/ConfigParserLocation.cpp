@@ -9,7 +9,6 @@ const std::string ConfigParser::locationDirective[] = {
     "root",
     "index",
     "autoindex",
-    "upload_dir",
     "client_max_body_size",
     "cgi"
 };
@@ -20,7 +19,6 @@ const ConfigParser::locationHandlers ConfigParser::locationEntry[] = {
     &ConfigParser::handleLocRoot,
     &ConfigParser::handleLocIndex,
     &ConfigParser::handleLocAutoindex,
-    &ConfigParser::handleLocUploadDir,
     &ConfigParser::handleLocClientMaxBody,
     &ConfigParser::handleLocCgi
 };
@@ -114,19 +112,6 @@ void ConfigParser::handleLocAutoindex(LocationConfig& loc) {
     else throwError("autoindex: must be on or off");
     advance();
     expect(TOK_SEMICOLON, "autoindex: expected ';' after " + val, true);
-}
-
-// upload_dir <path>
-void ConfigParser::handleLocUploadDir(LocationConfig& loc) {
-    advance();
-    if (_tokens[_i].type != TOK_WORD)
-        throwError("upload_dir: expected path");
-    const std::string path = _tokens[_i].value;
-    if (!isValidPath(path))
-        throwError("upload_dir: invalid path");
-    loc.upload_dir = path;
-    advance();
-    expect(TOK_SEMICOLON, "upload_dir: expected ';' after " + loc.upload_dir, true);
 }
 
 // client_max_body_size <size>[k|m|g]

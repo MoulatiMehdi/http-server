@@ -3,6 +3,13 @@
 #include <iostream>
 #include <limits>
 
+void ConfigParser::checkMandatoryServerDirectives(ServerConfig& server) {
+    if (server.root.empty())
+        throw std::runtime_error("root directives on server block is mandatory!");
+    if (server.listens.empty())
+        throw std::runtime_error("you need at least one listen!");
+}
+
 bool ConfigParser::isValidIPv4(const std::string& ip) {
     std::stringstream ss(ip);
     std::string part;
