@@ -92,7 +92,6 @@ void Client::serveRedir(const std::string &path, status::Status code) {
 }
 
 ClientStatus Client::handleRoute(const RouteResult &res) {
-	Router::printRouteResult(res);
 	switch (res.action) {
 		case ROUTE_STATIC_FILE:
 			return serveFile(res.path, res.statusCode, res.type), WANT_WRITE;
