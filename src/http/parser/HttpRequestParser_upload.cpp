@@ -49,7 +49,6 @@ void HttpRequestParser::parse_multipart(Buffer &buffer)
                 {
                     if (m_boundary[m_index] != ch)
                     {
-                        Logger::error("Error in SW_UPLOAD_BOUNDARY_START");
                         return setError(error::bad_request);
                     }
 
@@ -62,7 +61,6 @@ void HttpRequestParser::parse_multipart(Buffer &buffer)
                         m_state = SW_UPLOAD_BOUNDARY_ALMOST_DONE;
                         break;
                     default:
-                        Logger::error("Error in SW_UPLOAD_BOUNDARY_START");
                         return setError(error::bad_request);
                 }
                 break;
@@ -74,7 +72,6 @@ void HttpRequestParser::parse_multipart(Buffer &buffer)
                         m_response.clear();
                         break;
                     default:
-                        Logger::error("SW_UPLOAD_BOUNDARY_ALMOST_DONE");
                         return setError(error::bad_request);
                 }
                 m_state = SW_UPLOAD_HEADERS;
@@ -84,7 +81,6 @@ void HttpRequestParser::parse_multipart(Buffer &buffer)
                 m_response.parser().parse_headers(buffer);
                 if (!m_response.good())
                 {
-                    Logger::error("SW_UPLOAD_HEADERS pad response");
                     return setError(error::bad_request);
                 }
                 if (m_response.complete())
@@ -94,7 +90,6 @@ void HttpRequestParser::parse_multipart(Buffer &buffer)
                     );
                     if (m_filename.empty())
                     {
-                        Logger::error("SW_UPLOAD_HEADERS empty file name");
                         return setError(error::bad_request);
                     }
                     m_filename = route.path + m_filename;
@@ -152,7 +147,6 @@ void HttpRequestParser::parse_multipart(Buffer &buffer)
                             m_state = SW_UPLOAD_BODY_ALMOST_DONE;
                             break;
                         default:
-                            Logger::error("Error in SW_UPLOAD_FILE_BOUNDARY");
                             return setError(error::bad_request);
                     }
                     break;
@@ -186,7 +180,6 @@ void HttpRequestParser::parse_multipart(Buffer &buffer)
                         return;
                         break;
                     default:
-                        Logger::error("Error in SW_UPLOAD_BODY_ALMOST_DONE");
                         return setError(error::bad_request);
                 }
                 break;

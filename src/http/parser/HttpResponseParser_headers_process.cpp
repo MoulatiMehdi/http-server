@@ -71,15 +71,12 @@ void HttpResponseParser::process_status()
     std::istringstream iss(it->second);
 
     iss >> m_code;
-    if (iss.bad())
+    if (iss.bad() || m_code > 599 || m_code < 200)
     {
-        Logger::info("Status : " + it->second + ": bad status");
+        Logger::error(it->second + ": Bad Status code");
         setError(error::bad_status);
         return;
     }
-    Logger::info("Status :" + it->second);
-    if (m_code > 599 || m_code < 100)
-        setError(error::bad_status);
 }
 
 void HttpResponseParser::process_error()
