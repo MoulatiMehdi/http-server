@@ -1,5 +1,6 @@
 #include "HttpParserState.hpp"
 #include "HttpMessage.hpp"
+#include "Logger.hpp"
 #include "ParserError.hpp"
 #include <sys/types.h>
 
@@ -20,6 +21,7 @@ void HttpParserState::setError(ParserError err)
 {
     if (m_error == error::ok)
     {
+        Logger::error("Invalid Request : " + to_string(err));
         m_error = err;
         process_error();
     }
