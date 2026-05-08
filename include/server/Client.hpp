@@ -40,7 +40,7 @@ class Client {
 	bool cgiPending() const;
 	Cgi *getCgi() const;
 	int getFd() const;
-	time_t connectedAt() const;
+	time_t lastActivity() const;
 
    private:
 	int _fd;
@@ -52,7 +52,7 @@ class Client {
 	FileServe *_file;
 	Cgi *_cgi;
 
-	time_t _connected_at;
+	time_t _last_activity;
 };
 
 #endif

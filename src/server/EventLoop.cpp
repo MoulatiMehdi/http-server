@@ -38,8 +38,7 @@ void EventLoop::epollAdd(int fd, uint32_t events) {
 	struct epoll_event ev;
 	ev.events = events;
 	ev.data.fd = fd;
-	if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, fd, &ev) == ERROR)
-		exitError("epoll_ctl: EPOLL_CTL_ADD");
+	epoll_ctl(_epollfd, EPOLL_CTL_ADD, fd, &ev);
 }
 
 void EventLoop::epollMod(int fd, u_int32_t events) {
@@ -134,7 +133,6 @@ void EventLoop::handleNewConnections(Socket *sock) {
 	while (true) {
 		cliFd = accept(sock->getFd(), (struct sockaddr *)&cliAddr, &len);
 		if (cliFd == -1) return;
-
 		makeNonBlocking(cliFd);
 		_cliTable.add(servConf, cliFd);
 		epollAdd(cliFd, EPOLLIN);
@@ -162,7 +160,7 @@ bool EventLoop::cgiTimedOut(Client *client, time_t now) {
 }
 
 bool EventLoop::clientTimedOut(Client *client, time_t now) {
-	return (now - client->connectedAt()) * 1000 > CLI_TIMEOUT_MS;
+	return (now - client->lastActivity()) * 1000 > CLI_TIMEOUT_MS;
 }
 
 void EventLoop::runMaintenance() {
@@ -198,13 +196,20 @@ void EventLoop::addSockets() {
 		epollAdd(_sockTable[i]->getFd(), EPOLLIN);
 }
 
+void EventLoop::remSockets() {
+	for (size_t i = 0; i < _sockTable.size(); ++i)
+		epoll_ctl(_epollfd, EPOLL_CTL_DEL, _sockTable[i]->getFd(), NULL);
+}
+
 void EventLoop::loop() {
-	// TODO: maxfd
 	int nfds;
 	struct epoll_event events[MAX_EVENTS];
 	int sockIndex;
 
 	while (true) {
+		if (_cliTable.size() >= MAX_CLIENTS)
+			remSockets();
+		else addSockets();
 		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, EPOLL_TIMEOUT_MS);
 		if (nfds == ERROR) exitError("epoll_wait");
 		if (nfds == 0) { runMaintenance(); }

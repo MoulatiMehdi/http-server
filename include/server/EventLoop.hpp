@@ -46,6 +46,7 @@ class EventLoop {
 
    public:
 	void addSockets();
+	void remSockets();
 	void loop();
 
    private:

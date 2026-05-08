@@ -22,7 +22,7 @@ Client::Client(const ServerConfig &servConf, int fd)
 	  _req(servConf),
 	  _file(NULL),
 	  _cgi(NULL),
-	  _connected_at(time(NULL)) {
+	  _last_activity(time(NULL)) {
 	(void)servConf;
 }
 
@@ -140,6 +140,7 @@ ClientStatus Client::onReadable() {
 	int n = read(_fd, buff, sizeof(buff));
 	if (n <= 0) return DISCONNECT;
 
+	_last_activity = time(NULL);
 	_req.parse(buff, n);
 	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
 	if (!_req.complete()) return OK;
@@ -171,7 +172,7 @@ ClientStatus Client::onWritable() {
 	return DONE_WRITE;
 }
 
-time_t Client::connectedAt() const { return _connected_at; }
+time_t Client::lastActivity() const { return _last_activity; }
 int Client::getFd() const { return _fd; }
 Cgi *Client::getCgi() const { return _cgi; }
 bool Client::cgiPending() const { return _cgi != NULL; }

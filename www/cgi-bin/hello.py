@@ -1,5 +1,12 @@
-#!/bin/env python3  
+#!/usr/bin/python3
 
-print("Status : 500\r\n",end="")
-print("\r\n",end="")
-print("<html><head><title>Home</title></head><body>Cgi said 500</body></html>")
+print("Content-Type: text/html")
+print()
+
+print("""
+<html>
+<body>
+<h1>Hello from CGI</h1>
+</body>
+</html>
+""")
