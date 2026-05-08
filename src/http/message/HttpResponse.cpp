@@ -1,6 +1,7 @@
 #include "HttpResponse.hpp"
 #include "HttpMessage.hpp"
 #include "Status.hpp"
+#include "helper.hpp"
 #include <cctype>
 #include <cerrno>
 #include <cmath>
@@ -60,13 +61,15 @@ std::string HttpResponse::to_string()
     oss << "HTTP/" << version_major() << "." << version_minor() << " ";
     oss << status() << " " << phrase_reason(status()) << "\r\n";
     Headers::const_iterator it;
-    oss << "content-length: " << m_content_length << "\r\n";
+    if (getHeader("content-length") == m_headers.end())
+        setHeader("content-length", toString(m_content_length));
     for (size_t i = 0; i < size; i++)
     {
         it = getHeader(names[i]);
         if (it != headers().end())
             oss << it->first << ": " << it->second << "\r\n";
     }
+    oss << "connection: close\r\n";
     oss << "\r\n";
     return oss.str();
 }
