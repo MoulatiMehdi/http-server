@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>POST Only</title>
+</head>
+<body>
+
+<h1>POST Only Route</h1>
+
+<p>
+GET on this route should return 405.
+</p>
+
+<form action="/post-only/" method="POST">
+    <input type="text" name="message">
+    <button type="submit">Send POST</button>
+</form>
+
+</body>
+</html>

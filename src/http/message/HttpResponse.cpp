@@ -60,7 +60,7 @@ std::string HttpResponse::to_string()
     oss << "HTTP/" << version_major() << "." << version_minor() << " ";
     oss << status() << " " << phrase_reason(status()) << "\r\n";
     Headers::const_iterator it;
-    // oss << "content-length: " << m_content_length << "\r\n";
+    oss << "content-length: " << m_content_length << "\r\n";
     for (size_t i = 0; i < size; i++)
     {
         it = getHeader(names[i]);

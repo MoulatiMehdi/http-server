@@ -51,10 +51,10 @@ Cgi::Cgi(const std::string &script, const HttpRequest &req)
 		std::vector<std::string> envVec;
 
 		envVec.push_back("REQUEST_METHOD=" + to_string(_req.method()));
-		// envVec.push_back("QUERY_STRING=" + _req.queryString());
-		// envVec.push_back("SCRIPT_NAME=" + _req.path());
+		envVec.push_back("QUERY_STRING=" + _req.uri().query());
+		envVec.push_back("PATH_INFO=");
+		envVec.push_back("SCRIPT_NAME=" + _req.uri().path());  //
 		envVec.push_back("SERVER_NAME=localhost");
-		envVec.push_back("SERVER_PORT=80");
 		envVec.push_back("SERVER_PROTOCOL=HTTP/1.1");
 		envVec.push_back("GATEWAY_INTERFACE=CGI/1.1");
 
@@ -172,15 +172,15 @@ CgiStatus Cgi::_consume(const char *buff, int n) {
 	try {
 		if (!_resp.complete()) {
 			_resp.parse(buff, n);
-            // if(!_resp.parser().good())
-            //     throw std::runtime_error("hello");
+			if(!_resp.parser().good())
+			    throw ;
 			if (_resp.complete()) {
 				_resp.body().append(buff + _resp.gcount(), n - _resp.gcount());
 			}
 		} else {
 			_resp.body().append(buff, n);
 		}
-	} catch (const std::exception &) { return _fail(status::BAD_GATEWAY); }
+	} catch (...) { return _fail(status::BAD_GATEWAY); }
 	return CGI_OK;
 }
 

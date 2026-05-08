@@ -138,6 +138,10 @@ ClientStatus Client::onCgiDone() {
 ClientStatus Client::onReadable() {
 	char buff[BUFF_SIZE];
 	int n = read(_fd, buff, sizeof(buff));
+	std::cout << "n:	" << n << "\n";
+	char buff2[BUFF_SIZE];
+	int n2 = read(_fd, buff2, sizeof(buff2));
+	std::cout << "n2:	" << n2 << "\n";
 	if (n <= 0) return DISCONNECT;
 
 	_req.parse(buff, n);

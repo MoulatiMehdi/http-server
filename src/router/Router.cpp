@@ -28,6 +28,7 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
         return errorPage(status::METHOD_NOT_ALLOWED, server.error_pages);
 
     result.path = buildTargetPath(server, result.location, path);
+	std::cout << "path: "<< result.path << "\n";
 
     if (isRedirect(result))
         return result;

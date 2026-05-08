@@ -14,17 +14,17 @@
 // #include <sys/epoll.h>
 // #include <iostream>
 //
-// void printEpollEvents(uint32_t events) {
-// 	if (events & EPOLLIN) std::cout << "EPOLLIN ";
-// 	if (events & EPOLLOUT) std::cout << "EPOLLOUT ";
-// 	if (events & EPOLLERR) std::cout << "EPOLLERR ";
-// 	if (events & EPOLLHUP) std::cout << "EPOLLHUP ";
-// 	if (events & EPOLLRDHUP) std::cout << "EPOLLRDHUP ";
-// 	if (events & EPOLLET) std::cout << "EPOLLET ";
-// 	if (events & EPOLLONESHOT) std::cout << "EPOLLONESHOT ";
-//
-// 	std::cout << std::endl;
-// }
+void printEpollEvents(uint32_t events) {
+	if (events & EPOLLIN) std::cout << "EPOLLIN ";
+	if (events & EPOLLOUT) std::cout << "EPOLLOUT ";
+	if (events & EPOLLERR) std::cout << "EPOLLERR ";
+	if (events & EPOLLHUP) std::cout << "EPOLLHUP ";
+	if (events & EPOLLRDHUP) std::cout << "EPOLLRDHUP ";
+	if (events & EPOLLET) std::cout << "EPOLLET ";
+	if (events & EPOLLONESHOT) std::cout << "EPOLLONESHOT ";
+
+	std::cout << std::endl;
+}
 
 EventLoop::EventLoop(SocketTable &_socketTable) : _sockTable(_socketTable) {
 	_epollfd = epoll_create(1);
@@ -48,6 +48,7 @@ void EventLoop::epollMod(int fd, u_int32_t events) {
 	ev.data.fd = fd;
 	if (epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev) == ERROR)
 		exitError("epoll_ctl: EPOLL_CTL_MOD");
+	printEpollEvents(ev.events);
 }
 
 void EventLoop::disconnectClient(const Client *cli) {
@@ -55,11 +56,8 @@ void EventLoop::disconnectClient(const Client *cli) {
 	if (cli->getCgi()) {
 		int cgiIn = cli->getCgi()->getIn();
 		int cgiOut = cli->getCgi()->getOut();
-		if ((cgiIn != ERROR &&
-			 epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiIn, NULL) == ERROR) ||
-			(cgiOut != ERROR &&
-			 epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiOut, NULL) == ERROR))
-			exitError("epoll_ctl: EPOLL_CTL_DEL");
+		epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiIn, NULL);
+		epoll_ctl(_epollfd, EPOLL_CTL_DEL, cgiOut, NULL);
 		_pipe_to_client.erase(cgiIn);
 		_pipe_to_client.erase(cgiOut);
 	}
@@ -83,8 +81,12 @@ void EventLoop::processClients(struct epoll_event &ev) {
 	Client *client = _cliTable.get(ev.data.fd);
 	ClientStatus status = OK;
 
-	if (ev.events & EPOLLERR) disconnectClient(client);
-	else if (ev.events & EPOLLIN) {
+	printEpollEvents(ev.events);
+	if (ev.events & (EPOLLERR | EPOLLHUP)) {
+		disconnectClient(client);
+		return;
+	}
+	if (ev.events & EPOLLIN) {
 		status = client->onReadable();
 	} else if (ev.events & EPOLLOUT) {
 		status = client->onWritable();
