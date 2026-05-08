@@ -14,8 +14,8 @@
 
 #define MAX_EVENTS 128
 #define MAX_CLIENTS 1000
-#define CLI_TIMEOUT_MS 30000
-#define EPOLL_TIMEOUT_MS 5000
+#define CLI_TIMEOUT_MS 1000
+#define EPOLL_TIMEOUT_MS 1000
 #define CGI_TIMEOUT_MS 5000
 
 class EventLoop {
