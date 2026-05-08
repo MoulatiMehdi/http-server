@@ -47,7 +47,6 @@ void EventLoop::epollMod(int fd, u_int32_t events) {
 	ev.data.fd = fd;
 	if (epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev) == ERROR)
 		exitError("epoll_ctl: EPOLL_CTL_MOD");
-	printEpollEvents(ev.events);
 }
 
 void EventLoop::disconnectClient(const Client *cli) {
@@ -80,7 +79,6 @@ void EventLoop::processClients(struct epoll_event &ev) {
 	Client *client = _cliTable.get(ev.data.fd);
 	ClientStatus status = OK;
 
-	printEpollEvents(ev.events);
 	if (ev.events & (EPOLLERR | EPOLLHUP)) {
 		disconnectClient(client);
 		return;
