@@ -60,23 +60,23 @@ static bool is_control(u_char ch)
     return ch < 0x20 || ch == 0x7f;
 }
 
-unsigned int HttpRequestParser::req_start(u_char ch)
+unsigned int HttpParserState::req_start(u_char ch)
 {
     if (ch == CR || ch == LF)
-        return RES_CONTINUE;
+        return RES_HDR_CONTINUE;
 
     if (!is_valid_method_char(ch))
     {
         setError(error::bad_method);
-        return RES_ERROR;
+        return RES_HDR_ERROR;
     }
 
     m_buff  += ch;
     m_state  = SW_METHOD;
-    return RES_CONTINUE;
+    return RES_HDR_CONTINUE;
 }
 
-unsigned int HttpRequestParser::req_method(u_char ch)
+unsigned int HttpParserState::req_method(u_char ch)
 {
     if (ch == ' ')
     {
@@ -87,36 +87,36 @@ unsigned int HttpRequestParser::req_method(u_char ch)
     if (!is_valid_method_char(ch))
     {
         setError(error::bad_method);
-        return RES_ERROR;
+        return RES_HDR_ERROR;
     }
     m_buff += ch;
-    return RES_CONTINUE;
+    return RES_HDR_CONTINUE;
 }
 
-unsigned int HttpRequestParser::req_spaces_before_uri(u_char ch)
+unsigned int HttpParserState::req_spaces_before_uri(u_char ch)
 {
     if (ch == '/')
     {
         m_buff  += ch;
         m_state  = SW_URI_AFTER_SLASH;
-        return RES_CONTINUE;
+        return RES_HDR_CONTINUE;
     }
 
     if (ch != ' ')
     {
         setError(error::bad_request);
-        return RES_ERROR;
+        return RES_HDR_ERROR;
     }
-    return RES_CONTINUE;
+    return RES_HDR_CONTINUE;
 }
 
-unsigned int HttpRequestParser::req_uri_after_slash(u_char ch)
+unsigned int HttpParserState::req_uri_after_slash(u_char ch)
 {
     if (is_usual(ch))
     {
         m_buff  += ch;
         m_state  = SW_CHECK_URI;
-        return RES_CONTINUE;
+        return RES_HDR_CONTINUE;
     }
 
     switch (ch)
@@ -128,7 +128,7 @@ unsigned int HttpRequestParser::req_uri_after_slash(u_char ch)
             m_minor = 9;
             m_major = 0;
             m_state = SW_ALMOST_DONE;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         case LF:
             m_minor = 9;
             m_major = 0;
@@ -140,28 +140,28 @@ unsigned int HttpRequestParser::req_uri_after_slash(u_char ch)
         case '#':
             m_buff  += ch;
             m_state  = SW_URI;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         case '+':
             m_buff += ch;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         default:
             if (is_control(ch))
             {
                 setError(error::bad_request);
-                return RES_ERROR;
+                return RES_HDR_ERROR;
             }
             m_buff  += ch;
             m_state  = SW_CHECK_URI;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
     }
 }
 
-unsigned int HttpRequestParser::req_check_uri(u_char ch)
+unsigned int HttpParserState::req_check_uri(u_char ch)
 {
     if (is_usual(ch))
     {
         m_buff += ch;
-        return RES_CONTINUE;
+        return RES_HDR_CONTINUE;
     }
 
     switch (ch)
@@ -169,17 +169,17 @@ unsigned int HttpRequestParser::req_check_uri(u_char ch)
         case '/':
             m_buff  += ch;
             m_state  = SW_URI_AFTER_SLASH;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         case '.':
             m_buff += ch;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         case ' ':
             m_state = SW_HTTP_09;
             return RES_URI_DONE;
         case CR:
             m_minor = 9;
             m_state = SW_ALMOST_DONE;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         case LF:
             m_minor = 9;
             return RES_REQUEST_LINE_DONE;
@@ -188,27 +188,27 @@ unsigned int HttpRequestParser::req_check_uri(u_char ch)
         case '#':
             m_buff  += ch;
             m_state  = SW_URI;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         case '+':
             m_buff += ch;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         default:
             if (is_control(ch))
             {
                 setError(error::bad_request);
-                return RES_ERROR;
+                return RES_HDR_ERROR;
             }
             m_buff += ch;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
     }
 }
 
-unsigned int HttpRequestParser::req_uri(u_char ch)
+unsigned int HttpParserState::req_uri(u_char ch)
 {
     if (is_usual(ch))
     {
         m_buff += ch;
-        return RES_CONTINUE;
+        return RES_HDR_CONTINUE;
     }
 
     switch (ch)
@@ -219,96 +219,96 @@ unsigned int HttpRequestParser::req_uri(u_char ch)
         case CR:
             m_minor = 9;
             m_state = SW_ALMOST_DONE;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         case LF:
             m_minor = 9;
             return RES_REQUEST_LINE_DONE;
         case '#':
             m_buff += ch;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         default:
             if (is_control(ch))
             {
                 setError(error::bad_request);
-                return RES_ERROR;
+                return RES_HDR_ERROR;
             }
             m_buff += ch;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
     }
 }
 
-unsigned int HttpRequestParser::req_http_09(u_char ch)
+unsigned int HttpParserState::req_http_09(u_char ch)
 {
     switch (ch)
     {
         case ' ':
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         case CR:
             m_minor = 9;
             m_state = SW_ALMOST_DONE;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         case LF:
             m_minor = 9;
             return RES_REQUEST_LINE_DONE;
         case 'H':
             m_state = SW_HTTP_H;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         default:
             setError(error::bad_request);
-            return RES_ERROR;
+            return RES_HDR_ERROR;
     }
 }
 
-unsigned int HttpRequestParser::req_http_H(u_char ch)
+unsigned int HttpParserState::req_http_H(u_char ch)
 {
     if (ch != 'T')
     {
         setError(error::bad_request);
-        return RES_ERROR;
+        return RES_HDR_ERROR;
     }
     m_state = SW_HTTP_HT;
-    return RES_CONTINUE;
+    return RES_HDR_CONTINUE;
 }
 
-unsigned int HttpRequestParser::req_http_HT(u_char ch)
+unsigned int HttpParserState::req_http_HT(u_char ch)
 {
     if (ch != 'T')
     {
         setError(error::bad_request);
-        return RES_ERROR;
+        return RES_HDR_ERROR;
     }
     m_state = SW_HTTP_HTT;
-    return RES_CONTINUE;
+    return RES_HDR_CONTINUE;
 }
 
-unsigned int HttpRequestParser::req_http_HTT(u_char ch)
+unsigned int HttpParserState::req_http_HTT(u_char ch)
 {
     if (ch != 'P')
     {
         setError(error::bad_request);
-        return RES_ERROR;
+        return RES_HDR_ERROR;
     }
     m_state = SW_HTTP_HTTP;
-    return RES_CONTINUE;
+    return RES_HDR_CONTINUE;
 }
 
-unsigned int HttpRequestParser::req_http_HTTP(u_char ch)
+unsigned int HttpParserState::req_http_HTTP(u_char ch)
 {
     if (ch != '/')
     {
         setError(error::bad_request);
-        return RES_ERROR;
+        return RES_HDR_ERROR;
     }
     m_state = SW_FIRST_MAJOR_DIGIT;
-    return RES_CONTINUE;
+    return RES_HDR_CONTINUE;
 }
 
-unsigned int HttpRequestParser::req_first_major_digit(u_char ch)
+unsigned int HttpParserState::req_first_major_digit(u_char ch)
 {
     if (ch < '1' || ch > '9')
     {
         setError(error::bad_request);
-        return RES_ERROR;
+        return RES_HDR_ERROR;
     }
 
     m_major = ch - '0';
@@ -316,25 +316,25 @@ unsigned int HttpRequestParser::req_first_major_digit(u_char ch)
     if (m_major > 1)
     {
         setError(error::unsupported_version);
-        return RES_ERROR;
+        return RES_HDR_ERROR;
     }
 
     m_state = SW_MAJOR_DIGIT;
-    return RES_CONTINUE;
+    return RES_HDR_CONTINUE;
 }
 
-unsigned int HttpRequestParser::req_major_digit(u_char ch)
+unsigned int HttpParserState::req_major_digit(u_char ch)
 {
     if (ch == '.')
     {
         m_state = SW_FIRST_MINOR_DIGIT;
-        return RES_CONTINUE;
+        return RES_HDR_CONTINUE;
     }
 
     if (ch < '0' || ch > '9')
     {
         setError(error::bad_request);
-        return RES_ERROR;
+        return RES_HDR_ERROR;
     }
 
     m_major = m_major * 10 + (ch - '0');
@@ -342,25 +342,25 @@ unsigned int HttpRequestParser::req_major_digit(u_char ch)
     if (m_major > 1)
     {
         setError(error::unsupported_version);
-        return RES_ERROR;
+        return RES_HDR_ERROR;
     }
-    return RES_CONTINUE;
+    return RES_HDR_CONTINUE;
 }
 
-unsigned int HttpRequestParser::req_first_minor_digit(u_char ch)
+unsigned int HttpParserState::req_first_minor_digit(u_char ch)
 {
     if (ch < '0' || ch > '9')
     {
         setError(error::bad_version);
-        return RES_ERROR;
+        return RES_HDR_ERROR;
     }
 
     m_minor = ch - '0';
     m_state = SW_MINOR_DIGIT;
-    return RES_CONTINUE;
+    return RES_HDR_CONTINUE;
 }
 
-unsigned int HttpRequestParser::req_minor_digit(u_char ch)
+unsigned int HttpParserState::req_minor_digit(u_char ch)
 {
     if (ch == CR)
     {
@@ -378,42 +378,42 @@ unsigned int HttpRequestParser::req_minor_digit(u_char ch)
     if (ch < '0' || ch > '9')
     {
         setError(error::bad_request);
-        return RES_ERROR;
+        return RES_HDR_ERROR;
     }
 
     m_minor = m_minor * 10 + (ch - '0');
     if (m_minor > 999)
     {
         setError(error::bad_request);
-        return RES_ERROR;
+        return RES_HDR_ERROR;
     }
 
-    return RES_CONTINUE;
+    return RES_HDR_CONTINUE;
 }
 
-unsigned int HttpRequestParser::req_spaces_after_digit(u_char ch)
+unsigned int HttpParserState::req_spaces_after_digit(u_char ch)
 {
     switch (ch)
     {
         case ' ':
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         case CR:
             m_state = SW_ALMOST_DONE;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         case LF:
             return RES_REQUEST_LINE_DONE;
         default:
             setError(error::bad_request);
-            return RES_ERROR;
+            return RES_HDR_ERROR;
     }
 }
 
-unsigned int HttpRequestParser::req_almost_done(u_char ch)
+unsigned int HttpParserState::req_almost_done(u_char ch)
 {
     if (ch != LF)
     {
         setError(error::bad_line_ending);
-        return RES_ERROR;
+        return RES_HDR_ERROR;
     }
     return RES_REQUEST_LINE_DONE;
 }

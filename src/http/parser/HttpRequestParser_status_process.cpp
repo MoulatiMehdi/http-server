@@ -1,8 +1,11 @@
 
 #include "HttpRequest.hpp"
 #include "HttpRequestParser.hpp"
+#include "Logger.hpp"
 #include "Status.hpp"
+#include "helper.hpp"
 #include <cerrno>
+#include <sstream>
 
 void HttpRequestParser::process_error()
 {
@@ -71,4 +74,36 @@ void HttpRequestParser::process_error()
             m_request.setStatus(status::UNSUPPORTED_MEDIA_TYPE);
             break;
     }
+}
+
+void HttpRequestParser::process_content_length()
+{
+
+    int count = m_message.headers().count("content-length");
+
+    if (count == 0)
+    {
+        if (m_discard_body)
+            return m_message.setComplete(true);
+        else if (!m_chunked)
+            return setError(error::bad_request);
+        return;
+    }
+    if (count > 1)
+        return setError(error::multiple_content_length);
+
+    HttpMessage::Headers::const_iterator it =
+        m_message.getHeader("content-length");
+    ssize_t            content_length;
+    std::istringstream iss(it->second);
+
+    iss >> content_length;
+    if (iss.bad() || !iss.eof())
+    {
+        setError(error::bad_content_length);
+        return;
+    }
+    m_message.setContentLength(content_length);
+    if (m_request.config.client_max_body_size < m_request.content_length())
+        return setError(error::body_too_large);
 }

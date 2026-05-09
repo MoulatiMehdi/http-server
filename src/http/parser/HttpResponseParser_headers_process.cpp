@@ -4,27 +4,9 @@
 #include "Logger.hpp"
 #include "ParserError.hpp"
 #include "Status.hpp"
-#include <cstddef>
 #include <iostream>
 #include <sstream>
 #include <string>
-
-void HttpResponseParser::process_header_line()
-{
-    m_state = 0;
-    if (*m_buff.rbegin() == ' ')
-    {
-        size_t i = m_buff.size();
-        while (i > 0 && m_buff[i - 1] == ' ')
-            i--;
-        m_buff.resize(i);
-    }
-
-    std::string name = m_buff.substr(0, m_chunk_size);
-
-    m_response.setHeader(name, m_buff.substr(m_chunk_size));
-    m_buff.clear();
-}
 
 void HttpResponseParser::process_headers()
 {

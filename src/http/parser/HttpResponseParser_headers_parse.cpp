@@ -20,7 +20,7 @@ void HttpResponseParser::parse_headers(Buffer &buff)
 
         switch (action)
         {
-            case RES_ERROR:
+            case RES_HDR_ERROR:
                 return;
             case RES_HEADER_DONE:
                 process_headers();
@@ -30,7 +30,7 @@ void HttpResponseParser::parse_headers(Buffer &buff)
             case RES_HEADER_LINE_DONE:
                 process_header_line();
                 break;
-            case RES_CONTINUE:
+            case RES_HDR_CONTINUE:
                 break;
         }
         if (!good())

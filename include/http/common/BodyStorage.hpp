@@ -14,6 +14,7 @@ class BodyStorage
     int                      m_fd;
     std::string              m_path;
     ssize_t                  m_size;
+    bool                     m_is_remove;
 
   public:
     BodyStorage();
@@ -25,18 +26,18 @@ class BodyStorage
     ssize_t append(const char *str, size_t len);
 
     int open_file();
-    int open_file(const std::string &path);
+    int open_file(const std::string &path, bool remove_after_use);
 
-    size_t             size() const;
+    size_t size() const;
 
-    std::string       &path();
+    // std::string       &path();
     const std::string &path() const;
     const char        *c_path() const;
-    
-    bool               is_open() const;
-    void               consume(size_t len);
-    void               clear();
-    void               close();
+
+    bool is_open() const;
+    void consume(size_t len);
+    void clear();
+    void close();
 
     static const std::string generateName();
 };
