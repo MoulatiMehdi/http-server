@@ -1,11 +1,12 @@
 #include "ClientTable.hpp"
+#include "SessionManager.hpp"
 
 ClientTable::ClientTable() {}
 
 ClientTable::~ClientTable() { clear(); }
 
-void ClientTable::add(const ServerConfig &servConf, int fd) {
-	_clients[fd] = new Client(servConf, fd);
+void ClientTable::add(const ServerConfig &servConf, int fd, SessionManager &sessions) {
+	_clients[fd] = new Client(servConf, fd, sessions);
 }
 
 ClientMap::iterator ClientTable::remove(int fd) {

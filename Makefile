@@ -31,6 +31,7 @@ SRCS = \
 	   ./src/config/ServerConfig.cpp \
 	   ./src/config/Tokenizer.cpp \
 	   ./src/server/Cgi.cpp \
+	   ./src/server/SessionManager.cpp \
 	   ./src/server/Client.cpp \
 	   ./src/server/ClientTable.cpp \
 	   ./src/server/EventLoop.cpp \

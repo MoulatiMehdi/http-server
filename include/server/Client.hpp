@@ -11,13 +11,14 @@
 #include "FileServe.hpp"
 #include "HttpRequest.hpp"
 #include "RouteResult.hpp"
+#include "SessionManager.hpp"
 #include "Status.hpp"
 
 enum ClientStatus { OK, WANT_WRITE, DONE_WRITE, DISCONNECT, INIT_CGI };
 
 class Client {
    public:
-	Client(const ServerConfig &servConf, int fd);
+	Client(const ServerConfig &servConf, int fd, SessionManager &sessions);
 	~Client();
 
    private:
@@ -26,6 +27,10 @@ class Client {
 
    public:
 	void queueResponse(const std::string &raw);
+	void queueResponse(HttpResponse &resp);
+	void resolveSession();
+	void finalizeResponse(HttpResponse &resp);
+	void serveSessionDemo();
 
 	void serveFile(const std::string &path, status::Status code,
 				   const std::string &type);
@@ -53,6 +58,10 @@ class Client {
 	Cgi *_cgi;
 
 	time_t _last_activity;
+	SessionManager &_sessions;
+	bool _newSession;
+	std::string _sid;
+	SessionData *_session;
 };
 
 #endif

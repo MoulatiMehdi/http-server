@@ -52,6 +52,7 @@ std::string HttpResponse::to_string()
         "location",
         "www-authenticate",
         "allow",
+        "Set-Cookie",
         "pragma"
     };
     const size_t       size = sizeof(names) / sizeof(names[0]);

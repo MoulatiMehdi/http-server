@@ -4,6 +4,7 @@
 #include <map>
 #include "Client.hpp"
 #include "Config.hpp"
+#include "SessionManager.hpp"
 #define MAX_FD FD_SETSIZE
 
 typedef std::map<int, Client *> ClientMap;
@@ -17,7 +18,7 @@ class ClientTable {
 	ClientTable();
 	~ClientTable();
 
-	void add(const ServerConfig &servConf, int fd);
+	void add(const ServerConfig &servConf, int fd, SessionManager &sessions);
 	ClientMap::iterator remove(int fd);
 	const ClientMap &getAll();
 	Client *get(int fd);
