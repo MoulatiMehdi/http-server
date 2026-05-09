@@ -23,9 +23,10 @@ struct RouteResult {
     const LocationConfig* location;
 
     RouteAction           action;
-    std::string           path;
+    std::string           path; // /bin/pythoe3 index.py
     status::Status        statusCode;
     std::string           type;
+    std::string cmd;  // /bin/pyhton3;
 
     RouteResult()
         : server(NULL),

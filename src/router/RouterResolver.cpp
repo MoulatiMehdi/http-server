@@ -68,7 +68,8 @@ bool Router::isCgiRequest(RouteResult& result, const std::string& path) {
     if (ext.empty())
         return false;
     ext = "." + ext;
-    if (result.location->cgi.find(ext) != result.location->cgi.end()) {
+    std::map<std::string, std::string>::const_iterator it = result.location->cgi.find(ext);
+    if (it != result.location->cgi.end()) {
         if (!isFile(result.path.c_str())) {
             result.action = ROUTE_ERROR;
             result.statusCode = status::NOT_FOUND;
@@ -81,6 +82,7 @@ bool Router::isCgiRequest(RouteResult& result, const std::string& path) {
         }
         result.action = ROUTE_CGI;
         result.statusCode = status::OK;
+        result.cmd = it->second;
         return true;
     }
 
@@ -97,7 +99,7 @@ bool Router::isUploadRequest(RouteResult &result, const HttpRequest& request) {
     std::string root = result.location->root.empty() ?
                        result.server->root : result.location->root;
     result.action = ROUTE_UPLOAD;
-    result.path = root; // error here!
+    result.path = root; 
     result.statusCode = status::CREATED;
     return true;
 }
@@ -273,6 +275,8 @@ void Router::printRouteResult(const RouteResult& r) {
 
     std::cout << "Action:   "
               << actionToString(r.action) << "\n";
+    if (r.action == ROUTE_CGI)
+        std::cout << "ext : " << r.cmd << "\n";
 
     std::cout << "Path:     "
               << r.path << "\n";

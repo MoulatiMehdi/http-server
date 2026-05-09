@@ -37,7 +37,7 @@ struct LocationConfig {
 };
 
 struct ServerConfig {
-    static MimeType mimetype;
+    static MimeType mimetype; // from Mehdi
     std::vector<ListenConfig> listens;         // multiple interface:port pairs TODO: 1..*
     std::vector<std::string> server_names;     // a.com www.a.com TODO: delete it
     std::string root;                          // /var/www/a TODO: mandatory

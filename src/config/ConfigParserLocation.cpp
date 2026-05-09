@@ -35,6 +35,8 @@ LocationConfig ConfigParser::parseLocationBlock() {
         throwError("location: path must start and end with '/'");
     LocationConfig location;
     location.path = _tokens[_i].value;
+    if (location.path[location.path.size() - 1] != '/')
+        location.path += "/";
     advance();
     
     expect(TOK_LBRACE, "expected '{' after location's path", true);

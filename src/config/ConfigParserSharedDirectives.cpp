@@ -14,6 +14,8 @@ std::string ConfigParser::parseRootValue() {
     advance();
     expect(TOK_SEMICOLON, "root: expected ';' after " + path, true);
 
+    if (path[path.size() - 1] != '/')
+        return path + "/";
     return path;
 }
 

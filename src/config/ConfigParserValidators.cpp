@@ -90,9 +90,7 @@ bool ConfigParser::isAllDigit(const std::string& num) {
 }
 
 bool ConfigParser::isValidPath(const std::string& path) {
-    if (path == "/images")
-        std::cout << "path = " << path << " path[last] = " << path[path.size() - 1] << "\n";
-    return !path.empty() && path[0] == '/' && path[path.size() - 1] == '/';
+    return !path.empty() && path[0] == '/';
 }
 
 bool ConfigParser::isValidFilePath(const std::string& path) {
