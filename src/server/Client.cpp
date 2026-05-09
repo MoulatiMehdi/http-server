@@ -1,5 +1,6 @@
 #include "Client.hpp"
 #include <fcntl.h>
+#include <netinet/in.h>
 #include <sys/stat.h>
 #include <cstdio>
 #include <cstdlib>
@@ -16,15 +17,15 @@
 #include "Status.hpp"
 #include "helper.hpp"
 
-Client::Client(const ServerConfig &servConf, int fd)
+Client::Client(const ServerConfig &servConf, int fd, SessionManager &sessions)
 	: _fd(fd),
 	  _servConf(servConf),
 	  _req(servConf),
 	  _file(NULL),
 	  _cgi(NULL),
-	  _last_activity(time(NULL)) {
-	(void)servConf;
-}
+	  _last_activity(time(NULL)),
+	  _sessions(sessions),
+	  _newSession(false) {}
 
 Client::~Client() {
 	if (_fd >= 0) close(_fd);
@@ -37,6 +38,13 @@ void Client::queueResponse(const std::string &raw) {
 	_wrbuf.insert(_wrbuf.end(), raw.begin(), raw.end());
 }
 
+void Client::queueResponse(HttpResponse &resp) {
+	_wrbuf.clear();
+	if (_file) resp.setContentLength(_file->size());
+	std::string raw = resp.to_string();
+	_wrbuf.insert(_wrbuf.end(), raw.begin(), raw.end());
+}
+
 void Client::serveFile(const std::string &path, status::Status code,
 					   const std::string &type) {
 	try {
@@ -46,19 +54,18 @@ void Client::serveFile(const std::string &path, status::Status code,
 		return serveErr(status::INTERNAL_SERVER_ERROR);
 	}
 
-	HttpResponse resp;
-	resp.setStatus(code);
-	resp.setContentLength(_file->size());
+	HttpResponse resp(code);
 	resp.setHeader("Content-type", type);
-	return queueResponse(resp.to_string());
+	finalizeResponse(resp);
+	return queueResponse(resp);
 }
 
 void Client::serveDir(const std::string &path) {
 	HttpResponse resp;
-	std::string raw = resp.serve_directory(path, "");
 
 	if (!resp.good()) return serveErr(resp.status());
-	return queueResponse(raw);
+	finalizeResponse(resp);
+	return queueResponse(resp.serve_directory(path, ""));
 }
 
 void Client::serveErr(status::Status code) {
@@ -69,29 +76,52 @@ void Client::serveErr(status::Status code) {
 			_file = new FileServe(errPath);
 			HttpResponse resp(code);
 			resp.setHeader("Content-Type", "text/html");
-			resp.setContentLength(_file->size());
 			resp.setHeader("Connection", "close");
-			std::cout << resp.to_string();
-			return queueResponse(resp.to_string());
+			return queueResponse(resp);
 		} catch (const std::exception &e) {
 			Logger::error(std::string("serveErr: ") + e.what());
 		}
 	}
 
 	HttpResponse resp(code);
-	std::string raw = resp.serve_page();
-
-	return queueResponse(raw);
+	finalizeResponse(resp);
+	queueResponse(resp.serve_page());
 }
 
 void Client::serveRedir(const std::string &path, status::Status code) {
 	HttpResponse resp(code);
 	resp.setHeader("Location", path);
+	finalizeResponse(resp);
+	queueResponse(resp.to_string());
+}
 
-	return queueResponse(resp.to_string());
+void Client::finalizeResponse(HttpResponse &resp) {
+	if (_newSession)
+		resp.setHeader("Set-Cookie", "sid=" + _sid + "; Path=/; HttpOnly");
+	resp.setHeader("Connection", "close");
+}
+
+void Client::resolveSession() {
+	_newSession = false;
+	_session = NULL;
+	_sid = _req.extract_key("Cookie", "sid");
+
+	if (!_sid.empty()) _session = _sessions.get(_sid);
+
+	if (!_session) {
+		_sid = _sessions.create();
+		_session = _sessions.get(_sid);
+		_newSession = true;
+	}
+
+	int visits = std::atoi((*_session)["visits"].c_str());
+	(*_session)["visits"] = toString(visits + 1);
+	(*_session)["last_page"] = _req.uri().path();
 }
 
 ClientStatus Client::handleRoute(const RouteResult &res) {
+	if (_req.uri().path() == "/session/") return serveSessionDemo(), WANT_WRITE;
+	std::cerr << "path:::  " << _req.uri().path() << "\n";
 	switch (res.action) {
 		case ROUTE_STATIC_FILE:
 			return serveFile(res.path, res.statusCode, res.type), WANT_WRITE;
@@ -110,6 +140,46 @@ ClientStatus Client::handleRoute(const RouteResult &res) {
 			return queueResponse(HttpResponse(res.statusCode).to_string()),
 				   WANT_WRITE;
 	}
+}
+
+void Client::serveSessionDemo() {
+	if (!_session) return serveErr(status::INTERNAL_SERVER_ERROR);
+
+	std::string visits = (*_session)["visits"];
+	std::string last_page = (*_session)["last_page"];
+	std::string last_upload = (*_session)["last_upload"];
+	std::string created_at = (*_session)["created_at"];
+
+	std::string body =
+		"<!DOCTYPE html><html><body style='font-family:monospace;padding:40px'>"
+		"<h2>Session Demo</h2>"
+		"<table border='1' cellpadding='8'>"
+		"<tr><td>Session ID</td><td>" +
+		_sid +
+		"</td></tr>"
+		"<tr><td>Visits</td><td>" +
+		visits +
+		"</td></tr>"
+		"<tr><td>Last page</td><td>" +
+		last_page +
+		"</td></tr>"
+		"<tr><td>Last upload</td><td>" +
+		(last_upload.empty() ? "(none yet)" : last_upload) +
+		"</td></tr>"
+		"<tr><td>Created at</td><td>" +
+		created_at +
+		"</td></tr>"
+		"</table>"
+		"<br><a href='/session/'>refresh</a> | "
+		"<a href='/'>home</a> | "
+		"<a href='/listing/'>listing</a>"
+		"</body></html>";
+
+	HttpResponse resp(status::OK);
+	resp.setHeader("Content-Type", "text/html");
+	resp.setContentLength(body.size());
+	finalizeResponse(resp);
+	return queueResponse(resp.to_string() + body);
 }
 
 ClientStatus Client::initCgi(const std::string &path) {
@@ -131,8 +201,10 @@ ClientStatus Client::onCgiDone() {
 		Logger::error(std::string("FileServe: ") + e.what());
 		return serveErr(status::INTERNAL_SERVER_ERROR), WANT_WRITE;
 	}
-	queueResponse(resp.to_string());
-	return delete _cgi, _cgi = NULL, WANT_WRITE;
+	queueResponse(resp);
+	delete _cgi;
+	_cgi = NULL;
+	return WANT_WRITE;
 }
 
 ClientStatus Client::onReadable() {
@@ -145,6 +217,7 @@ ClientStatus Client::onReadable() {
 	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
 	if (!_req.complete()) return OK;
 
+	resolveSession();
 	return handleRoute(_req.parser().route);
 }
 
@@ -160,8 +233,7 @@ ClientStatus Client::onWritable() {
 	}
 
 	if (_file) {
-		if (_file->sendChunk(_fd) == ERROR)
-			return serveErr(status::INTERNAL_SERVER_ERROR), WANT_WRITE;
+		if (_file->sendChunk(_fd) == ERROR) return DISCONNECT;
 		if (_file->done()) {
 			delete _file;
 			_file = NULL;

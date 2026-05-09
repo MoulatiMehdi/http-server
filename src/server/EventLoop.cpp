@@ -132,7 +132,7 @@ void EventLoop::handleNewConnections(Socket *sock) {
 		cliFd = accept(sock->getFd(), (struct sockaddr *)&cliAddr, &len);
 		if (cliFd == -1) return;
 		makeNonBlocking(cliFd);
-		_cliTable.add(servConf, cliFd);
+		_cliTable.add(servConf, cliFd, _sessions);
 		epollAdd(cliFd, EPOLLIN);
 		Logger::info("New Client: " + std::string(inet_ntoa(cliAddr.sin_addr)) +
 					 ":" + toString(ntohs(cliAddr.sin_port)) + " through " +

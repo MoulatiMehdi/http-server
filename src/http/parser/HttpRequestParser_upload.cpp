@@ -29,11 +29,8 @@ void HttpRequestParser::parse_upload_body(Buffer &buffer)
     if (m_content_type == "multipart/form-data")
         parse_multipart(buffer);
     else
-    {
-        setError(error::unsupported_media_type);
-    }
+        parse_body_by_length(buffer);
 }
-
 
 void HttpRequestParser::parse_multipart(Buffer &buffer)
 {
@@ -94,7 +91,7 @@ void HttpRequestParser::parse_multipart(Buffer &buffer)
                     }
                     m_filename = route.path + m_filename;
 
-                    if (m_response.body().open_file(m_filename) < 0)
+                    if (m_response.body().open_file(m_filename, false) < 0)
                     {
                         Logger::error("SW_UPLOAD_HEADERS");
                         return setError(error::bad_upload);

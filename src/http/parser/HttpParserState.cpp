@@ -11,7 +11,7 @@ HttpParserState::HttpParserState(HttpMessage &request)
       m_discard_body(true),
       m_phase(PHASE_REQUEST_LINE),
       m_error(error::ok),
-      request(request)
+      m_message(request)
 {
     m_major = 0;
     m_minor = 0;
@@ -21,7 +21,7 @@ void HttpParserState::setError(ParserError err)
 {
     if (m_error == error::ok)
     {
-        Logger::error("Invalid Request : " + to_string(err));
+        Logger::error("Parser : " + to_string(err));
         m_error = err;
         process_error();
     }
@@ -71,44 +71,6 @@ bool HttpParserState::good() const
 //     return os;
 // }
 
-void HttpParserState::parse_headers(Buffer &buff)
-{
-    const static Handler handlers[6] = {
-        &HttpParserState::hdr_start,
-        &HttpParserState::hdr_name,
-        &HttpParserState::hdr_space_before_value,
-        &HttpParserState::hdr_value,
-        &HttpParserState::hdr_almost_done,
-        &HttpParserState::hdr_header_almost_done,
-    };
-    while (!buff.empty())
-    {
-        char ch = buff.getc();
-        m_parsed++;
-        if (m_parsed > MAX_HEADERS_BUFFER)
-        {
-            setError(error::header_too_large);
-            return;
-        }
-        unsigned int action = (this->*handlers[m_state])(ch);
-
-        switch (action)
-        {
-            case RES_ERROR:
-                break;
-            case RES_HEADER_DONE:
-                process_headers(request);
-                return;
-            case RES_HEADER_LINE_DONE:
-                process_header_line(request);
-                break;
-            case RES_CONTINUE:
-                break;
-        }
-        if (!good() || request.complete())
-            return;
-    }
-}
 
 void HttpParserState::process_error()
 {

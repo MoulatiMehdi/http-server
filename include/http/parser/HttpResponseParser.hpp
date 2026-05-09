@@ -1,6 +1,7 @@
 #ifndef HTTP_RESPONSE_PARSER_HPP
 #define HTTP_RESPONSE_PARSER_HPP
 
+#include "Buffer.hpp"
 #include "HttpParserState.hpp"
 #include <cstddef>
 
@@ -19,8 +20,9 @@ class HttpResponseParser : public HttpParserState
     void   process_headers();
     void   process_content_length();
     void   process_status();
-    void   process_header_line();
-    void   parse_headers(Buffer &buff);
+
+    void parse_headers(Buffer &buff);
+
     HttpResponseParser(HttpResponse &request);
     ~HttpResponseParser();
 

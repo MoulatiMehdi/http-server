@@ -11,6 +11,7 @@
 #include "ClientTable.hpp"
 #include "Socket.hpp"
 #include "SocketTable.hpp"
+#include "SessionManager.hpp"
 
 #define MAX_EVENTS 128
 #define MAX_CLIENTS 1000
@@ -52,6 +53,8 @@ class EventLoop {
    private:
 	SocketTable &_sockTable;
 	ClientTable _cliTable;
+	SessionManager _sessions;
+
 	int _epollfd;
 
 	std::map<int, int> _pipe_to_client;

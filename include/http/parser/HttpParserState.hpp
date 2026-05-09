@@ -1,20 +1,28 @@
 #ifndef HTTP_PARSER_STATE_HPP
 #define HTTP_PARSER_STATE_HPP
 
-#include "Buffer.hpp"
 #include "HttpMessage.hpp"
 #include "ParserError.hpp"
-#include <ostream>
 
 class HttpParserState
 {
   public:
     enum HeaderResult
     {
-        RES_ERROR,
-        RES_CONTINUE,
+        RES_HDR_ERROR,
+        RES_HDR_CONTINUE,
         RES_HEADER_DONE,
         RES_HEADER_LINE_DONE
+    };
+
+    enum RequestLineResult
+    {
+        RES_ERROR,
+        RES_CONTINUE,
+        RES_METHOD_DONE,
+        RES_URI_DONE,
+        RES_VERSION_DONE,
+        RES_REQUEST_LINE_DONE
     };
 
     enum Phase
@@ -26,6 +34,24 @@ class HttpParserState
 
     typedef unsigned int (HttpParserState::*Handler)(u_char);
 
+    //  request
+    unsigned int req_start(u_char ch);
+    unsigned int req_method(u_char ch);
+    unsigned int req_spaces_before_uri(u_char ch);
+    unsigned int req_uri_after_slash(u_char ch);
+    unsigned int req_check_uri(u_char ch);
+    unsigned int req_uri(u_char ch);
+    unsigned int req_http_09(u_char ch);
+    unsigned int req_http_H(u_char ch);
+    unsigned int req_http_HT(u_char ch);
+    unsigned int req_http_HTT(u_char ch);
+    unsigned int req_http_HTTP(u_char ch);
+    unsigned int req_first_major_digit(u_char ch);
+    unsigned int req_major_digit(u_char ch);
+    unsigned int req_first_minor_digit(u_char ch);
+    unsigned int req_minor_digit(u_char ch);
+    unsigned int req_spaces_after_digit(u_char ch);
+    unsigned int req_almost_done(u_char ch);
     // headers
     unsigned int hdr_start(u_char ch);
     unsigned int hdr_name(u_char ch);
@@ -34,13 +60,11 @@ class HttpParserState
     unsigned int hdr_almost_done(u_char ch);
     unsigned int hdr_header_almost_done(u_char ch);
 
-    void parse_headers(Buffer &buff);
-    void process_header_line(HttpMessage &request);
-    void process_headers(HttpMessage &request);
-
-    void process_host();
-    void process_content_length(HttpMessage &request);
-    void process_transfer_encoding(HttpMessage &request);
+    virtual void process_headers()        = 0;
+    virtual void process_content_length() = 0;
+    void         process_host();
+    void         process_transfer_encoding();
+    void         process_header_line();
 
   protected:
     static const int MAX_HEADERS_BUFFER = 4096;
@@ -65,7 +89,7 @@ class HttpParserState
     Phase        m_phase;
     std::string  m_buff;
     ParserError  m_error;
-    HttpMessage &request;
+    HttpMessage &m_message;
 
     void setError(ParserError err);
     void clear();

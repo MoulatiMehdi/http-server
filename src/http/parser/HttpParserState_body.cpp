@@ -3,11 +3,7 @@
 #include "HttpRequestParser.hpp"
 #include "ParserError.hpp"
 #include "RouteResult.hpp"
-#include "Status.hpp"
 #include <climits>
-#include <iostream>
-#include <sstream>
-#include <string>
 #include <sys/types.h>
 
 #define CR '\r'
@@ -196,6 +192,6 @@ void HttpRequestParser::parse_body_by_length(Buffer &buffer)
             return setError(error::bad_request);
         buffer.consume(size);
     }
-    else if (m_request.content_length() == m_request.body().size())
+    if (m_request.content_length() == m_request.body().size())
         m_request.setComplete(true);
 }

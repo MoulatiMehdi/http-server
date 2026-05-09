@@ -44,7 +44,7 @@ unsigned int HttpParserState::hdr_start(u_char ch)
     {
         case CR:
             m_state = SW_HEADER_ALMOST_DONE;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         case LF:
             return RES_HEADER_DONE;
         default:
@@ -53,12 +53,12 @@ unsigned int HttpParserState::hdr_start(u_char ch)
             if (is_valid_name_char(c))
             {
                 m_buff += c;
-                return RES_CONTINUE;
+                return RES_HDR_CONTINUE;
             }
             setError(error::bad_header_name);
-            return RES_ERROR;
+            return RES_HDR_ERROR;
     }
-    return RES_CONTINUE;
+    return RES_HDR_CONTINUE;
 }
 
 unsigned int HttpParserState::hdr_name(u_char ch)
@@ -68,25 +68,25 @@ unsigned int HttpParserState::hdr_name(u_char ch)
     if (is_valid_name_char(c))
     {
         m_buff += c;
-        return RES_CONTINUE;
+        return RES_HDR_CONTINUE;
     }
     if (ch == ':')
     {
         m_chunk_size = m_buff.size();
         m_state      = SW_SPACE_BEFORE_VALUE;
-        return RES_CONTINUE;
+        return RES_HDR_CONTINUE;
     }
     if (ch == CR)
     {
         m_state = SW_ALMOST_DONE;
-        return RES_CONTINUE;
+        return RES_HDR_CONTINUE;
     }
     if (ch == LF)
     {
         return RES_HEADER_LINE_DONE;
     }
     setError(error::bad_header_name);
-    return RES_ERROR;
+    return RES_HDR_ERROR;
 }
 
 unsigned int HttpParserState::hdr_space_before_value(u_char ch)
@@ -94,21 +94,21 @@ unsigned int HttpParserState::hdr_space_before_value(u_char ch)
     switch (ch)
     {
         case ' ':
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         case CR:
             m_state = SW_ALMOST_DONE;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         case LF:
             return RES_HEADER_LINE_DONE;
         case '\0':
             setError(error::bad_header_name);
-            return RES_ERROR;
+            return RES_HDR_ERROR;
         default:
             m_buff  += ch;
             m_state  = SW_VALUE;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
     }
-    return RES_CONTINUE;
+    return RES_HDR_CONTINUE;
 }
 
 unsigned int HttpParserState::hdr_value(u_char ch)
@@ -117,17 +117,17 @@ unsigned int HttpParserState::hdr_value(u_char ch)
     {
         case CR:
             m_state = SW_ALMOST_DONE;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         case LF:
             return RES_HEADER_LINE_DONE;
         case '\0':
             setError(error::bad_header_value);
-            return RES_ERROR;
+            return RES_HDR_ERROR;
         default:
             m_buff += ch;
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
     }
-    return RES_CONTINUE;
+    return RES_HDR_CONTINUE;
 }
 
 unsigned int HttpParserState::hdr_almost_done(u_char ch)
@@ -137,12 +137,12 @@ unsigned int HttpParserState::hdr_almost_done(u_char ch)
         case LF:
             return RES_HEADER_LINE_DONE;
         case CR:
-            return RES_CONTINUE;
+            return RES_HDR_CONTINUE;
         default:
             setError(error::bad_line_ending);
-            return RES_ERROR;
+            return RES_HDR_ERROR;
     }
-    return RES_CONTINUE;
+    return RES_HDR_CONTINUE;
 }
 
 unsigned int HttpParserState::hdr_header_almost_done(u_char ch)
@@ -153,5 +153,5 @@ unsigned int HttpParserState::hdr_header_almost_done(u_char ch)
     }
 
     setError(error::bad_line_ending);
-    return RES_ERROR;
+    return RES_HDR_ERROR;
 }

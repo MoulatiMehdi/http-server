@@ -2,6 +2,7 @@
 #include "HttpMessage.hpp"
 #include "Status.hpp"
 #include "helper.hpp"
+#include <algorithm>
 #include <cctype>
 #include <cerrno>
 #include <cmath>
@@ -51,6 +52,7 @@ std::string HttpResponse::to_string()
         "location",
         "www-authenticate",
         "allow",
+        "Set-Cookie",
         "pragma"
     };
     const size_t       size = sizeof(names) / sizeof(names[0]);
@@ -68,6 +70,11 @@ std::string HttpResponse::to_string()
         it = getHeader(names[i]);
         if (it != headers().end())
             oss << it->first << ": " << it->second << "\r\n";
+    }
+    HeadersRange range = m_headers.equal_range("set-cookie");
+    for (Headers::const_iterator it = range.first; it != range.second; it++)
+    {
+        oss << it->first << ": " << it->second << "\r\n";
     }
     oss << "connection: close\r\n";
     oss << "\r\n";

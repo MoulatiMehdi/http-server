@@ -226,7 +226,4 @@ time_t Cgi::startedAt() { return _started_at; }
 
 int Cgi::getOut() const { return _out; }
 int Cgi::getIn() const { return _in; }
-HttpResponse Cgi::getResponse() {
-	_resp.setContentLength(_resp.body().size());
-	return _resp;
-}
+HttpResponse Cgi::getResponse() { return _resp; }
