@@ -46,6 +46,7 @@ class Client {
 	Cgi *getCgi() const;
 	int getFd() const;
 	time_t lastActivity() const;
+	std::string getRequestUri() const;
 
    private:
 	int _fd;

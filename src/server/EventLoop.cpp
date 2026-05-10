@@ -3,6 +3,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <cstdlib>
+#include <cstring>
 #include <ctime>
 #include "Cgi.hpp"
 #include "Client.hpp"
@@ -29,7 +30,7 @@ void printEpollEvents(uint32_t events) {
 EventLoop::EventLoop(SocketTable &_socketTable) : _sockTable(_socketTable) {
 	_epollfd = epoll_create(1);
 	if (_epollfd == ERROR) exitError("epoll_create");
-	std::cout << _socketTable.size() << std::endl;
+	Logger::info("Epoll created");
 }
 
 EventLoop::~EventLoop() { close(_epollfd); }
@@ -38,7 +39,9 @@ void EventLoop::epollAdd(int fd, uint32_t events) {
 	struct epoll_event ev;
 	ev.events = events;
 	ev.data.fd = fd;
-	epoll_ctl(_epollfd, EPOLL_CTL_ADD, fd, &ev);
+	if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, fd, &ev) == ERROR)
+		Logger::error("epoll_ctl: EPOLL_CTL_ADD " +
+					  std::string(strerror(errno)));
 }
 
 void EventLoop::epollMod(int fd, u_int32_t events) {
@@ -46,7 +49,8 @@ void EventLoop::epollMod(int fd, u_int32_t events) {
 	ev.events = events;
 	ev.data.fd = fd;
 	if (epoll_ctl(_epollfd, EPOLL_CTL_MOD, fd, &ev) == ERROR)
-		exitError("epoll_ctl: EPOLL_CTL_MOD");
+		Logger::error("epoll_ctl: EPOLL_CTL_MOD " +
+					  std::string(strerror(errno)));
 }
 
 void EventLoop::disconnectClient(const Client *cli) {
@@ -60,9 +64,10 @@ void EventLoop::disconnectClient(const Client *cli) {
 		_pipe_to_client.erase(cgiOut);
 	}
 	if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, cliFd, NULL) == ERROR)
-		exitError("epoll_ctl: EPOLL_CTL_DEL");
+		Logger::error("epoll_ctl: EPOLL_CTL_DEL " +
+					  std::string(strerror(errno)));
 	_cliTable.remove(cliFd);
-	Logger::info("Client " + toString(cliFd) + ": disconnected");
+	Logger::info("Client " + cli->getRequestUri() + ": disconnected");
 }
 
 int EventLoop::handleStatus(Client *client, ClientStatus status) {
@@ -141,7 +146,7 @@ void EventLoop::handleNewConnections(Socket *sock) {
 }
 void EventLoop::disconnectTimedOut(const std::vector<Client *> &clients) {
 	for (size_t i = 0; i < clients.size(); ++i) {
-		Logger::info("Client " + toString(clients[i]->getFd()) + ": timed out");
+		Logger::info("Client " + clients[i]->getRequestUri() + ": timed out");
 		disconnectClient(clients[i]);
 	}
 }
@@ -205,12 +210,9 @@ void EventLoop::loop() {
 	int sockIndex;
 
 	while (true) {
-		if (_cliTable.size() >= MAX_CLIENTS)
-			remSockets();
+		if (_cliTable.size() >= MAX_CLIENTS) remSockets();
 		else addSockets();
 		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, EPOLL_TIMEOUT_MS);
-		if (nfds == ERROR) exitError("epoll_wait");
-		if (nfds == 0) { runMaintenance(); }
 		for (int n = 0; n < nfds; ++n) {
 			sockIndex = _sockTable.getSocket(events[n].data.fd);
 			if (sockIndex >= 0) handleNewConnections(_sockTable[sockIndex]);
@@ -219,6 +221,7 @@ void EventLoop::loop() {
 			else if (_pipe_to_client.find(events[n].data.fd) !=
 					 _pipe_to_client.end())
 				processCgi(events[n]);
+			runMaintenance();
 		}
 	}
 }

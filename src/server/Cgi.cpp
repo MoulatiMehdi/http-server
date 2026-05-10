@@ -12,11 +12,13 @@
 #include <stdexcept>
 #include "FileServe.hpp"
 #include "HttpResponse.hpp"
+#include "Logger.hpp"
 #include "Method.hpp"
 #include "Status.hpp"
 #include "helper.hpp"
 
-Cgi::Cgi(const std::string &cmd, const std::string &script, const HttpRequest &req)
+Cgi::Cgi(const std::string &cmd, const std::string &script,
+		 const HttpRequest &req)
 	: _in(-1),
 	  _out(-1),
 	  _pid(-1),
@@ -24,6 +26,8 @@ Cgi::Cgi(const std::string &cmd, const std::string &script, const HttpRequest &r
 	  _reqBodyFile(NULL),
 	  _req(req),
 	  _started_at(time(NULL)) {
+	Logger::info(std::string("Initializing Cgi"));
+				 
 	if (_req.body().size() != 0)
 		_reqBodyFile = new FileServe(_req.body().c_path());
 
@@ -65,16 +69,12 @@ Cgi::Cgi(const std::string &cmd, const std::string &script, const HttpRequest &r
 		if (!contentLength.empty())
 			envVec.push_back("CONTENT_LENGTH=" + contentLength);
 
-		// HTTP_* variables: pass request headers as HTTP_HEADERNAME
 		const HttpMessage::Headers &hdrs = _req.headers();
 		for (HttpMessage::const_iterator it = hdrs.begin(); it != hdrs.end();
 			 ++it) {
-			// skip headers already covered above
 			std::string name = it->first;
 			if (name == "Content-Type" || name == "Content-Length") continue;
 
-			// convert header name: lowercase with hyphens → uppercase with
-			// underscores
 			std::string envName = "HTTP_";
 			for (size_t i = 0; i < name.size(); ++i) {
 				if (name[i] == '-') envName += '_';
@@ -83,14 +83,15 @@ Cgi::Cgi(const std::string &cmd, const std::string &script, const HttpRequest &r
 			envVec.push_back(envName + "=" + it->second);
 		}
 
-		// build char** from vector
 		char **env = new char *[envVec.size() + 1];
 		for (size_t i = 0; i < envVec.size(); ++i)
 			env[i] = strdup(envVec[i].c_str());
 		env[envVec.size()] = NULL;
 
-		char *argv[] = {const_cast<char *>(cmd.c_str()), const_cast<char *>(script.c_str()), NULL};
+		char *argv[] = {const_cast<char *>(cmd.c_str()),
+						const_cast<char *>(script.c_str()), NULL};
 
+		Logger::info("Cgi: " + cmd + " " + script);
 		execve(cmd.c_str(), argv, env);
 
 		for (size_t i = 0; i < envVec.size(); ++i)
@@ -107,6 +108,7 @@ Cgi::Cgi(const std::string &cmd, const std::string &script, const HttpRequest &r
 
 	makeNonBlocking(_in);
 	makeNonBlocking(_out);
+	Logger::info(std::string("Cgi initialized"));
 }
 
 Cgi::~Cgi() {
@@ -130,9 +132,11 @@ Cgi::~Cgi() {
 		}
 		_pid = -1;
 	}
+	Logger::info(std::string("Cgi destroyed"));
 }
 
 CgiStatus Cgi::_fail(status::Status code) {
+	Logger::info(std::string("Cgi failed"));
 	_resp.setStatus(code);
 	return CGI_ERROR;
 }
@@ -189,7 +193,10 @@ CgiStatus Cgi::onReadable() {
 	char buff[BUFF_SIZE];
 	int n = read(_out, buff, sizeof(buff));
 
-	if (n == -1) return _fail(status::BAD_GATEWAY);
+	if (n == -1) {
+		Logger::error("Cgi::onReadable: " + std::string(strerror(errno)));
+		return _fail(status::BAD_GATEWAY);
+	}
 	if (n == 0) return _finalize();
 
 	return _consume(buff, n);
@@ -199,6 +206,7 @@ CgiStatus Cgi::onWritable() {
 	if (_in < 0) return CGI_DONE;
 
 	if (!_reqBodyFile) {
+		Logger::error(std::string("Cgi::onWritable: ") + "_reqBodyFile");
 		close(_in);
 		_in = -1;
 		return CGI_DONE;
@@ -206,6 +214,8 @@ CgiStatus Cgi::onWritable() {
 
 	int n = _reqBodyFile->sendChunk(_in);
 	if (n == ERROR) {
+		Logger::error(std::string("Cgi::onWritable: ") +
+					  std::string(strerror(errno)));
 		close(_in);
 		_in = -1;
 		return CGI_ERROR;

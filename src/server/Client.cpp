@@ -31,6 +31,7 @@ Client::~Client() {
 	if (_fd >= 0) close(_fd);
 	if (_file) delete _file;
 	if (_cgi) delete _cgi;
+
 }
 
 void Client::queueResponse(const std::string &raw) {
@@ -247,4 +248,5 @@ ClientStatus Client::onWritable() {
 time_t Client::lastActivity() const { return _last_activity; }
 int Client::getFd() const { return _fd; }
 Cgi *Client::getCgi() const { return _cgi; }
+std::string Client::getRequestUri() const { return _req.uri().path(); }
 bool Client::cgiPending() const { return _cgi != NULL; }
