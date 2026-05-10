@@ -144,6 +144,14 @@ section "3. File upload — POST /upload"
 UPLOAD_FILE="/tmp/ws_test_upload_$$.txt"
 echo "webserv upload test — $(date)" > "$UPLOAD_FILE"
 
+
+UPLOAD_FILE="/tmp/ws_test_upload_$$.txt"; \
+BASE="http://localhost:8080" \
+    curl -s -o /tmp/ws_body \
+         -D /tmp/ws_headers \
+         -w "%{http_code}" \
+		 -F "file=@$UPLOAD_FILE;type=text/plain" \
+         "$BASE/upload"
 # 3a. Valid upload
 code=$(do_req -X POST \
     -F "file=@$UPLOAD_FILE;type=text/plain" \
