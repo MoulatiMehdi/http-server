@@ -2,7 +2,6 @@
 #include "HttpMessage.hpp"
 #include "Status.hpp"
 #include "helper.hpp"
-#include <algorithm>
 #include <cctype>
 #include <cerrno>
 #include <cmath>
@@ -179,6 +178,44 @@ HttpResponse::serve_directory(const std::string &root, std::string path)
 std::string HttpResponse::serve_page()
 {
     std::ostringstream oss;
+    StatusClass        status_class = to_status_class(m_status);
+    std::string        bg;
+    std::string        color;
+    std::string        box_shadow;
+
+    switch (status_class)
+    {
+        case status_class::UNKNOWN:
+        case status_class::INFORMATIONAL:
+            color      = "#111827;\n";
+            bg         = "#4b5563;\n";
+            box_shadow = "0 20px 50px rgba(17, 24, 39, 0.40);\n";
+            break;
+
+        case status_class::SUCCESSFUL:
+            color      = "#166534;\n";
+            bg         = "#15803d;\n";
+            box_shadow = "0 20px 50px rgba(21, 128, 61, 0.40);\n";
+            break;
+
+        case status_class::REDIRECTION:
+            color      = "#1e40af;\n";
+            bg         = "#2563eb;\n";
+            box_shadow = "0 20px 50px rgba(37, 99, 235, 0.40);\n";
+            break;
+
+        case status_class::CLIENT_ERROR:
+            color      = "#b91c1c;\n";
+            bg         = "#dc2626;\n";
+            box_shadow = "0 20px 50px rgba(220, 38, 38, 0.40);\n";
+            break;
+
+        case status_class::SERVER_ERROR:
+            color      = "#9f1239;\n";
+            bg         = "#be123c;\n";
+            box_shadow = "0 20px 50px rgba(190, 18, 60, 0.45);\n";
+            break;
+    }
     oss << "<!DOCTYPE html>\n";
     oss << "<html lang=\"en\">\n";
     oss << "<head>\n";
@@ -196,17 +233,16 @@ std::string HttpResponse::serve_page()
     oss << "        display: flex;\n";
     oss << "        align-items: center;\n";
     oss << "        justify-content: center;\n";
-    oss << "        background: #f8fafc;\n"; // soft white (better than pure
-                                             // white)
-    oss << "        font-family: system-ui, -apple-system, sans-serif;\n";
-    oss << "        color: #1e293b;\n";      // dark slate text
+    oss << "        background: #f8fafc;\n";
+    oss << "        font-family: -apple-system,system-ui,  sans-serif;\n";
+    oss << "        color: #1e293b;\n";
     oss << "    }\n";
     oss << "\n";
     oss << "    .card {\n";
-    oss << "        background: linear-gradient(135deg, #ef4444, #b91c1c);\n";
+    oss << "        background: " << bg;
     oss << "        padding: 42px;\n";
     oss << "        border-radius: 18px;\n";
-    oss << "        box-shadow: 0 20px 50px rgba(185, 28, 28, 0.35);\n";
+    oss << "        box-shadow:" << box_shadow;
     oss << "        max-width: 420px;\n";
     oss << "        width: 90%;\n";
     oss << "        text-align: center;\n";
@@ -226,20 +262,14 @@ std::string HttpResponse::serve_page()
     oss << "        font-weight: 500;\n";
     oss << "    }\n";
     oss << "\n";
-    oss << "    .detail {\n";
-    oss << "        font-size: 14px;\n";
-    oss << "        color: rgba(255,255,255,0.85);\n";
-    oss << "        margin-bottom: 26px;\n";
-    oss << "    }\n";
-    oss << "\n";
     oss << "    .button {\n";
     oss << "        display: inline-block;\n";
     oss << "        padding: 10px 18px;\n";
     oss << "        border-radius: 8px;\n";
     oss << "        background: #ffffff;\n";
-    oss << "        color: #b91c1c;\n"; // matches card
+    oss << "        color:" << color;
     oss << "        text-decoration: none;\n";
-    oss << "        font-weight: 600;\n";
+    oss << "        font-weight: 800;\n";
     oss << "        transition: all 0.2s ease;\n";
     oss << "    }\n";
     oss << "\n";
