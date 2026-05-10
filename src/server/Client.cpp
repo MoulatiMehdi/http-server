@@ -136,7 +136,9 @@ ClientStatus Client::handleRoute(const RouteResult &res) {
 			return queueResponse(HttpResponse(res.statusCode).to_string()),
 				   WANT_WRITE;
 		case ROUTE_UPLOAD:
-			return queueResponse(HttpResponse(res.statusCode).to_string()),
+			HttpResponse resp(res.statusCode);
+			resp.setHeader("Location", "/");
+			return queueResponse(resp.serve_page()),
 				   WANT_WRITE;
 	}
 }
