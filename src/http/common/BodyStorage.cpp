@@ -24,11 +24,11 @@ int BodyStorage::open_file()
     m_path = m_dir + "/" + generateName();
     m_fd   = open(m_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0600);
     if (m_fd < 0)
-        Logger::error(
-            (m_path + ": BodyStorage::open: " + strerror(errno)).c_str()
-        );
+        Logger::error(("BodyStorage::open_file: " + m_path + " " +
+                       strerror(errno))
+                          .c_str());
     else
-        Logger::info("Open File : " + m_path);
+        Logger::info("BodyStorage: Open File : " + m_path);
     return m_fd;
 }
 
@@ -39,11 +39,11 @@ int BodyStorage::open_file(const std::string &path, bool is_remove)
     m_path      = path;
     m_fd        = open(m_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0600);
     if (m_fd < 0)
-        Logger::error(
-            (m_path + ": BodyStorage::open: " + strerror(errno)).c_str()
-        );
+        Logger::error(("BodyStorage::open_file: " + m_path + " " +
+                       strerror(errno))
+                          .c_str());
     else
-        Logger::info("file openned: " + m_path);
+        Logger::info("BodyStorage: Open File : " + m_path);
 
     return m_fd;
 }
@@ -119,6 +119,7 @@ void BodyStorage::close()
         {
             std::remove(m_path.c_str());
             Logger::info("Remove File: " + m_path);
+            m_path = "";
         }
         ::close(m_fd);
         m_fd = -1;
