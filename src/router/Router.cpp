@@ -5,6 +5,7 @@
 #include "HttpRequest.hpp"
 #include "Status.hpp"
 #include <cerrno>
+#include <cstddef>
 #include <cstring>
 #include <iostream>
 #include <map>
@@ -15,6 +16,7 @@
 
 RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& request)
 {
+    std::cout << "Resolve function opened.\n";
     RouteResult result;
 
     if (!request.good())
@@ -22,33 +24,47 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
 
     result.server = &server;
     std::string path = request.uri().path(); // use funciton
-    // if (path[path.size() - 1] != '/')
-    //     path += "/";
+    std::cout << "request path = " << path << "\n"; 
+    
+    // std::string tmpPath = path;
+    // if (tmpPath[tmpPath.size() - 1] != '/')
+    //     tmpPath += "/";
 
     result.location = matchLocation(server, path); 
+    if (result.location)
+        std::cout << "matched location: " << result.location->path << "\n";
     if (!isMethodAllowed(result, request.method()))
         return errorPage(status::METHOD_NOT_ALLOWED, server.error_pages);
 
     result.path = buildTargetPath(server, result.location, path);
 	std::cout << "path: "<< result.path << "\n";
 
+    std::cout << "start validators..\n";
     if (isRedirect(result))
         return result;
+    std::cout << "[]: isRedirect pass\n";
     if (isCgiRequest(result, path))
         return result;
+    std::cout << "[]: isCgiRequest pass\n";
     if (isUploadRequest(result, request))
         return result;
+    std::cout << "[]: pathExists checkin..\n";
     if (!pathExists(result.path))
         return errorPage(status::NOT_FOUND, server.error_pages);
+    std::cout << "[]: pathExists success\n";
     if (!checkPermission(result.path, permissionFromRequest(result, request.method())))
         return errorPage(status::FORBIDDEN, server.error_pages);
+    std::cout << "[]: checkPermission success\n";
     if (isDeleteMethod(result, request.method()))
         return result;
+    std::cout << "[]: isDeleteMethod pass\n";
     if (handleRegularFile(result))            return result;
+    std::cout << "[]: handleRegularFile pass\n";
     if (isDirectory(result, path) && isIndexed(result))
         return result;
-    else if (result.location && result.location->autoindex == false)
-        return errorPage(status::FORBIDDEN, server.error_pages);
+    // else if (result.location && result.location->autoindex == false)
+    //     return errorPage(status::FORBIDDEN, server.error_pages);
+    std::cout << "[]: isDirectory pass\n";
     return result;
 }
 
@@ -127,7 +143,10 @@ const LocationConfig* Router::matchLocation(const ServerConfig& server,
     return bestLocation;
 }
 
-bool Router::pathMatchesLocation(const std::string& requestPath, const std::string& locationPath) {
+bool Router::pathMatchesLocation(const std::string& reqPath, const std::string& locationPath) {
+    std::string requestPath = reqPath;
+    if (requestPath[requestPath.size() - 1] != '/')
+        requestPath += "/";
     std::size_t len = locationPath.length();
     if (len > requestPath.size())
         return false;
@@ -148,7 +167,10 @@ bool Router::pathMatchesLocation(const std::string& requestPath, const std::stri
 
 std::string Router::extractSuffix(const std::string& locPath, const std::string& reqPath)
 {
-    std::string suffix = reqPath.substr(locPath.size());
+    std::size_t i = 0;
+    if (reqPath[reqPath.size() - 1] != '/')
+        i = 1;
+    std::string suffix = reqPath.substr(locPath.size() - i);
     if (!suffix.empty() && suffix[0] == '/')
         suffix = suffix.substr(1);
     return suffix;

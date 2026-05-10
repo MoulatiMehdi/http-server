@@ -75,11 +75,11 @@ bool Router::isCgiRequest(RouteResult& result, const std::string& path) {
             result.statusCode = status::NOT_FOUND;
             return true; 
         }
-        if (!canExecute(result.path.c_str()) || !canRead(result.path.c_str())) {
-            result.action = ROUTE_ERROR;
-            result.statusCode = status::FORBIDDEN;
-            return true;
-        }
+        // if (!canExecute(result.path.c_str()) || !canRead(result.path.c_str())) {
+        //     result.action = ROUTE_ERROR;
+        //     result.statusCode = status::FORBIDDEN;
+        //     return true;
+        // }
         result.action = ROUTE_CGI;
         result.statusCode = status::OK;
         result.cmd = it->second;
@@ -153,6 +153,8 @@ bool Router::isIndexed(RouteResult& result)
 {
     if (result.action == ROUTE_REDIRECT)
         return true;
+    // if (result.location && !pathMatchesLocation(result.path, result.location->path))
+    //     return true;
     if ((result.location &&
         ((result.location->index.empty()) && result.location->autoindex == true)))
         return false;
@@ -161,9 +163,15 @@ bool Router::isIndexed(RouteResult& result)
 
     IndexTable  index = (result.location && !result.location->index.empty()) ?
                          result.location->index : result.server->index;
-    std::string root  = (result.location && !result.location->root.empty())  ?
-                         result.location->root  : result.server->root;
-    return findIndexFile(result, index, root);
+    // std::string root  = (result.location && !result.location->root.empty())  ?
+    //                      result.location->root  : result.server->root;
+    if (findIndexFile(result, index, result.path))
+        return true;
+    if (!result.location->index.empty()) {
+        result = errorPage(status::NOT_FOUND, result.server->error_pages);
+        return true; 
+    }
+    return false;
 }
 
 bool Router::isDirectory(RouteResult& result, std::string& requestPath) {
