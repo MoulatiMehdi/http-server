@@ -102,7 +102,7 @@ void HttpRequestParser::parse_body_by_chunk(Buffer &buffer)
                 if (ch == LF)
                 {
                     if (m_request.body().size() + m_chunk_max_size >
-                        m_request.config.client_max_body_size)
+                        m_request.maxBodySize())
                     {
                         return setError(error::body_too_large);
                     }

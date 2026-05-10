@@ -5,6 +5,7 @@
 #include "Method.hpp"
 #include "Uri.hpp"
 #include <cctype>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <sstream>
@@ -19,7 +20,8 @@ HttpRequest::HttpRequest(const ServerConfig &config)
       m_uri(),
       m_method(method::UNKNOWN),
       m_parser(*this),
-      config(config)
+      m_max_body_size(0),
+      m_server_config(config)
 {
 }
 
@@ -63,12 +65,22 @@ HttpRequestParser &HttpRequest::parser()
     return m_parser;
 }
 
+void HttpRequest::setMaxBodySize(size_t size)
+{
+    m_max_body_size = size;
+}
+
+size_t HttpRequest::maxBodySize() const
+{
+    return m_max_body_size;
+}
+
 std::string HttpRequest::to_string() const
 {
     std::ostringstream oss("");
 
     oss << m_method << " " << m_uri.origin() << " HTTP/" << version_major()
-        << "." << version_minor() << " \n";
+        << "." << version_minor();
     return oss.str();
 }
 

@@ -6,6 +6,7 @@
 #include "HttpRequestParser.hpp"
 #include "Method.hpp"
 #include "Uri.hpp"
+#include <cstddef>
 #include <string>
 
 class HttpRequest : public HttpMessage
@@ -14,9 +15,10 @@ class HttpRequest : public HttpMessage
     Uri               m_uri; // uri
     Method            m_method;
     HttpRequestParser m_parser;
+    size_t            m_max_body_size;
 
   public:
-    const ServerConfig &config;
+    const ServerConfig &m_server_config;
     HttpRequest(const ServerConfig &config);
     ~HttpRequest();
 
@@ -27,7 +29,9 @@ class HttpRequest : public HttpMessage
 
     Uri       &uri();
     const Uri &uri() const;
+    size_t     maxBodySize() const;
 
+    void setMaxBodySize(size_t size);
     void setMethod(std::string &method);
     void setMethod(Method method);
     void setUri(const std::string &uri);

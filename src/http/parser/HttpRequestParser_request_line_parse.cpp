@@ -475,7 +475,11 @@ void HttpRequestParser::parse_request_line(Buffer &buff)
                 break;
             case RES_REQUEST_LINE_DONE:
                 Logger::info(m_request.to_string());
-                route = Router::resolve(m_request.config, m_request);
+                route = Router::resolve(m_request.m_server_config, m_request);
+                if(route.location == NULL)
+                    m_request.setMaxBodySize(route.server->client_max_body_size);
+                else 
+                    m_request.setMaxBodySize(route.location->client_max_body_size);
                 Router::printRouteResult(route);
                 m_parsed = 0;
                 m_phase  = PHASE_HEADERS;

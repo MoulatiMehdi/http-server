@@ -104,6 +104,6 @@ void HttpRequestParser::process_content_length()
         return;
     }
     m_message.setContentLength(content_length);
-    if (m_request.config.client_max_body_size < m_request.content_length())
+    if (m_request.maxBodySize() < m_request.content_length())
         return setError(error::body_too_large);
 }
