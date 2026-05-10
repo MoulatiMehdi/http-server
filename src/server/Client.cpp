@@ -130,7 +130,7 @@ ClientStatus Client::handleRoute(const RouteResult &res) {
 		case ROUTE_ERROR:
 			return serveErr(res.statusCode), WANT_WRITE;
 		case ROUTE_CGI:
-			return initCgi(res.path), INIT_CGI;
+			return initCgi(res.cmd, res.path), INIT_CGI;
 		case ROUTE_REDIRECT:
 			return serveRedir(res.path, res.statusCode), WANT_WRITE;
 		case ROUTE_DELETE:
@@ -182,9 +182,9 @@ void Client::serveSessionDemo() {
 	return queueResponse(resp.to_string() + body);
 }
 
-ClientStatus Client::initCgi(const std::string &path) {
+ClientStatus Client::initCgi(const std::string &cmd, const std::string &path) {
 	try {
-		_cgi = new Cgi(path, _req);
+		_cgi = new Cgi(cmd, path, _req);
 	} catch (const std::exception &e) {
 		Logger::error(std::string("Cgi: ") + e.what());
 		return serveErr(status::INTERNAL_SERVER_ERROR), WANT_WRITE;

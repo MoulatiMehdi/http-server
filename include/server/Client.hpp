@@ -23,7 +23,7 @@ class Client {
 
    private:
 	ClientStatus handleRoute(const RouteResult &routeResult);
-	ClientStatus initCgi(const std::string &path);
+	ClientStatus initCgi(const std::string &cmd, const std::string &path);
 
    public:
 	void queueResponse(const std::string &raw);

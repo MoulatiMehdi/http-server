@@ -16,7 +16,7 @@
 #include "Status.hpp"
 #include "helper.hpp"
 
-Cgi::Cgi(const std::string &script, const HttpRequest &req)
+Cgi::Cgi(const std::string &cmd, const std::string &script, const HttpRequest &req)
 	: _in(-1),
 	  _out(-1),
 	  _pid(-1),
@@ -89,9 +89,9 @@ Cgi::Cgi(const std::string &script, const HttpRequest &req)
 			env[i] = strdup(envVec[i].c_str());
 		env[envVec.size()] = NULL;
 
-		char *argv[] = {const_cast<char *>(script.c_str()), NULL};
+		char *argv[] = {const_cast<char *>(cmd.c_str()), const_cast<char *>(script.c_str()), NULL};
 
-		execve(script.c_str(), argv, env);
+		execve(cmd.c_str(), argv, env);
 
 		for (size_t i = 0; i < envVec.size(); ++i)
 			free(env[i]);

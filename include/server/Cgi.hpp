@@ -13,7 +13,8 @@ enum CgiStatus { CGI_OK, CGI_DONE, CGI_ERROR };
 
 class Cgi {
    public:
-	Cgi(const std::string &script, const HttpRequest &req);
+	Cgi(const std::string &cmd, const std::string &script,
+		const HttpRequest &req);
 	~Cgi();
 
    private:
@@ -24,7 +25,6 @@ class Cgi {
 	CgiStatus _finalize();
 
 	CgiStatus _fail(status::Status code);
-
 
    public:
 	CgiStatus onReadable();
