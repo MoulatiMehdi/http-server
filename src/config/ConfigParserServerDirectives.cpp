@@ -1,4 +1,5 @@
 #include "ConfigParser.hpp"
+#include "Tokenizer.hpp"
 #include <cstdlib>
 
 void ConfigParser::handleServListen(ServerConfig& server) {
@@ -64,13 +65,15 @@ void ConfigParser::handleServErrorPage(ServerConfig& server) {
             advance();
             continue ;
         }
-        if (isValidFilePath(_tokens[_i].value)) {
-            path = _tokens[_i].value;
-            advance();
-            break ;
-        }
-        else
+        // if (isValidPath(_tokens[_i].value)) {
+        if (_tokens[_i].type != TOK_WORD)
             throwError("error_pages: expected <codes> and <path>");
+        path = _tokens[_i].value;
+        advance();
+        break ;
+        // }
+        // else
+        //     throwError("error_pages: expected <codes> and <path>");
     }
     if (codes.size() < 1)
         throwError("error_pages: expected <code>");

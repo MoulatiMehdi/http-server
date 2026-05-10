@@ -8,8 +8,8 @@ std::string ConfigParser::parseRootValue() {
 
     const std::string path = _tokens[_i].value;
 
-    if (!isValidPath(path))
-        throwError("root: path must be absolute (start and end with '/')");
+    // if (!isValidPath(path))
+    //     throwError("root: path must be absolute (start and end with '/')");
 
     advance();
     expect(TOK_SEMICOLON, "root: expected ';' after " + path, true);

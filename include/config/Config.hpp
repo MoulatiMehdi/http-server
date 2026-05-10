@@ -33,7 +33,7 @@ struct LocationConfig {
     LocationConfig()
         : root(""),
           autoindex(false),
-          client_max_body_size(0),
+          client_max_body_size(1024 * 1024),
           redirect_code(0) {}
 };
 
