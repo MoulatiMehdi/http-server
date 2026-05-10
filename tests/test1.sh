@@ -454,4 +454,5 @@ else
 fi
 echo ""
 
+rm -rf www/*.txt
 exit $FAIL
