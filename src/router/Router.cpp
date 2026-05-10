@@ -159,9 +159,8 @@ std::string Router::buildTargetPath(const ServerConfig& server,
     std::string suffix = requestPath;
     std::string root = server.root;
 
-    if (location != NULL) {
-        if (!location->root.empty())
-            root = location->root;
+    if (location != NULL && !location->root.empty()) {
+        root = location->root;
         suffix = extractSuffix(location->path, requestPath);
     }
     else

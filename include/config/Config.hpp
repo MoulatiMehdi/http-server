@@ -31,7 +31,8 @@ struct LocationConfig {
     std::string redirect_url;                  // redirect target            return
 
     LocationConfig()
-        : autoindex(false),
+        : root(""),
+          autoindex(false),
           client_max_body_size(0),
           redirect_code(0) {}
 };
