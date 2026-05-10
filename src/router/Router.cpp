@@ -22,8 +22,8 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
 
     result.server = &server;
     std::string path = request.uri().path(); // use funciton
-    if (path[path.size() - 1] != '/')
-        path += "/";
+    // if (path[path.size() - 1] != '/')
+    //     path += "/";
 
     result.location = matchLocation(server, path); 
     if (!isMethodAllowed(result, request.method()))
