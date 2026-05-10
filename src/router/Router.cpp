@@ -168,7 +168,7 @@ bool Router::pathMatchesLocation(const std::string& reqPath, const std::string& 
 std::string Router::extractSuffix(const std::string& locPath, const std::string& reqPath)
 {
     std::size_t i = 0;
-    if (reqPath[reqPath.size() - 1] != '/')
+    if (!locPath.empty() && reqPath[reqPath.size() - 1] != '/')
         i = 1;
     std::string suffix = reqPath.substr(locPath.size() - i);
     if (!suffix.empty() && suffix[0] == '/')
@@ -188,7 +188,7 @@ std::string Router::buildTargetPath(const ServerConfig& server,
         suffix = extractSuffix(location->path, requestPath);
     }
     else
-        suffix = extractSuffix("", requestPath);
+        suffix = extractSuffix("/", requestPath);
 
     if (!root.empty() && root[root.size() - 1] != '/')
         root += "/";
