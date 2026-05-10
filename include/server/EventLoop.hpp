@@ -9,9 +9,9 @@
 #include <fcntl.h>
 
 #include "ClientTable.hpp"
+#include "SessionManager.hpp"
 #include "Socket.hpp"
 #include "SocketTable.hpp"
-#include "SessionManager.hpp"
 
 #define MAX_EVENTS 128
 #define MAX_CLIENTS 1000
@@ -48,6 +48,7 @@ class EventLoop {
    public:
 	void addSockets();
 	void remSockets();
+	void handleEvent(struct epoll_event &ev);
 	void loop();
 
    private:
