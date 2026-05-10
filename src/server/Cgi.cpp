@@ -14,6 +14,7 @@
 #include "HttpResponse.hpp"
 #include "Logger.hpp"
 #include "Method.hpp"
+#include "Router.hpp"
 #include "Status.hpp"
 #include "helper.hpp"
 
@@ -43,6 +44,11 @@ Cgi::Cgi(const std::string &cmd, const std::string &script,
 	if (_pid < 0) throw std::runtime_error("fork failed");
 
 	if (_pid == 0) {
+		std::string dir = Router::getParentDirectory(script);
+		std::string fileName = script.substr(dir.size() + 1);
+		chdir(dir.c_str());
+		Logger::info("CWD: " + dir);
+		Logger::info("File name: " + fileName);
 		dup2(in_pipe[0], STDIN_FILENO);
 		dup2(out_pipe[1], STDOUT_FILENO);
 
@@ -89,7 +95,7 @@ Cgi::Cgi(const std::string &cmd, const std::string &script,
 		env[envVec.size()] = NULL;
 
 		char *argv[] = {const_cast<char *>(cmd.c_str()),
-						const_cast<char *>(script.c_str()), NULL};
+						const_cast<char *>(fileName.c_str()), NULL};
 
 		Logger::info("Cgi: " + cmd + " " + script);
 		execve(cmd.c_str(), argv, env);

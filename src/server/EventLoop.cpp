@@ -27,7 +27,8 @@ void printEpollEvents(uint32_t events) {
 	std::cout << std::endl;
 }
 
-EventLoop::EventLoop(SocketTable &_socketTable) : _sockTable(_socketTable) {
+EventLoop::EventLoop(SocketTable &_socketTable)
+	: _sockTable(_socketTable), _connectionLimit(false) {
 	_epollfd = epoll_create(1);
 	if (_epollfd == ERROR) exitError("epoll_create");
 	Logger::info("Epoll created");
@@ -66,8 +67,8 @@ void EventLoop::disconnectClient(const Client *cli) {
 	if (epoll_ctl(_epollfd, EPOLL_CTL_DEL, cliFd, NULL) == ERROR)
 		Logger::error("epoll_ctl: EPOLL_CTL_DEL " +
 					  std::string(strerror(errno)));
-	_cliTable.remove(cliFd);
 	Logger::info("Client " + cli->getRequestUri() + ": disconnected");
+	_cliTable.remove(cliFd);
 }
 
 int EventLoop::handleStatus(Client *client, ClientStatus status) {
@@ -195,11 +196,13 @@ void EventLoop::registerCgiPipes(const Client *client) {
 }
 
 void EventLoop::addSockets() {
+	_connectionLimit = false;
 	for (size_t i = 0; i < _sockTable.size(); ++i)
 		epollAdd(_sockTable[i]->getFd(), EPOLLIN);
 }
 
 void EventLoop::remSockets() {
+	_connectionLimit = true;
 	for (size_t i = 0; i < _sockTable.size(); ++i)
 		epoll_ctl(_epollfd, EPOLL_CTL_DEL, _sockTable[i]->getFd(), NULL);
 }
@@ -211,7 +214,7 @@ void EventLoop::loop() {
 
 	while (true) {
 		if (_cliTable.size() >= MAX_CLIENTS) remSockets();
-		else addSockets();
+		else if (_connectionLimit) addSockets();
 		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, EPOLL_TIMEOUT_MS);
 		for (int n = 0; n < nfds; ++n) {
 			sockIndex = _sockTable.getSocket(events[n].data.fd);

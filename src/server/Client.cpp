@@ -1,6 +1,5 @@
 #include "Client.hpp"
 #include <fcntl.h>
-#include <netinet/in.h>
 #include <sys/stat.h>
 #include <cstdio>
 #include <cstdlib>
@@ -31,7 +30,6 @@ Client::~Client() {
 	if (_fd >= 0) close(_fd);
 	if (_file) delete _file;
 	if (_cgi) delete _cgi;
-
 }
 
 void Client::queueResponse(const std::string &raw) {
@@ -213,7 +211,7 @@ ClientStatus Client::onReadable() {
 	int n = read(_fd, buff, sizeof(buff));
 	if (n <= 0) return DISCONNECT;
 
-	_last_activity = time(NULL);
+	_last_activity = std::time(NULL);
 	_req.parse(buff, n);
 	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
 	if (!_req.complete()) return OK;
@@ -248,5 +246,7 @@ ClientStatus Client::onWritable() {
 time_t Client::lastActivity() const { return _last_activity; }
 int Client::getFd() const { return _fd; }
 Cgi *Client::getCgi() const { return _cgi; }
-std::string Client::getRequestUri() const { return _req.uri().path(); }
+std::string Client::getRequestUri() const {
+	return to_string(_req.method()) + " " + _req.uri().path();
+}
 bool Client::cgiPending() const { return _cgi != NULL; }

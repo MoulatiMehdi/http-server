@@ -58,6 +58,7 @@ class EventLoop {
 	int _epollfd;
 
 	std::map<int, int> _pipe_to_client;
+	bool _connectionLimit;
 };
 
 #endif

@@ -21,6 +21,7 @@ public:
 
     // debugging
     static void printRouteResult(const RouteResult& r);
+    static std::string getParentDirectory(const std::string &path);
 
 private:
     Router();
@@ -69,7 +70,6 @@ private:
  
     static bool putFileOnDir(const std::string &src, const std::string &dest);   
 
-    static std::string getParentDirectory(const std::string &path);
 
     static bool deleteFile(const std::string& path, status::Status& code);
     // Error
