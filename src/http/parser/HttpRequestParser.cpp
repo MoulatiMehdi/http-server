@@ -123,7 +123,7 @@ void HttpRequestParser::parse_headers(Buffer &buff)
                 break;
             case RES_HEADER_DONE:
                 process_headers();
-                Logger::info("Request:\n"+m_request.to_string());
+                Logger::info("\n\033[1;90m"+m_request.to_string()+"\033[0m\n");
                 return;
             case RES_HEADER_LINE_DONE:
                 process_header_line();

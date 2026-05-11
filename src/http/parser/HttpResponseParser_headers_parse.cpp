@@ -1,7 +1,6 @@
 #include "HttpParserState.hpp"
 #include "HttpResponse.hpp"
 #include "HttpResponseParser.hpp"
-#include "Logger.hpp"
 
 
 void HttpResponseParser::parse_headers(Buffer &buff)
