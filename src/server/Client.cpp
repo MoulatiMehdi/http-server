@@ -41,6 +41,7 @@ void Client::queueResponse(HttpResponse &resp) {
 	_wrbuf.clear();
 	if (_file) resp.setContentLength(_file->size());
 	std::string raw = resp.to_string();
+    Logger::info("\n\033[1;90m"+raw+"\033[0m\n");
 	_wrbuf.insert(_wrbuf.end(), raw.begin(), raw.end());
 }
 
@@ -249,6 +250,6 @@ time_t Client::lastActivity() const { return _last_activity; }
 int Client::getFd() const { return _fd; }
 Cgi *Client::getCgi() const { return _cgi; }
 std::string Client::getRequestUri() const {
-	return to_string(_req.method()) + " " + _req.uri().path();
+	return to_string(_req.method()) + " " + _req.uri().origin();
 }
 bool Client::cgiPending() const { return _cgi != NULL; }

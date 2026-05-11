@@ -1,5 +1,6 @@
 #include "Cgi.hpp"
 #include <fcntl.h>
+#include <string>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <cerrno>
@@ -62,18 +63,25 @@ Cgi::Cgi(const std::string &cmd, const std::string &script,
 
 		envVec.push_back("REQUEST_METHOD=" + to_string(_req.method()));
 		envVec.push_back("QUERY_STRING=" + _req.uri().query());
-		envVec.push_back("PATH_INFO=");
+		envVec.push_back("PATH_INFO=/");
 		envVec.push_back("SCRIPT_NAME=" + _req.uri().path());  //
 		envVec.push_back("SERVER_NAME=localhost");
 		envVec.push_back("SERVER_PROTOCOL=HTTP/1.1");
 		envVec.push_back("GATEWAY_INTERFACE=CGI/1.1");
 
+        std::string full_cmd;
 		std::string contentType = _req.getHeader("Content-Type")->second;
 		std::string contentLength = _req.getHeader("Content-Length")->second;
 		if (!contentType.empty())
+        {
 			envVec.push_back("CONTENT_TYPE=" + contentType);
+            full_cmd+= "CONTENT_TYPE='" + contentType + "' ";
+        }
 		if (!contentLength.empty())
+        {
 			envVec.push_back("CONTENT_LENGTH=" + contentLength);
+            full_cmd+= "CONTENT_LENGTH=" + contentLength + "' ";
+        }
 
 		const HttpMessage::Headers &hdrs = _req.headers();
 		for (HttpMessage::const_iterator it = hdrs.begin(); it != hdrs.end();
@@ -86,6 +94,7 @@ Cgi::Cgi(const std::string &cmd, const std::string &script,
 				if (name[i] == '-') envName += '_';
 				else envName += std::toupper(name[i]);
 			}
+            full_cmd+= envName + "='" + it->second + "' ";
 			envVec.push_back(envName + "=" + it->second);
 		}
 
@@ -97,7 +106,9 @@ Cgi::Cgi(const std::string &cmd, const std::string &script,
 		char *argv[] = {const_cast<char *>(cmd.c_str()),
 						const_cast<char *>(fileName.c_str()), NULL};
 
-		Logger::info("Cgi: " + cmd + " " + script);
+        full_cmd +=" " + cmd;
+        full_cmd +=" " + fileName;
+		Logger::info(full_cmd);
 		execve(cmd.c_str(), argv, env);
 
 		for (size_t i = 0; i < envVec.size(); ++i)
@@ -151,7 +162,11 @@ CgiStatus Cgi::_finalize() {
 	close(_out);
 	_out = -1;
 
-	if (!_waitChild()) return _fail(status::BAD_GATEWAY);
+	if (!_waitChild())
+    {
+        Logger::error(std::string("\033[31mprocess failed\033[0m: ") + strerror(errno));
+        return _fail(status::BAD_GATEWAY);
+    }
 
 	_resp.setStatus(status::OK);
 	_resp.setContentLength(_resp.body().size());
@@ -164,9 +179,10 @@ bool Cgi::_waitChild() {
 
 	if (ret == 0) {
 		kill(_pid, SIGKILL);
-		waitpid(_pid, NULL, 0);
+		ret = waitpid(_pid, NULL, 0);
+        Logger::error("\033[32m return " + toString(ret));
 		_pid = -1;
-		return false;
+		return true;
 	}
 
 	_pid = -1;
@@ -182,14 +198,16 @@ CgiStatus Cgi::_consume(const char *buff, int n) {
 	try {
 		if (!_resp.complete()) {
 			_resp.parse(buff, n);
-			if (!_resp.parser().good()) throw std::runtime_error("");
+			if (!_resp.parser().good()) throw std::runtime_error("Parser Error");
 			if (_resp.complete()) {
 				_resp.body().append(buff + _resp.gcount(), n - _resp.gcount());
 			}
 		} else {
 			_resp.body().append(buff, n);
 		}
-	} catch (...) { return _fail(status::BAD_GATEWAY); }
+	} catch (std::exception& e) { 
+        Logger::error(e.what());
+        return _fail(status::BAD_GATEWAY); }
 	return CGI_OK;
 }
 
