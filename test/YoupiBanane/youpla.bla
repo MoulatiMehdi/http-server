@@ -1,13 +1,14 @@
 import sys
-import os
 
 end="\r\n"
 
 print("Content-Type: text/plain; charset=utf-8;",end=end)
 print("",end=end)
+
 while True:
     chunk = sys.stdin.read(1024)
+
     if not chunk:
         break
-    print(chunk.upper(), end="",file=sys.stdout)
 
+    print(chunk.upper(), end="")
