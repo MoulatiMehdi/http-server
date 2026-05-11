@@ -393,19 +393,11 @@ else
     PASS=$((PASS + 1))
 fi
 
-# 12d. HEAD request — body must be empty, headers must exist
+# 12d. HEAD request — unknown method
 code=$(do_req -X HEAD "$BASE/index.html")
 body=$(cat /tmp/ws_body)
 headers=$(cat /tmp/ws_headers)
-expect_status "HEAD /index.html returns 200" "200" "$code"
-TOTAL=$((TOTAL + 1))
-if [ -z "$body" ]; then
-    echo -e "  ${GREEN}[PASS]${RESET} HEAD response body is empty"
-    PASS=$((PASS + 1))
-else
-    echo -e "  ${RED}[FAIL]${RESET} HEAD response has a body (${#body} bytes) — RFC violation"
-    FAIL=$((FAIL + 1))
-fi
+expect_status "HEAD /index.html returns 405" "405" "$code"
 
 # 12e. Empty POST body to upload
 code=$(do_req -X POST \

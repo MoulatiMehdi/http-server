@@ -3,6 +3,7 @@ compile_flags.txt
 *.o
 www/*.txt
 www/upload/*.txt
+www/post-only/*.txt
 compile_commands.json
 .cache/
 webserv

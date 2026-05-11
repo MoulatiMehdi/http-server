@@ -41,7 +41,7 @@ void Client::queueResponse(HttpResponse &resp) {
 	_wrbuf.clear();
 	if (_file) resp.setContentLength(_file->size());
 	std::string raw = resp.to_string();
-    Logger::info("\n\033[1;90m"+raw+"\033[0m\n");
+	Logger::info("\n\033[1;90m" + raw + "\033[0m\n");
 	_wrbuf.insert(_wrbuf.end(), raw.begin(), raw.end());
 }
 
@@ -139,8 +139,7 @@ ClientStatus Client::handleRoute(const RouteResult &res) {
 		case ROUTE_UPLOAD:
 			HttpResponse resp(res.statusCode);
 			resp.setHeader("Location", "/");
-			return queueResponse(resp.serve_page()),
-				   WANT_WRITE;
+			return queueResponse(resp.serve_page()), WANT_WRITE;
 	}
 }
 
@@ -230,12 +229,14 @@ ClientStatus Client::onWritable() {
 		n = write(_fd, _wrbuf.data(), _wrbuf.size());
 		if (n <= 0) return DISCONNECT;
 
+		_last_activity = std::time(NULL);
 		_wrbuf.erase(_wrbuf.begin(), _wrbuf.begin() + n);
 		return OK;
 	}
 
 	if (_file) {
 		if (_file->sendChunk(_fd) == ERROR) return DISCONNECT;
+		_last_activity = std::time(NULL);
 		if (_file->done()) {
 			delete _file;
 			_file = NULL;
