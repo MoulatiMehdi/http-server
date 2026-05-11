@@ -61,7 +61,7 @@ std::string HttpResponse::to_string()
     oss << "HTTP/" << version_major() << "." << version_minor() << " ";
     oss << status() << " " << phrase_reason(status()) << "\r\n";
     Headers::const_iterator it;
-    if (getHeader("content-length") == m_headers.end())
+    if (getHeader("content-length") == m_headers.end() && m_content_length != 0)
         setHeader("content-length", toString(m_content_length));
     for (size_t i = 0; i < size; i++)
     {

@@ -70,7 +70,10 @@ void HttpRequestParser::parse(const char *c_str, size_t len)
                 break;
         }
         if (m_request.complete() || !good())
+        {
+            m_request.body().close();
             return;
+        }
     }
 }
 

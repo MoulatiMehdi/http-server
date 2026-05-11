@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <fcntl.h>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -118,7 +119,7 @@ BodyStorage::~BodyStorage()
 void BodyStorage::remove()
 {
     if (!m_is_remove || m_path.empty())
-        return ;
+        return;
     std::remove(m_path.c_str());
     Logger::info("Remove File: " + m_path);
     m_path = "";
@@ -139,6 +140,7 @@ const std::string BodyStorage::generateName()
     gettimeofday(&tv, NULL);
 
     std::ostringstream iss;
-    iss << tv.tv_sec << "-" << tv.tv_usec;
+    iss << "webserv-" << tv.tv_sec << "-" << std::setfill('0') << std::setw(6)
+        << tv.tv_usec;
     return iss.str();
 }
