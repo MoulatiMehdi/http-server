@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <exception>
 #include "Cgi.hpp"
 #include "Client.hpp"
 #include "ClientTable.hpp"
@@ -89,11 +90,8 @@ void EventLoop::processClients(struct epoll_event &ev) {
 		disconnectClient(client);
 		return;
 	}
-	if (ev.events & EPOLLIN) {
-		status = client->onReadable();
-	} else if (ev.events & EPOLLOUT) {
-		status = client->onWritable();
-	}
+	if (ev.events & EPOLLIN) status = client->onReadable();
+	else if (ev.events & EPOLLOUT) status = client->onWritable();
 
 	if (handleStatus(client, status) == -1) disconnectClient(client);
 	return;
@@ -207,24 +205,35 @@ void EventLoop::remSockets() {
 		epoll_ctl(_epollfd, EPOLL_CTL_DEL, _sockTable[i]->getFd(), NULL);
 }
 
+void EventLoop::handleEvent(struct epoll_event &ev) {
+	try {
+		int sockIndex;
+		sockIndex = _sockTable.getSocket(ev.data.fd);
+		if (sockIndex >= 0) handleNewConnections(_sockTable[sockIndex]);
+		else if (_cliTable.get(ev.data.fd) != NULL) processClients(ev);
+		else if (_pipe_to_client.find(ev.data.fd) != _pipe_to_client.end())
+			processCgi(ev);
+	} catch (const std::exception &e) {
+		Client *cli = _cliTable.get(ev.data.fd);
+		if (cli) {
+			Logger::error("handleEvent: " + cli->getRequestUri() + " " +
+						  std::string(e.what()));
+			cli->serveErr(status::INTERNAL_SERVER_ERROR);
+			handleStatus(cli, WANT_WRITE);
+		}
+	}
+}
+
 void EventLoop::loop() {
 	int nfds;
 	struct epoll_event events[MAX_EVENTS];
-	int sockIndex;
 
 	while (true) {
 		if (_cliTable.size() >= MAX_CLIENTS) remSockets();
 		else if (_connectionLimit) addSockets();
 		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, EPOLL_TIMEOUT_MS);
-		for (int n = 0; n < nfds; ++n) {
-			sockIndex = _sockTable.getSocket(events[n].data.fd);
-			if (sockIndex >= 0) handleNewConnections(_sockTable[sockIndex]);
-			else if (_cliTable.get(events[n].data.fd) != NULL)
-				processClients(events[n]);
-			else if (_pipe_to_client.find(events[n].data.fd) !=
-					 _pipe_to_client.end())
-				processCgi(events[n]);
-			runMaintenance();
-		}
+		for (int n = 0; n < nfds; ++n)
+			handleEvent(events[n]);
+		runMaintenance();
 	}
 }

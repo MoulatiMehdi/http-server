@@ -1,5 +1,6 @@
 #include "Socket.hpp"
 #include <sstream>
+#include <stdexcept>
 
 Socket::Socket(const ServerConfig &servConf, const ListenConfig &listenConf)
 	: _servConf(servConf),
@@ -7,7 +8,7 @@ Socket::Socket(const ServerConfig &servConf, const ListenConfig &listenConf)
 	  _port(listenConf.port),
 	  _ip(listenConf.host) {
 	_fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (_fd < 0) exitError("socket");
+	if (_fd < 0) throw std::runtime_error("Socket: socket():");
 }
 
 Socket::~Socket() {
@@ -17,12 +18,9 @@ void Socket::configureSocket() {
 	int opt = 1;
 
 	makeNonBlocking(_fd);
-	if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt,
-				   sizeof(opt)))
-		exitError("setsocket");
+	if (setsockopt(_fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)))
+		throw std::runtime_error("configureSocket: setsockopt():");
 }
-#include <arpa/inet.h>
-#include <netinet/in.h>
 
 std::string ipToString(in_addr_t addr) {
 	char buffer[INET_ADDRSTRLEN];
@@ -58,11 +56,11 @@ void Socket::configureAddress() {
 
 void Socket::bindSocket() {
 	if (bind(_fd, (struct sockaddr *)&_addr, sizeof(_addr)) < 0)
-		exitError("bind");
+		throw std::runtime_error("bindSocket: bind():");
 }
 
 void Socket::startListening() {
-	if (listen(_fd, QUEUE_SIZE) < 0) exitError("listen");
+	if (listen(_fd, QUEUE_SIZE) < 0) throw std::runtime_error("startListening: listen():");
 }
 
 const ServerConfig &Socket::getServConf() { return _servConf; }

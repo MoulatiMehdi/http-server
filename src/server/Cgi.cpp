@@ -103,7 +103,7 @@ Cgi::Cgi(const std::string &cmd, const std::string &script,
 		for (size_t i = 0; i < envVec.size(); ++i)
 			free(env[i]);
 		delete[] env;
-		_exit(EXIT_FAILURE);
+		std::exit(EXIT_FAILURE);
 	}
 
 	_in = in_pipe[1];
