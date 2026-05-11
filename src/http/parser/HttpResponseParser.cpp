@@ -23,7 +23,7 @@ size_t HttpResponseParser::gcount() const
 
 void HttpResponseParser::parse(const char *c_str, size_t len)
 {
-    if (m_response.complete() || !m_response.good())
+    if (m_response.complete() || !good())
         return;
     Buffer buffer(c_str, len);
     while (!buffer.empty())

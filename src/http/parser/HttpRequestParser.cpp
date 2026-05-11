@@ -69,7 +69,7 @@ void HttpRequestParser::parse(const char *c_str, size_t len)
                 parse_body(buffer);
                 break;
         }
-        if (m_request.complete() || !good())
+        if (m_request.complete() || !m_request.good())
         {
             m_request.body().close();
             return;
@@ -131,7 +131,7 @@ void HttpRequestParser::parse_headers(Buffer &buff)
             case RES_HDR_CONTINUE:
                 break;
         }
-        if (!good() || m_message.complete())
+        if (!m_message.good() || m_message.complete())
             return;
     }
 }
