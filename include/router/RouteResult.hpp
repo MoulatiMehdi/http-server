@@ -26,7 +26,8 @@ struct RouteResult {
     std::string           path; // /bin/pythoe3 index.py
     status::Status        statusCode;
     std::string           type;
-    std::string cmd;  // /bin/pyhton3;
+    std::string           cmd;  // /bin/pyhton3;
+    std::string           pathInfo;
 
     RouteResult()
         : server(NULL),

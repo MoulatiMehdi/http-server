@@ -16,6 +16,8 @@ struct ListenConfig {
 
 typedef std::vector<std::string> IndexTable;
 
+typedef std::map<std::string, std::string> string_map ;
+
 struct LocationConfig {
     std::string path;                          // "/" TODO: already mandatory
     std::vector<Method> allowed_methods;       // GET POST DELETE TODO: at least one!
@@ -24,7 +26,7 @@ struct LocationConfig {
     std::vector<std::string> index;            // e.g. index.html
     bool autoindex;                            // true/false
 
-    std::map<std::string, std::string> cgi;    // e.g. cgi[".py"] = "/usr/bin/python3";
+    string_map cgi;    // e.g. cgi[".py"] = "/usr/bin/python3";
 
     std::size_t client_max_body_size;
     int redirect_code;                         // 0 => none, else 301/302... return

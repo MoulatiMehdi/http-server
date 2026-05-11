@@ -60,34 +60,96 @@ bool Router::isRedirect(RouteResult& result)
     return true;
 }
 
-bool Router::isCgiRequest(RouteResult& result, const std::string& path) {
+// /hello/test.py/testof -> /hello/test.py & /testof
+
+// std::vector<std::string> getAllExtention(const std::map<std::string, std::string> cgi) {
+//     std::map<std::string, std::string>::iterator it;
+//     std::vector<std::string> allExt;
+//
+//     for (it = cgi.begin(); it != cgi.end(); ++it) {
+//         allExt.push_back(it->first);
+//     }
+//     return allExt;
+// }
+
+std::size_t getExtentionPos(const std::string &path, const std::string &ext)
+{
+    std::size_t i = path.find(ext + "/");
+    
+    if (i != std::string::npos)
+        return i;
+    std::cout << "last of = " << path.substr(path.size()- ext.size()) << "\n";
+    i = path.rfind(ext);
+    if (std::string::npos == i)
+        return i;
+    if (path.size() == i + ext.size())
+        return i;
+    return std::string::npos;
+}
+
+bool Router::isCgiRequest(RouteResult& result, const std::string& path)
+{
     if (result.location == NULL || result.location->cgi.empty())
         return false;
 
-    std::string ext = getExtension(path);
-    if (ext.empty())
-        return false;
-    ext = "." + ext;
-    std::map<std::string, std::string>::const_iterator it = result.location->cgi.find(ext);
-    if (it != result.location->cgi.end()) {
-        if (!isFile(result.path.c_str())) {
-            result.action = ROUTE_ERROR;
-            result.statusCode = status::NOT_FOUND;
-            return true; 
-        }
-        // if (!canExecute(result.path.c_str()) || !canRead(result.path.c_str())) {
-        //     result.action = ROUTE_ERROR;
-        //     result.statusCode = status::FORBIDDEN;
-        //     return true;
-        // }
-        result.action = ROUTE_CGI;
-        result.statusCode = status::OK;
-        result.cmd = it->second;
-        return true;
-    }
+    string_map::const_iterator it;
+    string_map::const_iterator itBest;
+    const string_map &cgi = result.location->cgi;
 
-    return false;
+    std::size_t min = std::string::npos;
+
+    for (it = cgi.begin(); it != cgi.end(); ++it) {
+        std::size_t i = getExtentionPos(path, it->first);
+        if (min > i) {
+            min = i;
+            itBest = it;
+        }
+    }
+    if (min == std::string::npos)
+        return false;
+    min += itBest->first.size();
+    result.path = path.substr(0, min); // TODO: Add as an attribute to RouteResult
+    if (min == result.path.size())
+        result.pathInfo = path.substr(min);
+    if (!isFile(result.path)) {
+        result.action = ROUTE_ERROR;
+        result.statusCode = status::NOT_FOUND;
+        return true; 
+    }
+    result.cmd = itBest->second;
+    result.action = ROUTE_CGI;
+    result.statusCode = status::OK;
+    return true;
 }
+//
+// bool Router::isCgiRequest(RouteResult& result, const std::string& path) {
+//     if (result.location == NULL || result.location->cgi.empty())
+//         return false;
+//
+//     std::string ext = getExtension(path);
+//     if (ext.empty())
+//         return false;
+//     ext = "." + ext;
+//     std::map<std::string, std::string>::const_iterator it = result.location->cgi.find(ext);
+//     if (it != result.location->cgi.end()) {
+//         if (!isFile(result.path.c_str())) {
+//             result.action = ROUTE_ERROR;
+//             result.statusCode = status::NOT_FOUND;
+//             return true; 
+//         }
+//         // if (!canExecute(result.path.c_str()) || !canRead(result.path.c_str())) {
+//         //     result.action = ROUTE_ERROR;
+//         //     result.statusCode = status::FORBIDDEN;
+//         //     return true;
+//         // }
+//         result.action = ROUTE_CGI;
+//         result.statusCode = status::OK;
+//         result.cmd = it->second;
+//         return true;
+//     }
+//
+//     return false;
+// }
 
 bool Router::isUploadRequest(RouteResult &result, const HttpRequest& request) {
     if (result.location == NULL)
@@ -275,24 +337,27 @@ static std::string actionToString(RouteAction action) {
 void Router::printRouteResult(const RouteResult& r) {
     std::cout << "\n=== RouteResult ===\n";
 
-    std::cout << "Server:   "
+    std::cout << "Server  :   "
               << (r.server ? "set" : "NULL") << "\n";
 
     std::cout << "Location: "
               << (r.location ? r.location->path : "NULL") << "\n";
 
-    std::cout << "Action:   "
+    std::cout << "Action  : "
               << actionToString(r.action) << "\n";
     if (r.action == ROUTE_CGI)
-        std::cout << "ext : " << r.cmd << "\n";
+        std::cout << "ext     : " << r.cmd << "\n";
 
-    std::cout << "Path:     "
+    std::cout << "Path    : "
               << r.path << "\n";
 
-    std::cout << "Type:     "
+    std::cout << "Type    : "
               << r.type << "\n";
+    
+    std::cout << "pathInfo: "
+              << r.pathInfo << "\n";
 
-    std::cout << "Status:   "
+    std::cout << "Status  : "
               << static_cast<int>(r.statusCode)   // 👈 numeric code
               << " "
               << phrase_reason(r.statusCode)      // 👈 text (e.g. "Not Found")
