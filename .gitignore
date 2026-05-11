@@ -1,9 +1,12 @@
 webserve
 compile_flags.txt
 *.o
+www/*.txt
+www/uplaod/*.txt
 compile_commands.json
 .cache/
 webserv
 config_files
+commands
 webserv_root
 forbidden

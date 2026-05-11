@@ -146,10 +146,12 @@ echo "webserv upload test — $(date)" > "$UPLOAD_FILE"
 
 
 UPLOAD_FILE="/tmp/ws_test_upload_$$.txt"; \
+echo "webserv upload test — $(date)" > "$UPLOAD_FILE"; \
 BASE="http://localhost:8080" \
     curl -s -o /tmp/ws_body \
          -D /tmp/ws_headers \
          -w "%{http_code}" \
+		 -X POST \
 		 -F "file=@$UPLOAD_FILE;type=text/plain" \
          "$BASE/upload"
 # 3a. Valid upload
@@ -193,7 +195,7 @@ curl -s -o /dev/null \
 # Now delete it (your upload_store is ./www/upload/)
 code=$(do_req -X DELETE "$BASE/upload/$DELNAME")
 # 200 or 204 are both valid for successful DELETE
-if [ "$code" = "200" ] || [ "$code" = "204" ] || [ "$code" = "204" ]; then
+if [ "$code" = "200" ] || [ "$code" = "204" ] ; then
     echo -e "  ${GREEN}[PASS]${RESET} DELETE existing file → HTTP $code"
     PASS=$((PASS + 1))
 else
