@@ -92,4 +92,6 @@ std::string HttpRequest::to_string() const
 
 HttpRequest::~HttpRequest()
 {
+    m_body.close();
+    m_body.remove();
 }

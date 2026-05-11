@@ -21,6 +21,7 @@ BodyStorage::BodyStorage() : m_fd(-1), m_path(), m_size(0), m_is_remove(true)
 int BodyStorage::open_file()
 {
     BodyStorage::close();
+    BodyStorage::remove();
     m_path = m_dir + "/" + generateName();
     m_fd   = open(m_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0600);
     if (m_fd < 0)
@@ -35,6 +36,7 @@ int BodyStorage::open_file()
 int BodyStorage::open_file(const std::string &path, bool is_remove)
 {
     BodyStorage::close();
+    BodyStorage::remove();
     m_is_remove = is_remove;
     m_path      = path;
     m_fd        = open(m_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0600);
@@ -102,6 +104,7 @@ const char *BodyStorage::c_path() const
 void BodyStorage::clear()
 {
     BodyStorage::close();
+    BodyStorage::remove();
     m_size = 0;
     m_path = "";
 }
@@ -109,18 +112,22 @@ void BodyStorage::clear()
 BodyStorage::~BodyStorage()
 {
     BodyStorage::close();
+    BodyStorage::remove();
+}
+
+void BodyStorage::remove()
+{
+    if (!m_is_remove || m_path.empty())
+        return ;
+    std::remove(m_path.c_str());
+    Logger::info("Remove File: " + m_path);
+    m_path = "";
 }
 
 void BodyStorage::close()
 {
     if (m_fd >= 0)
     {
-        if (m_is_remove && !m_path.empty())
-        {
-            std::remove(m_path.c_str());
-            Logger::info("Remove File: " + m_path);
-            m_path = "";
-        }
         ::close(m_fd);
         m_fd = -1;
     }

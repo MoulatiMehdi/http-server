@@ -25,7 +25,6 @@ void HttpResponseParser::parse_headers(Buffer &buff)
                 return;
             case RES_HEADER_DONE:
                 process_headers();
-                Logger::info("Response:\n"+m_response.to_string());
                 m_response.setComplete(true);
                 m_phase = PHASE_BODY;
                 return;

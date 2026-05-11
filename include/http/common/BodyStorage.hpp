@@ -38,6 +38,7 @@ class BodyStorage
     void consume(size_t len);
     void clear();
     void close();
+    void remove();
 
     static const std::string generateName();
 };

@@ -316,4 +316,6 @@ void HttpResponse::add_server_headers()
 
 HttpResponse::~HttpResponse()
 {
+    m_body.close();
+    m_body.remove();
 }
