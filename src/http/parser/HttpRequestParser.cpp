@@ -42,7 +42,7 @@ void HttpRequestParser::process_content_type()
             return setError(error::bad_request);
         m_boundary = "--" + m_boundary;
     }
-    else
+    else if(m_request.content_length() > 0)
     {
         m_filename = route.path + "/" + BodyStorage::generateName() + ".txt";
         m_request.body().open_file(m_filename, false);
