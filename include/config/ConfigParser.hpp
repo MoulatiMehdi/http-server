@@ -1,7 +1,5 @@
 #ifndef CONFIG_PARSER_HPP
 #define CONFIG_PARSER_HPP
-#ifndef   CONFIGPARSER_HPP
-# define  CONFIGPARSER_HPP
 
 # include <vector>
 # include <string>
@@ -86,6 +84,8 @@ private:
     std::size_t parseSize(const std::string& raw);
     void checkMandatoryServerDirectives(ServerConfig& server);
 
+    void inheritServerRootToLocations(ServerConfig& server);
+
 public:
     // -- Parent function --
     Config parseFile(const std::string& path);
@@ -94,5 +94,4 @@ public:
     void  printConfig(const Config& config);
 };
 
-#endif
 #endif

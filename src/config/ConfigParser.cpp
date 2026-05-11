@@ -2,6 +2,8 @@
 #include "Config.hpp"
 #include "Tokenizer.hpp"
 #include "sys/stat.h"
+#include <cstddef>
+#include <iostream>
 #include <stdexcept>
 #include <sys/socket.h>
 
@@ -30,6 +32,13 @@ std::string ConfigParser::readFileOrThrow(const std::string& path) {
     return ss.str();
 }
 
+void ConfigParser::inheritServerRootToLocations(ServerConfig& server) {
+    for (std::size_t i = 0; i < server.locations.size(); i++) {
+        if (server.locations[i].root.empty()) 
+            server.locations[i].root = server.root + server.locations[i].path;
+    }
+}
+
 Config ConfigParser::parseTokens(const std::vector<Token>& tokens) {
     _tokens = tokens;
     _i = 0;
@@ -39,6 +48,7 @@ Config ConfigParser::parseTokens(const std::vector<Token>& tokens) {
     while (_tokens[_i].type != TOK_EOF) {
         server = parseServerBlock();
         checkMandatoryServerDirectives(server);
+        inheritServerRootToLocations(server);
         cfg.servers.push_back(server); // try catch!
         // check mandatory directives!
 
