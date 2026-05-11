@@ -120,7 +120,7 @@ void Client::resolveSession() {
 }
 
 ClientStatus Client::handleRoute(const RouteResult &res) {
-	if (_req.uri().path() == "/session/") return serveSessionDemo(), WANT_WRITE;
+	if (_req.uri().path() == "/session") return serveSessionDemo(), WANT_WRITE;
 	std::cerr << "path:::  " << _req.uri().path() << "\n";
 	switch (res.action) {
 		case ROUTE_STATIC_FILE:

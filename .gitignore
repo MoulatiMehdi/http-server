@@ -2,7 +2,7 @@ webserve
 compile_flags.txt
 *.o
 www/*.txt
-www/uplaod/*.txt
+www/upload/*.txt
 compile_commands.json
 .cache/
 webserv
