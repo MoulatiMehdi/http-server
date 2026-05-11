@@ -86,16 +86,12 @@ void EventLoop::processClients(struct epoll_event &ev) {
 	Client *client = _cliTable.get(ev.data.fd);
 	ClientStatus status = OK;
 
-	throw std::runtime_error("pipe failed");
 	if (ev.events & (EPOLLERR | EPOLLHUP)) {
 		disconnectClient(client);
 		return;
 	}
-	if (ev.events & EPOLLIN) {
-		status = client->onReadable();
-	} else if (ev.events & EPOLLOUT) {
-		status = client->onWritable();
-	}
+	if (ev.events & EPOLLIN) status = client->onReadable();
+	else if (ev.events & EPOLLOUT) status = client->onWritable();
 
 	if (handleStatus(client, status) == -1) disconnectClient(client);
 	return;
@@ -223,6 +219,7 @@ void EventLoop::handleEvent(struct epoll_event &ev) {
 			Logger::error("handleEvent: " + cli->getRequestUri() + " " +
 						  std::string(e.what()));
 			cli->serveErr(status::INTERNAL_SERVER_ERROR);
+			handleStatus(cli, WANT_WRITE);
 		}
 	}
 }

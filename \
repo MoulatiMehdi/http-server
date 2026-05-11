@@ -36,7 +36,7 @@ void HttpServer::init() {
 		}
 	}
 	if (_socketTable.size()) Logger::info("Webserv initialized");
-	else exitError("Webserv failed to initialize: no listening socket"); 
+	else exitError("Webserv failed to initialize: no listening socket."); 
 }
 
 void HttpServer::run() {
