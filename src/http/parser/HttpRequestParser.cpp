@@ -3,6 +3,7 @@
 #include "Buffer.hpp"
 #include "HttpParserState.hpp"
 #include "HttpRequest.hpp"
+#include "Logger.hpp"
 #include "MimeType.hpp"
 #include "ParserError.hpp"
 #include "RouteResult.hpp"
@@ -119,6 +120,7 @@ void HttpRequestParser::parse_headers(Buffer &buff)
                 break;
             case RES_HEADER_DONE:
                 process_headers();
+                Logger::info("Request:\n"+m_request.to_string());
                 return;
             case RES_HEADER_LINE_DONE:
                 process_header_line();

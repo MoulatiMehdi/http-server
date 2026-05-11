@@ -80,7 +80,13 @@ std::string HttpRequest::to_string() const
     std::ostringstream oss("");
 
     oss << m_method << " " << m_uri.origin() << " HTTP/" << version_major()
-        << "." << version_minor();
+        << "." << version_minor() << "\n";
+    Headers::const_iterator it = m_headers.begin();
+    while (it != m_headers.end())
+    {
+        oss << it->first << ": " << it->second << "\n";
+        it++;
+    }
     return oss.str();
 }
 

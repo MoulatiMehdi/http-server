@@ -477,7 +477,7 @@ void HttpRequestParser::parse_request_line(Buffer &buff)
                 Logger::info(m_request.to_string());
                 route = Router::resolve(m_request.m_server_config, m_request);
                 if(route.location == NULL)
-                    m_request.setMaxBodySize(route.server->client_max_body_size);
+                    m_request.setMaxBodySize(m_request.m_server_config.client_max_body_size);
                 else 
                     m_request.setMaxBodySize(route.location->client_max_body_size);
                 Router::printRouteResult(route);
