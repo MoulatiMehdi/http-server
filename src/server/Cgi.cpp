@@ -9,7 +9,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <exception>
-#include <iostream>
 #include <stdexcept>
 #include "FileServe.hpp"
 #include "HttpResponse.hpp"
@@ -18,6 +17,51 @@
 #include "Router.hpp"
 #include "Status.hpp"
 #include "helper.hpp"
+
+#include <sstream>
+#include <string>
+
+std::string build_command(char* const argv[], char* const envp[])
+{
+    std::ostringstream oss;
+
+    // env variables
+    for (size_t i = 0; envp && envp[i]; ++i)
+    {
+        std::string env = envp[i];
+
+        size_t eq = env.find('=');
+
+        if (eq != std::string::npos)
+        {
+            oss << env.substr(0, eq + 1)
+                << '\''
+                << env.substr(eq + 1)
+                << '\'';
+        }
+        else
+        {
+            oss << '\''
+                << env
+                << '\'';
+        }
+
+        oss << ' ';
+    }
+
+    // argv
+    for (size_t i = 0; argv && argv[i]; ++i)
+    {
+        oss << '\''
+            << argv[i]
+            << '\'';
+
+        if (argv[i + 1])
+            oss << ' ';
+    }
+
+    return oss.str();
+}
 
 Cgi::Cgi(const std::string &cmd, const std::string &script,
 		 const HttpRequest &req)
@@ -64,31 +108,18 @@ Cgi::Cgi(const std::string &cmd, const std::string &script,
 
 		envVec.push_back("REQUEST_METHOD=" + to_string(_req.method()));
 		envVec.push_back("QUERY_STRING=" + _req.uri().query());
-		envVec.push_back("PATH_INFO=/");
-		envVec.push_back("SCRIPT_NAME=" + _req.uri().path());  //
+		envVec.push_back("PATH_INFO="+ _req.parser().route.pathInfo);
+		// envVec.push_back("SCRIPT_NAME="+_req.parser().route.scriptName);  //
 		envVec.push_back("SERVER_NAME=localhost");
 		envVec.push_back("SERVER_PROTOCOL=HTTP/1.1");
 		envVec.push_back("GATEWAY_INTERFACE=CGI/1.1");
 
-        full_cmd+= "REQUEST_METHOD='" + to_string(_req.method()) + "' ";
-        full_cmd+= "QUERY_STRING=' " + _req.uri().query()+"'";
-        full_cmd+= "PATH_INFO='/' ";
-        full_cmd+= "SCRIPT_NAME='" + _req.uri().path()+"' ";  //
-        full_cmd+= "SERVER_NAME='localhost' ";
-        full_cmd+= "SERVER_PROTOCOL='HTTP/1.1' ";
-        full_cmd+= "GATEWAY_INTERFACE='CGI/1.1' ";
 		std::string contentType = _req.getHeader("Content-Type")->second;
 		std::string contentLength = _req.getHeader("Content-Length")->second;
 		if (!contentType.empty())
-        {
 			envVec.push_back("CONTENT_TYPE=" + contentType);
-            full_cmd+= "CONTENT_TYPE='" + contentType + "' ";
-        }
 		if (!contentLength.empty())
-        {
 			envVec.push_back("CONTENT_LENGTH=" + contentLength);
-            full_cmd+= "CONTENT_LENGTH=" + contentLength + "' ";
-        }
 
 		const HttpMessage::Headers &hdrs = _req.headers();
 		for (HttpMessage::const_iterator it = hdrs.begin(); it != hdrs.end();
@@ -101,7 +132,6 @@ Cgi::Cgi(const std::string &cmd, const std::string &script,
 				if (name[i] == '-') envName += '_';
 				else envName += std::toupper(name[i]);
 			}
-            full_cmd+= envName + "='" + it->second + "' ";
 			envVec.push_back(envName + "=" + it->second);
 		}
 
@@ -113,9 +143,7 @@ Cgi::Cgi(const std::string &cmd, const std::string &script,
 		char *argv[] = {const_cast<char *>(cmd.c_str()),
 						const_cast<char *>(fileName.c_str()), NULL};
 
-        full_cmd +=" " + cmd;
-        full_cmd +=" " + fileName;
-		Logger::info(full_cmd);
+		Logger::info(build_command(argv,env));
 		execve(cmd.c_str(), argv, env);
 
 		for (size_t i = 0; i < envVec.size(); ++i)
@@ -237,7 +265,7 @@ CgiStatus Cgi::onWritable() {
 	if (_in < 0) return CGI_DONE;
 
 	if (!_reqBodyFile) {
-		Logger::error(std::string("Cgi::onWritable: ") + "_reqBodyFile");
+		Logger::info(std::string("Cgi::onWritable: ") + "no request body");
 		close(_in);
 		_in = -1;
 		return CGI_DONE;

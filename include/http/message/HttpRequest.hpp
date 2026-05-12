@@ -39,6 +39,7 @@ class HttpRequest : public HttpMessage
     using HttpMessage::extract_key;
 
     HttpRequestParser &parser();
+    const HttpRequestParser &parser()const;
     void               parse(const char *c_str, size_t len);
 };
 

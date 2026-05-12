@@ -60,11 +60,15 @@ void HttpRequest::parse(const char *c_str, size_t len)
     m_parser.parse(c_str, len);
 }
 
-HttpRequestParser &HttpRequest::parser()
+const HttpRequestParser &HttpRequest::parser() const
 {
     return m_parser;
 }
 
+HttpRequestParser &HttpRequest::parser() 
+{
+    return m_parser;
+}
 void HttpRequest::setMaxBodySize(size_t size)
 {
     m_max_body_size = size;
