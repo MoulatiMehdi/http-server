@@ -1,5 +1,6 @@
 webserve
 a.out
+*mp4
 compile_flags.txt
 *.o
 www/*.txt
