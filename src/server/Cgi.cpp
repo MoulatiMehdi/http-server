@@ -1,6 +1,5 @@
 #include "Cgi.hpp"
 #include <fcntl.h>
-#include <string>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <cerrno>
@@ -8,8 +7,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <exception>
 #include <stdexcept>
+#include <string>
 #include "FileServe.hpp"
 #include "HttpResponse.hpp"
 #include "Logger.hpp"
@@ -21,46 +22,32 @@
 #include <sstream>
 #include <string>
 
-std::string build_command(char* const argv[], char* const envp[])
-{
-    std::ostringstream oss;
+std::string build_command(char *const argv[], char *const envp[]) {
+	std::ostringstream oss;
 
-    // env variables
-    for (size_t i = 0; envp && envp[i]; ++i)
-    {
-        std::string env = envp[i];
+	// env variables
+	for (size_t i = 0; envp && envp[i]; ++i) {
+		std::string env = envp[i];
 
-        size_t eq = env.find('=');
+		size_t eq = env.find('=');
 
-        if (eq != std::string::npos)
-        {
-            oss << env.substr(0, eq + 1)
-                << '\''
-                << env.substr(eq + 1)
-                << '\'';
-        }
-        else
-        {
-            oss << '\''
-                << env
-                << '\'';
-        }
+		if (eq != std::string::npos) {
+			oss << env.substr(0, eq + 1) << '\'' << env.substr(eq + 1) << '\'';
+		} else {
+			oss << '\'' << env << '\'';
+		}
 
-        oss << ' ';
-    }
+		oss << ' ';
+	}
 
-    // argv
-    for (size_t i = 0; argv && argv[i]; ++i)
-    {
-        oss << '\''
-            << argv[i]
-            << '\'';
+	// argv
+	for (size_t i = 0; argv && argv[i]; ++i) {
+		oss << '\'' << argv[i] << '\'';
 
-        if (argv[i + 1])
-            oss << ' ';
-    }
+		if (argv[i + 1]) oss << ' ';
+	}
 
-    return oss.str();
+	return oss.str();
 }
 
 Cgi::Cgi(const std::string &cmd, const std::string &script,
@@ -71,9 +58,10 @@ Cgi::Cgi(const std::string &cmd, const std::string &script,
 	  _parsingHeaders(true),
 	  _reqBodyFile(NULL),
 	  _req(req),
-	  _started_at(time(NULL)) {
+	  // _started_at(std::time(NULL)),
+	  _last_activity(std::time(NULL)) {
 	Logger::info(std::string("Initializing Cgi"));
-				 
+
 	if (_req.body().size() != 0)
 		_reqBodyFile = new FileServe(_req.body().c_path());
 
@@ -104,11 +92,11 @@ Cgi::Cgi(const std::string &cmd, const std::string &script,
 
 		// --- build env ---
 		std::vector<std::string> envVec;
-        std::string full_cmd;
+		std::string full_cmd;
 
 		envVec.push_back("REQUEST_METHOD=" + to_string(_req.method()));
 		envVec.push_back("QUERY_STRING=" + _req.uri().query());
-		envVec.push_back("PATH_INFO="+ _req.parser().route.pathInfo);
+		envVec.push_back("PATH_INFO=" + _req.parser().route.pathInfo);
 		// envVec.push_back("SCRIPT_NAME="+_req.parser().route.scriptName);  //
 		envVec.push_back("SERVER_NAME=localhost");
 		envVec.push_back("SERVER_PROTOCOL=HTTP/1.1");
@@ -143,7 +131,7 @@ Cgi::Cgi(const std::string &cmd, const std::string &script,
 		char *argv[] = {const_cast<char *>(cmd.c_str()),
 						const_cast<char *>(fileName.c_str()), NULL};
 
-		Logger::info(build_command(argv,env));
+		Logger::info(build_command(argv, env));
 		execve(cmd.c_str(), argv, env);
 
 		for (size_t i = 0; i < envVec.size(); ++i)
@@ -197,11 +185,11 @@ CgiStatus Cgi::_finalize() {
 	close(_out);
 	_out = -1;
 
-	if (!_waitChild())
-    {
-        Logger::error(std::string("\033[31mprocess failed\033[0m: ") + strerror(errno));
-        return _fail(status::BAD_GATEWAY);
-    }
+	if (!_waitChild()) {
+		Logger::error(std::string("\033[31mprocess failed\033[0m: ") +
+					  strerror(errno));
+		return _fail(status::BAD_GATEWAY);
+	}
 
 	_resp.setStatus(status::OK);
 	_resp.setContentLength(_resp.body().size());
@@ -215,7 +203,7 @@ bool Cgi::_waitChild() {
 	if (ret == 0) {
 		kill(_pid, SIGKILL);
 		ret = waitpid(_pid, NULL, 0);
-        Logger::error("\033[32m return " + toString(ret));
+		Logger::error("\033[32m return " + toString(ret));
 		_pid = -1;
 		return true;
 	}
@@ -233,16 +221,18 @@ CgiStatus Cgi::_consume(const char *buff, int n) {
 	try {
 		if (!_resp.complete()) {
 			_resp.parse(buff, n);
-			if (!_resp.parser().good()) throw std::runtime_error("Parser Error");
+			if (!_resp.parser().good())
+				throw std::runtime_error("Parser Error");
 			if (_resp.complete()) {
 				_resp.body().append(buff + _resp.gcount(), n - _resp.gcount());
 			}
 		} else {
 			_resp.body().append(buff, n);
 		}
-	} catch (std::exception& e) { 
-        Logger::error(e.what());
-        return _fail(status::BAD_GATEWAY); }
+	} catch (std::exception &e) {
+		Logger::error(e.what());
+		return _fail(status::BAD_GATEWAY);
+	}
 	return CGI_OK;
 }
 
@@ -258,6 +248,7 @@ CgiStatus Cgi::onReadable() {
 	}
 	if (n == 0) return _finalize();
 
+	_last_activity = std::time(NULL);
 	return _consume(buff, n);
 }
 
@@ -288,10 +279,12 @@ CgiStatus Cgi::onWritable() {
 		return CGI_DONE;
 	}
 
+	_last_activity = std::time(NULL);
 	return CGI_OK;
 }
 
-time_t Cgi::startedAt() { return _started_at; }
+// time_t Cgi::startedAt() { return _started_at; }
+time_t Cgi::lastActivity() { return _last_activity; }
 
 int Cgi::getOut() const { return _out; }
 int Cgi::getIn() const { return _in; }

@@ -46,6 +46,8 @@ class Client {
 	Cgi *getCgi() const;
 	int getFd() const;
 	time_t lastActivity() const;
+	time_t startedAt() const;
+	bool headersComplete() const;
 	std::string getRequestUri() const;
 
    private:
@@ -58,6 +60,8 @@ class Client {
 	FileServe *_file;
 	Cgi *_cgi;
 
+	bool _headers_complete;
+	time_t _started_at;
 	time_t _last_activity;
 	SessionManager &_sessions;
 	bool _newSession;

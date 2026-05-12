@@ -1,4 +1,5 @@
 webserve
+a.out
 compile_flags.txt
 *.o
 www/*.txt

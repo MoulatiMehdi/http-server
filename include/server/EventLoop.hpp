@@ -15,9 +15,11 @@
 
 #define MAX_EVENTS 128
 #define MAX_CLIENTS 1000
-#define CLI_TIMEOUT_MS 5000
-#define EPOLL_TIMEOUT_MS 1000
-#define CGI_TIMEOUT_MS 5000
+#define CLI_ACTIVITY_TIMEOUT_MS 10000 // 5s
+#define CLI_REQUEST_TIMEOUT_MS 30000 // 30s
+#define EPOLL_TIMEOUT_MS 3000 // 3s
+#define CGI_ACTIVITY_TIMEOUT_MS 10000 // 5s
+// #define CGI_REQUEST_TIMEOUT_MS 60000 // 30s
 
 class EventLoop {
    public:
@@ -39,8 +41,8 @@ class EventLoop {
 
 	void disconnectTimedOut(const std::vector<Client *> &clients);
 	void handleCgiTimeout(Client *client);
-	bool cgiTimedOut(Client *client, time_t now);
-	bool clientTimedOut(Client *client, time_t now);
+	bool cgiTimedOut(Client *client);
+	bool clientTimedOut(Client *client);
 	void runMaintenance();
 
 	void registerCgiPipes(const Client *client);

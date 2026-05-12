@@ -31,6 +31,7 @@ class Cgi {
 	CgiStatus onWritable();
 
 	time_t startedAt();
+	time_t lastActivity();
 	int getIn() const;
 	int getOut() const;
 	HttpResponse getResponse();
@@ -50,7 +51,8 @@ class Cgi {
 	HttpResponse _resp;
 	FileServe *_file;
 
-	time_t _started_at;
+	// time_t _started_at;
+	time_t _last_activity;
 };
 
 #endif

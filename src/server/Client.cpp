@@ -22,6 +22,8 @@ Client::Client(const ServerConfig &servConf, int fd, SessionManager &sessions)
 	  _req(servConf),
 	  _file(NULL),
 	  _cgi(NULL),
+	  _headers_complete(false),
+	  _started_at(time(NULL)),
 	  _last_activity(time(NULL)),
 	  _sessions(sessions),
 	  _newSession(false) {}
@@ -216,6 +218,7 @@ ClientStatus Client::onReadable() {
 	_last_activity = std::time(NULL);
 	_req.parse(buff, n);
 	if (!_req.good()) return serveErr(_req.status()), WANT_WRITE;
+	if (_req.body().size()) _headers_complete = true;
 	if (!_req.complete()) return OK;
 
 	resolveSession();
@@ -248,6 +251,9 @@ ClientStatus Client::onWritable() {
 }
 
 time_t Client::lastActivity() const { return _last_activity; }
+time_t Client::startedAt() const { return _started_at; }
+
+bool Client::headersComplete() const { return _headers_complete; }
 int Client::getFd() const { return _fd; }
 Cgi *Client::getCgi() const { return _cgi; }
 std::string Client::getRequestUri() const {

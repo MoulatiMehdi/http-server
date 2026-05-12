@@ -156,24 +156,32 @@ void EventLoop::handleCgiTimeout(Client *client) {
 	handleStatus(client, WANT_WRITE);
 }
 
-bool EventLoop::cgiTimedOut(Client *client, time_t now) {
-	time_t passedSec = now - client->getCgi()->startedAt();
-	return client->cgiPending() && (passedSec * 1000 > CGI_TIMEOUT_MS);
+bool EventLoop::cgiTimedOut(Client *client) {
+	time_t now = time(NULL);
+	if (client->cgiPending()) {
+		time_t passedSec = now - client->getCgi()->lastActivity();
+		return passedSec * 1000 > CGI_ACTIVITY_TIMEOUT_MS;
+	}
+	return false;
 }
 
-bool EventLoop::clientTimedOut(Client *client, time_t now) {
-	return (now - client->lastActivity()) * 1000 > CLI_TIMEOUT_MS;
+bool EventLoop::clientTimedOut(Client *client) {
+	time_t now = time(NULL);
+	time_t passedSec = now - client->startedAt();
+	if (!client->headersComplete() && passedSec * 1000 > CLI_REQUEST_TIMEOUT_MS)
+		return true;
+	passedSec = now - client->lastActivity();
+	return passedSec * 1000 > CLI_ACTIVITY_TIMEOUT_MS;
 }
 
 void EventLoop::runMaintenance() {
-	time_t now = time(NULL);
 	std::vector<Client *> toDisconnect;
 
 	const ClientMap &cli = _cliTable.getAll();
 	for (ClientMap::const_iterator it = cli.begin(); it != cli.end(); ++it) {
 		Client *client = it->second;
-		if (clientTimedOut(client, now)) toDisconnect.push_back(client);
-		else if (client->cgiPending() && cgiTimedOut(client, now))
+		if (clientTimedOut(client)) toDisconnect.push_back(client);
+		else if (client->cgiPending() && cgiTimedOut(client))
 			handleCgiTimeout(client);
 	}
 	disconnectTimedOut(toDisconnect);
