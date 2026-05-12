@@ -3,7 +3,10 @@
 #include "HttpRequestParser.hpp"
 #include "ParserError.hpp"
 #include "RouteResult.hpp"
+#include "helper.hpp"
 #include <climits>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 
 #define CR '\r'
@@ -170,6 +173,11 @@ void HttpRequestParser::parse_body_by_chunk(Buffer &buffer)
             case SW_BODY_ALMOST_DONE:
                 if (ch == LF)
                 {
+                    struct stat file_stat;
+                    stat(m_request.body().c_path(),&file_stat);
+
+                    m_request.setContentLength(file_stat.st_size);
+                    m_request.setHeader("content-length",toString(file_stat.st_size));
                     m_request.setComplete(true);
                     return;
                 }
