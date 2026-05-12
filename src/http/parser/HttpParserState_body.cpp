@@ -1,6 +1,7 @@
 #include "Buffer.hpp"
 #include "HttpRequest.hpp"
 #include "HttpRequestParser.hpp"
+#include "Logger.hpp"
 #include "ParserError.hpp"
 #include "RouteResult.hpp"
 #include "helper.hpp"
@@ -49,19 +50,27 @@ void HttpRequestParser::parse_body_by_chunk(Buffer &buffer)
                 {
                     m_state          = SW_CHUNK_SIZE;
                     m_chunk_max_size = ch - '0';
+                    if(!m_request.body().is_open() && m_request.body().open_file() < 0)
+                        setError(error::bad_request);
                     break;
                 }
                 if (c >= 'a' && c <= 'f')
                 {
                     m_state          = SW_CHUNK_SIZE;
                     m_chunk_max_size = c - 'a' + 10;
+                    if(!m_request.body().is_open() && m_request.body().open_file() < 0)
+                        setError(error::bad_request);
                     break;
                 }
 
+                //Logger::error("SW_CHUNK_START");
                 return setError(error::bad_request);
             case SW_CHUNK_SIZE:
                 if (m_chunk_max_size > LONG_MAX / 16)
+                {
+                    //Logger::error("SW_CHUNK_SIZE");
                     return setError(error::bad_request);
+                }
                 if (ch >= '0' && ch <= '9')
                 {
                     m_chunk_max_size = m_chunk_max_size * 16 + (ch - '0');
@@ -83,6 +92,7 @@ void HttpRequestParser::parse_body_by_chunk(Buffer &buffer)
                             m_state = SW_LAST_CHUNK_DATA_ALMOST_DONE;
                             break;
                         default:
+                            //Logger::error("SW_CHUNK_SIZE");
                             return setError(error::bad_request);
                     }
                     break;
@@ -97,6 +107,7 @@ void HttpRequestParser::parse_body_by_chunk(Buffer &buffer)
                         m_state = SW_CHUNK_DATA;
                         break;
                     default:
+                        //Logger::error("SW_CHUNK_SIZE");
                         return setError(error::bad_request);
                 }
 
@@ -112,12 +123,14 @@ void HttpRequestParser::parse_body_by_chunk(Buffer &buffer)
                     m_state = SW_CHUNK_DATA;
                     break;
                 }
+                //Logger::error("SW_CHUNK_SIZE_ALMOST_DONE");
                 return setError(error::bad_request);
             case SW_CHUNK_DATA:
-                if (m_discard_body)
-                    m_request.body().consume(1);
-                else if (m_request.body().append(ch) < 0)
+                if (m_request.body().append(ch) < 0)
+                {
+                    //Logger::error("SW_CHUNK_DATA");
                     return setError(error::bad_request);
+                }
                 m_chunk_size++;
                 if (m_chunk_size == m_chunk_max_size)
                 {
@@ -137,6 +150,7 @@ void HttpRequestParser::parse_body_by_chunk(Buffer &buffer)
                         m_state = SW_CHUNK_START;
                         break;
                     default:
+                        //Logger::error("SW_AFTER_DATA");
                         return setError(error::bad_request);
                 }
                 break;
@@ -147,6 +161,7 @@ void HttpRequestParser::parse_body_by_chunk(Buffer &buffer)
                     m_state = SW_CHUNK_START;
                     break;
                 }
+                //Logger::error("SW_AFTER_DATA_ALMOST_DONE");
                 return setError(error::bad_request);
 
             case SW_LAST_CHUNK_SIZE_ALMOST_DONE:
@@ -155,6 +170,7 @@ void HttpRequestParser::parse_body_by_chunk(Buffer &buffer)
                     m_state = SW_LAST_CHUNK_DATA_ALMOST_DONE;
                     break;
                 }
+                //Logger::error("SW_LAST_CHUNK_SIZE_ALMOST_DONE");
                 return setError(error::bad_request);
 
             case SW_LAST_CHUNK_DATA_ALMOST_DONE:
@@ -166,6 +182,7 @@ void HttpRequestParser::parse_body_by_chunk(Buffer &buffer)
                     case LF:
                         return;
                     default:
+                        //Logger::error("SW_LAST_CHUNK_DATA_ALMOST_DONE");
                         return setError(error::bad_request);
                 }
                 break;
@@ -174,13 +191,16 @@ void HttpRequestParser::parse_body_by_chunk(Buffer &buffer)
                 if (ch == LF)
                 {
                     struct stat file_stat;
-                    stat(m_request.body().c_path(),&file_stat);
+                    stat(m_request.body().c_path(), &file_stat);
 
                     m_request.setContentLength(file_stat.st_size);
-                    m_request.setHeader("content-length",toString(file_stat.st_size));
+                    m_request.setHeader(
+                        "content-length", toString(file_stat.st_size)
+                    );
                     m_request.setComplete(true);
                     return;
                 }
+                //Logger::error("SW_BODY_ALMOST_DONE");
                 return setError(error::bad_request);
         }
     }

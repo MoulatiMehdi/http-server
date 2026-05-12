@@ -5,6 +5,7 @@
 #include <cerrno>
 #include <cstddef>
 #include <cstdio>
+#include <cstring>
 #include <fcntl.h>
 #include <iomanip>
 #include <iostream>
@@ -58,23 +59,36 @@ size_t BodyStorage::size() const
 
 ssize_t BodyStorage::append(char ch)
 {
+    ssize_t n = write(m_fd, &ch, 1);
     // print_ptr_nl(&ch,1);
-    m_size += 1;
-    return write(m_fd, &ch, 1);
+    if(n < 0)
+        Logger::info(std::string("BodyStorage::append : ")+ strerror(errno));
+    else 
+        m_size += n;
+    return  n;
 }
 
 ssize_t BodyStorage::append(const std::string &str)
 {
     // print_string_nl(str);
-    m_size += str.size();
-    return write(m_fd, str.c_str(), str.size());
+    ssize_t n = write(m_fd, str.c_str(), str.size());
+
+    if(n < 0)
+        Logger::info(std::string("BodyStorage::append : ")+ strerror(errno));
+    else 
+        m_size += n;
+    return n;
 }
 
 ssize_t BodyStorage::append(const char *str, size_t len)
 {
+    ssize_t n = write(m_fd, str, len);
     // print_ptr_nl(str,len);
-    m_size += len;
-    return write(m_fd, str, len);
+    if(n < 0)
+        Logger::info(std::string("BodyStorage::append : ")+ strerror(errno));
+    else 
+        m_size += n;
+    return n;
 }
 
 void BodyStorage::consume(size_t len)
@@ -84,7 +98,7 @@ void BodyStorage::consume(size_t len)
 
 bool BodyStorage::is_open() const
 {
-    return m_fd < 0;
+    return m_fd >= 0;
 }
 
 // std::string &BodyStorage::path()

@@ -81,17 +81,17 @@ void HttpRequestParser::process_headers()
 {
     m_phase = PHASE_BODY;
     m_state = 0;
-    if (m_message.version() > HttpMessage::HTTP_V10)
+    if (m_request.version() > HttpMessage::HTTP_V10)
         process_host();
     process_transfer_encoding();
     process_content_length();
     if (route.action == ROUTE_UPLOAD)
         process_content_type();
     if (m_discard_body)
-        m_message.setComplete(true);
+        m_request.setComplete(true);
     else if (route.action != ROUTE_UPLOAD)
     {
-        if (m_message.body().open_file() < 0)
+        if (m_request.body().open_file() < 0)
             return setError(error::bad_request);
     }
 }
