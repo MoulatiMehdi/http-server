@@ -23,19 +23,18 @@ struct RouteResult {
     const LocationConfig* location;
 
     RouteAction           action;
-    std::string           path; // /bin/pythoe3 index.py
     status::Status        statusCode;
+    std::string           path; //  index.py
     std::string           type;
     std::string           cmd;  // /bin/pyhton3;
-    std::string           pathInfo;
+    std::string           scriptName; // from uri and path from filesystem 
+    std::string           pathInfo; 
 
     RouteResult()
         : server(NULL),
           location(NULL),
           action(ROUTE_ERROR),
-          path(""),
-          statusCode(status::NOT_FOUND),
-          type("") {}
+          statusCode(status::NOT_FOUND) {}
 };
 
 #endif

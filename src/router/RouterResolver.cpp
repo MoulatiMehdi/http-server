@@ -1,5 +1,6 @@
 #include "Config.hpp"
 #include "HttpRequest.hpp"
+#include "Logger.hpp"
 #include "Router.hpp"
 #include "RouteResult.hpp"
 #include "Method.hpp"
@@ -78,7 +79,7 @@ std::size_t getExtentionPos(const std::string &path, const std::string &ext)
     
     if (i != std::string::npos)
         return i;
-    std::cout << "last of = " << path.substr(path.size()- ext.size()) << "\n";
+    // std::cout << "last of = " << path.substr(path.size()- ext.size()) << "\n";
     i = path.rfind(ext);
     if (std::string::npos == i)
         return i;
@@ -87,16 +88,12 @@ std::size_t getExtentionPos(const std::string &path, const std::string &ext)
     return std::string::npos;
 }
 
-bool Router::isCgiRequest(RouteResult& result, const std::string& path)
+string_map::const_iterator getScriptNamePos(RouteResult& result, const std::string& path, std::size_t& min)
 {
-    if (result.location == NULL || result.location->cgi.empty())
-        return false;
-
     string_map::const_iterator it;
     string_map::const_iterator itBest;
-    const string_map &cgi = result.location->cgi;
-
-    std::size_t min = std::string::npos;
+    const string_map& cgi = result.location->cgi;
+    min = std::string::npos;
 
     for (it = cgi.begin(); it != cgi.end(); ++it) {
         std::size_t i = getExtentionPos(path, it->first);
@@ -106,17 +103,38 @@ bool Router::isCgiRequest(RouteResult& result, const std::string& path)
         }
     }
     if (min == std::string::npos)
-        return false;
+        return result.location->cgi.end();
     min += itBest->first.size();
-    result.path = path.substr(0, min); // TODO: Add as an attribute to RouteResult
-    if (min == result.path.size())
-        result.pathInfo = path.substr(min);
+    return itBest;
+}
+
+
+bool Router::isCgiRequest(RouteResult& result, const std::string& reqPath)
+{
+    if (result.location == NULL || result.location->cgi.empty())
+        return false;
+
+    std::size_t minPos;
+    string_map::const_iterator itBest = getScriptNamePos(result, reqPath, minPos);
+    if (itBest == result.location->cgi.end())
+        return false;
+    result.scriptName = reqPath.substr(0, minPos);
+    result.cmd = itBest->second;
+    if (minPos == result.scriptName.size())
+        result.pathInfo = reqPath.substr(minPos);
+    if (result.pathInfo.empty())
+        result.pathInfo = "/";
+    getScriptNamePos(result, result.path, minPos);
+    if (minPos == std::string::npos) {
+        Logger::info("CGI (Router): Abnormal case !!!!\n");
+        return true;
+    }
+    result.path = result.path.substr(0, minPos);
     if (!isFile(result.path)) {
         result.action = ROUTE_ERROR;
         result.statusCode = status::NOT_FOUND;
         return true; 
     }
-    result.cmd = itBest->second;
     result.action = ROUTE_CGI;
     result.statusCode = status::OK;
     return true;
@@ -337,27 +355,26 @@ static std::string actionToString(RouteAction action) {
 void Router::printRouteResult(const RouteResult& r) {
     std::cout << "\n=== RouteResult ===\n";
 
-    std::cout << "Server  :   "
-              << (r.server ? "set" : "NULL") << "\n";
+    std::cout << "Server    : "
+              << (r.server ? "set ✔" : "NULL") << "\n";
 
-    std::cout << "Location: "
+    std::cout << "Location  : "
               << (r.location ? r.location->path : "NULL") << "\n";
 
-    std::cout << "Action  : "
+    std::cout << "Action    : "
               << actionToString(r.action) << "\n";
     if (r.action == ROUTE_CGI)
-        std::cout << "ext     : " << r.cmd << "\n";
+        std::cout << "ext       : " << r.cmd << "\n";
+    if (!r.path.empty())
+        std::cout << "Path      : " << r.path << "\n";
+    if (!r.type.empty())
+        std::cout << "Type      : " << r.type << "\n";
+    if (!r.scriptName.empty()) 
+        std::cout << "scriptName: " << r.scriptName << "\n";
+    if (!r.pathInfo.empty())
+        std::cout << "pathInfo  : " << r.pathInfo << "\n";
 
-    std::cout << "Path    : "
-              << r.path << "\n";
-
-    std::cout << "Type    : "
-              << r.type << "\n";
-    
-    std::cout << "pathInfo: "
-              << r.pathInfo << "\n";
-
-    std::cout << "Status  : "
+    std::cout << "Status    : "
               << static_cast<int>(r.statusCode)   // 👈 numeric code
               << " "
               << phrase_reason(r.statusCode)      // 👈 text (e.g. "Not Found")
