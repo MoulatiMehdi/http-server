@@ -167,10 +167,7 @@ bool EventLoop::cgiTimedOut(Client *client) {
 
 bool EventLoop::clientTimedOut(Client *client) {
 	time_t now = time(NULL);
-	time_t passedSec = now - client->startedAt();
-	if (!client->headersComplete() && passedSec * 1000 > CLI_REQUEST_TIMEOUT_MS)
-		return true;
-	passedSec = now - client->lastActivity();
+	time_t passedSec = now - client->lastActivity();
 	return passedSec * 1000 > CLI_ACTIVITY_TIMEOUT_MS;
 }
 
