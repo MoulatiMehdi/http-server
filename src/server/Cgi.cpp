@@ -70,13 +70,13 @@ Cgi::Cgi(const std::string &cmd, const std::string &script,
 		envVec.push_back("SERVER_PROTOCOL=HTTP/1.1");
 		envVec.push_back("GATEWAY_INTERFACE=CGI/1.1");
 
-        full_cmd+= "REQUEST_METHOD='" + to_string(_req.method()) + "'";
-        full_cmd+= "QUERY_STRING='" + _req.uri().query()+"'";
-        full_cmd+= "PATH_INFO='/'";
-        full_cmd+= "SCRIPT_NAME='" + _req.uri().path()+"'";  //
-        full_cmd+= "SERVER_NAME='localhost'";
-        full_cmd+= "SERVER_PROTOCOL='HTTP/1.1'";
-        full_cmd+= "GATEWAY_INTERFACE='CGI/1.1'";
+        full_cmd+= "REQUEST_METHOD='" + to_string(_req.method()) + "' ";
+        full_cmd+= "QUERY_STRING=' " + _req.uri().query()+"'";
+        full_cmd+= "PATH_INFO='/' ";
+        full_cmd+= "SCRIPT_NAME='" + _req.uri().path()+"' ";  //
+        full_cmd+= "SERVER_NAME='localhost' ";
+        full_cmd+= "SERVER_PROTOCOL='HTTP/1.1' ";
+        full_cmd+= "GATEWAY_INTERFACE='CGI/1.1' ";
 		std::string contentType = _req.getHeader("Content-Type")->second;
 		std::string contentLength = _req.getHeader("Content-Length")->second;
 		if (!contentType.empty())
