@@ -31,6 +31,9 @@ private:
     // -- Parse Tokens --
     Config          parseTokens(const std::vector<Token>& tokens);
 
+    // -- Set Default Config --
+    Config setDefaultConfig();
+
     // -- parseFile's big functions --
     ServerConfig    parseServerBlock();
     LocationConfig  parseLocationBlock();

@@ -56,8 +56,28 @@ Config ConfigParser::parseTokens(const std::vector<Token>& tokens) {
     return cfg;
 }
 
+Config ConfigParser::setDefaultConfig() {
+    Config          config;
+    ServerConfig    server;
+    LocationConfig  location;
+
+    location.path = "/";
+    location.root = ".";
+    location.autoindex = true;
+
+    server.locations.push_back(location);
+    server.listens.push_back(ListenConfig());
+    server.root = ".";
+
+    config.servers.push_back(server);
+
+    return config;
+}
+
 Config ConfigParser::parseFile(const std::string& path) {
     try {
+        if (path.empty())
+            return setDefaultConfig();
         std::string ss = readFileOrThrow(path);
         Tokenizer   tz(ss);
         std::vector<Token> tokens = tz.tokenize();

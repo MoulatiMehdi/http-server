@@ -11,7 +11,7 @@ struct ListenConfig {
     std::string host;                   // ip
     int port;                           // 8080
 
-    ListenConfig() : host("0.0.0.0"), port(80) {}
+    ListenConfig() : host("0.0.0.0"), port(8080) {}
 };
 
 typedef std::vector<std::string> IndexTable;
