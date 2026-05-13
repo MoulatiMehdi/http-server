@@ -44,11 +44,12 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
     if (isCgiRequest(result, reqPath))
         return result;
     // std::cout << "[]: isCgiRequest pass\n";
-    if (isUploadRequest(result, request))
-        return result;
     // std::cout << "[]: pathExists checkin..\n";
     if (!pathExists(result.path))
         return errorPage(status::NOT_FOUND, server.error_pages);
+    
+    if (isUploadRequest(result, request))
+        return result;
     // std::cout << "[]: pathExists success\n";
     if (!checkPermission(result.path, permissionFromRequest(result, request.method())))
         return errorPage(status::FORBIDDEN, server.error_pages);
