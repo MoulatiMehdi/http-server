@@ -33,7 +33,6 @@ FileServe::~FileServe() {
 
 bool FileServe::done() const { return _fd < 0; }
 
-#include "Client.hpp"
 int FileServe::sendChunk(int fd) {
 	if (_tmp_len == 0) {
 		int n = read(_fd, _tmp, sizeof(_tmp));

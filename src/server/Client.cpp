@@ -1,8 +1,10 @@
 #include "Client.hpp"
 #include <fcntl.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
 #include <exception>
 #include <queue>
 #include <string>
@@ -229,17 +231,20 @@ ClientStatus Client::onWritable() {
 	int n;
 
 	if (!_wrbuf.empty()) {
-		n = write(_fd, _wrbuf.data(), _wrbuf.size());
+		n = send(_fd, _wrbuf.data(), _wrbuf.size(), MSG_DONTWAIT);
 		if (n <= 0) return DISCONNECT;
 
-		_last_activity = std::time(NULL);
+		// _last_activity = std::time(NULL);
+		Logger::info(toString(_last_activity = std::time(NULL)));
 		_wrbuf.erase(_wrbuf.begin(), _wrbuf.begin() + n);
 		return OK;
 	}
 
 	if (_file) {
 		if (_file->sendChunk(_fd) == ERROR) return DISCONNECT;
-		_last_activity = std::time(NULL);
+		Logger::info(toString(_last_activity = std::time(NULL)));
+		// _last_activity = std::time(NULL);
+
 		if (_file->done()) {
 			delete _file;
 			_file = NULL;
@@ -252,11 +257,14 @@ ClientStatus Client::onWritable() {
 
 time_t Client::lastActivity() const { return _last_activity; }
 time_t Client::startedAt() const { return _started_at; }
-
 bool Client::headersComplete() const { return _headers_complete; }
+void Client::updateLastActivity() { _last_activity = std::time(NULL); }
 int Client::getFd() const { return _fd; }
 Cgi *Client::getCgi() const { return _cgi; }
+bool Client::cgiPending() const { return _cgi != NULL; }
 std::string Client::getRequestUri() const {
 	return to_string(_req.method()) + " " + _req.uri().origin();
 }
-bool Client::cgiPending() const { return _cgi != NULL; }
+bool Client::hasDataToWrite() const {
+	return !_wrbuf.empty() && _file && !_file->done();
+}

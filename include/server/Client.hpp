@@ -49,6 +49,8 @@ class Client {
 	time_t startedAt() const;
 	bool headersComplete() const;
 	std::string getRequestUri() const;
+	bool hasDataToWrite() const;
+	void updateLastActivity();
 
    private:
 	int _fd;

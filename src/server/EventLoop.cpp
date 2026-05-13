@@ -55,7 +55,7 @@ void EventLoop::epollMod(int fd, u_int32_t events) {
 					  std::string(strerror(errno)));
 }
 
-void EventLoop::disconnectClient(const Client *cli) {
+ClientMap::iterator EventLoop::disconnectClient(const Client *cli) {
 	int cliFd = cli->getFd();
 	if (cli->getCgi()) {
 		int cgiIn = cli->getCgi()->getIn();
@@ -69,7 +69,7 @@ void EventLoop::disconnectClient(const Client *cli) {
 		Logger::error("epoll_ctl: EPOLL_CTL_DEL " +
 					  std::string(strerror(errno)));
 	Logger::info("Client " + cli->getRequestUri() + ": disconnected");
-	_cliTable.remove(cliFd);
+	return _cliTable.remove(cliFd);
 }
 
 int EventLoop::handleStatus(Client *client, ClientStatus status) {
@@ -132,23 +132,24 @@ void EventLoop::handleNewConnections(Socket *sock) {
 	socklen_t len = sizeof(cliAddr);
 	const ServerConfig &servConf = sock->getServConf();
 
-	while (true) {
-		cliFd = accept(sock->getFd(), (struct sockaddr *)&cliAddr, &len);
-		if (cliFd == -1) return;
-		makeNonBlocking(cliFd);
-		_cliTable.add(servConf, cliFd, _sessions);
-		epollAdd(cliFd, EPOLLIN);
-		Logger::info("New Client: " + std::string(inet_ntoa(cliAddr.sin_addr)) +
-					 ":" + toString(ntohs(cliAddr.sin_port)) + " through " +
-					 sock->getAddr() + ":" + toString(sock->getPort()));
-	}
+	// while (true) {
+	cliFd = accept(sock->getFd(), (struct sockaddr *)&cliAddr, &len);
+	if (cliFd == -1) return;
+	makeNonBlocking(cliFd);
+	_cliTable.add(servConf, cliFd, _sessions);
+	epollAdd(cliFd, EPOLLIN);
+	Logger::info("New Client: " + std::string(inet_ntoa(cliAddr.sin_addr)) +
+				 ":" + toString(ntohs(cliAddr.sin_port)) + " through " +
+				 sock->getAddr() + ":" + toString(sock->getPort()));
+	// }
 }
-void EventLoop::disconnectTimedOut(const std::vector<Client *> &clients) {
-	for (size_t i = 0; i < clients.size(); ++i) {
-		Logger::info("Client " + clients[i]->getRequestUri() + ": timed out");
-		disconnectClient(clients[i]);
-	}
-}
+
+// void EventLoop::disconnectTimedOut(const std::vector<Client *> &clients) {
+// 	for (size_t i = 0; i < clients.size(); ++i) {
+// 		Logger::info("Client " + clients[i]->getRequestUri() + ": timed out");
+// 		disconnectClient(clients[i]);
+// 	}
+// }
 
 void EventLoop::handleCgiTimeout(Client *client) {
 	Logger::warn("CGI timeout for client " + toString(client->getFd()));
@@ -160,28 +161,39 @@ bool EventLoop::cgiTimedOut(Client *client) {
 	time_t now = time(NULL);
 	if (client->cgiPending()) {
 		time_t passedSec = now - client->getCgi()->lastActivity();
-		return passedSec * 1000 > CGI_ACTIVITY_TIMEOUT_MS;
+		return passedSec > CGI_ACTIVITY_TIMEOUT_MS;
 	}
 	return false;
 }
 
-bool EventLoop::clientTimedOut(Client *client) {
-	time_t now = time(NULL);
-	time_t passedSec = now - client->lastActivity();
-	return passedSec * 1000 >= CLI_ACTIVITY_TIMEOUT_MS;
+bool EventLoop::clientTimedOut(Client *cli) {
+	time_t now = std::time(NULL);
+	time_t passedSec = now - cli->lastActivity();
+	bool timedout = false;
+	Logger::info("Seconds passed: " + toString(passedSec));
+
+	if (cli->hasDataToWrite()) cli->updateLastActivity();
+	else if (passedSec >= CLI_IDLE_TIMEOUT_S) timedout = true;
+	else if (passedSec >= CLI_ACTIVITY_TIMEOUT_S) timedout = true;
+
+	if (timedout)
+		return Logger::info("Client " + cli->getRequestUri() + ": timed out"),
+			   true;
+	return false;
 }
 
 void EventLoop::runMaintenance() {
 	std::vector<Client *> toDisconnect;
 
-	const ClientMap &cli = _cliTable.getAll();
-	for (ClientMap::const_iterator it = cli.begin(); it != cli.end(); ++it) {
+	ClientMap &cli = _cliTable.getAll();
+	for (ClientMap::iterator it = cli.begin(); it != cli.end();) {
 		Client *client = it->second;
-		if (clientTimedOut(client)) toDisconnect.push_back(client);
+		if (clientTimedOut(client)) it = disconnectClient(client);
 		else if (client->cgiPending() && cgiTimedOut(client))
-			handleCgiTimeout(client);
+			handleCgiTimeout(client), ++it;
+		else ++it;
 	}
-	disconnectTimedOut(toDisconnect);
+	// disconnectTimedOut(toDisconnect);
 }
 
 void EventLoop::registerCgiPipes(const Client *client) {
@@ -236,7 +248,8 @@ void EventLoop::loop() {
 	while (true) {
 		if (_cliTable.size() >= MAX_CLIENTS) remSockets();
 		else if (_connectionLimit) addSockets();
-		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, EPOLL_TIMEOUT_MS);
+		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, EPOLL_TIMEOUT_S * 1000);
+		Logger::info("epoll_wait: " + toString(nfds));
 		for (int n = 0; n < nfds; ++n)
 			handleEvent(events[n]);
 		runMaintenance();

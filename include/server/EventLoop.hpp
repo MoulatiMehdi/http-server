@@ -15,10 +15,10 @@
 
 #define MAX_EVENTS 128
 #define MAX_CLIENTS 1000
-#define CLI_ACTIVITY_TIMEOUT_MS 10000 // 10s
-#define CLI_REQUEST_TIMEOUT_MS 30000 // 30s
-#define EPOLL_TIMEOUT_MS 3000 // 3s
-#define CGI_ACTIVITY_TIMEOUT_MS 10000 // 10s
+#define CLI_ACTIVITY_TIMEOUT_S 10 // 10s
+#define EPOLL_TIMEOUT_S 1 // 3s
+#define CGI_ACTIVITY_TIMEOUT_MS 10 // 10s
+#define CLI_IDLE_TIMEOUT_S 120								   //
 // #define CGI_REQUEST_TIMEOUT_MS 60000 // 30s
 
 class EventLoop {
@@ -30,7 +30,7 @@ class EventLoop {
 	void epollAdd(int fd, uint32_t events);
 	void epollMod(int fd, uint32_t events);
 
-	void disconnectClient(const Client *cli);
+	ClientMap::iterator disconnectClient(const Client *cli);
 
 	int handleStatus(Client *client, ClientStatus status);
 
