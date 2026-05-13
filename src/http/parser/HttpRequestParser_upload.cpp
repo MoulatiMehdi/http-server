@@ -27,7 +27,6 @@ enum UploadState
 
 void HttpRequestParser::parse_upload_body(Buffer &buffer)
 {
-    std::cerr << "parse_upload_body" << std::endl;
     if (m_content_type == "multipart/form-data")
         parse_multipart(buffer);
     else
