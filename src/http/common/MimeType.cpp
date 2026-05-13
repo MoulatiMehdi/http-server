@@ -2,7 +2,7 @@
 #include <map>
 #include <string>
 
-const std::string MimeType::DEFAULT = "application/octet-stream";
+const std::string MimeType::DEFAULT = "text/plain";
 
 MimeType::MimeType()
 {
