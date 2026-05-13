@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>Home Page</h1>
+
+    <h2>Upload</h2>
+    <form action="/directory/" method="POST" enctype="multipart/form-data">
+        <input type="file" name="file">
+        <button type="submit">Upload</button>
+    </form>
+
+    <hr>
+
+    <h2>Delete File</h2>
+
+    <input id="deletePath"
+           type="text"
+           placeholder="/files/a.txt"
+           style="width:300px;">
+
+    <button onclick="deleteFile()">Delete</button>
+
+    <p id="result"></p>
+
+    <script>
+    function deleteFile() {
+        const path = document.getElementById("deletePath").value;
+
+        fetch(path, {
+            method: "DELETE"
+        })
+        .then(res => {
+            document.getElementById("result").innerText =
+                "Status: " + res.status;
+        })
+        .catch(() => {
+            document.getElementById("result").innerText =
+                "Request failed";
+        });
+    }
+    </script>
+</body>
+</html>
