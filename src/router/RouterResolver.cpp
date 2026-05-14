@@ -233,29 +233,22 @@ bool Router::isIndexed(RouteResult& result)
 {
     if (result.action == ROUTE_REDIRECT)
         return true;
-    // if (result.location && !pathMatchesLocation(result.path, result.location->path))
-    //     return true;
-    if ((result.location &&
-        ((result.location->index.empty()) && result.location->autoindex == true)))
+    if ((result.location && result.location->index.empty() && result.location->autoindex == true))
         return false;
     if (result.location == NULL && result.server->index.empty())
         return false;
 
-    IndexTable  index = (result.location && !result.location->index.empty()) ?
-                         result.location->index : result.server->index;
-    // std::string root  = (result.location && !result.location->root.empty())  ?
-    //                      result.location->root  : result.server->root;
+    IndexTable  index = (result.location && !result.location->index.empty()) ? result.location->index : result.server->index;
     if (findIndexFile(result, index, result.path))
         return true;
-    if (!result.location->index.empty()) {
-        result = errorPage(status::NOT_FOUND, result.server->error_pages);
-        return true; 
-    }
+    if (!result.location->index.empty())
+        return false; 
     return false;
 }
 
 bool Router::isDirectory(RouteResult& result, std::string& requestPath) {
     struct stat st;
+    std::cout << "isDirectory: path = " << result.path << "\n";
     if (stat(result.path.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
         if (result.path[result.path.size() - 1] != '/') {
             result.action = ROUTE_REDIRECT;

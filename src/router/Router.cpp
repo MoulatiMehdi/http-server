@@ -10,7 +10,6 @@
 #include <iostream>
 #include <map>
 #include <string>
-// #include <iostream>
 #include <cstdio>
 #include <sys/stat.h>
 
@@ -29,41 +28,41 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
     //     tmpPath += "/";
 
     result.location = matchLocation(server, reqPath); 
-    // if (result.location)
-        // std::cout << "matched location: " << result.location->path << "\n";
+    if (result.location)
+        std::cout << "matched location: " << result.location->path << "\n";
     if (!isMethodAllowed(result, request.method()))
         return errorPage(status::METHOD_NOT_ALLOWED, server.error_pages);
 
     result.path = buildTargetPath(server, result.location, reqPath);
 	// std::cout << "path: "<< result.path << "\n";
 
-    // std::cout << "start validators..\n";
+    std::cout << "start validators..\n";
     if (isRedirect(result))
         return result;
-    // std::cout << "[]: isRedirect pass\n";
+    std::cout << "[]: isRedirect pass\n";
     if (isCgiRequest(result, reqPath))
         return result;
-    // std::cout << "[]: isCgiRequest pass\n";
-    // std::cout << "[]: pathExists checkin..\n";
+    std::cout << "[]: isCgiRequest pass\n";
+    std::cout << "[]: pathExists checkin..\n";
     if (!pathExists(result.path))
         return errorPage(status::NOT_FOUND, server.error_pages);
     
     if (isUploadRequest(result, request))
         return result;
-    // std::cout << "[]: pathExists success\n";
+    std::cout << "[]: pathExists success\n";
     if (!checkPermission(result.path, permissionFromRequest(result, request.method())))
         return errorPage(status::FORBIDDEN, server.error_pages);
-    // std::cout << "[]: checkPermission success\n";
+    std::cout << "[]: checkPermission success\n";
     if (isDeleteMethod(result, request.method()))
         return result;
-    // std::cout << "[]: isDeleteMethod pass\n";
+    std::cout << "[]: isDeleteMethod pass\n";
     if (handleRegularFile(result))            return result;
-    // std::cout << "[]: handleRegularFile pass\n";
+    std::cout << "[]: handleRegularFile pass\n";
     if (isDirectory(result, reqPath) && isIndexed(result))
         return result;
-    // else if (result.location && result.location->autoindex == false)
-    //     return errorPage(status::FORBIDDEN, server.error_pages);
-    // std::cout << "[]: isDirectory pass\n";
+    else if (result.location && result.location->autoindex == false)
+        return errorPage(status::FORBIDDEN, server.error_pages);
+    std::cout << "[]: isDirectory pass\n";
     return result;
 }
 
