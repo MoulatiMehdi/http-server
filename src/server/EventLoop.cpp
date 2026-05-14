@@ -176,9 +176,10 @@ bool EventLoop::clientTimedOut(Client *cli) {
 	else if (passedSec >= CLI_IDLE_TIMEOUT_S) timedout = true;
 	else if (passedSec >= CLI_ACTIVITY_TIMEOUT_S) timedout = true;
 
-	if (timedout)
-		return Logger::info("Client " + cli->getRequestUri() + ": timed out"),
-			   true;
+	if (timedout) {
+		Logger::info("Client " + cli->getRequestUri() + ": timed out");
+		return true;
+	}
 	return false;
 }
 

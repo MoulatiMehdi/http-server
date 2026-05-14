@@ -234,7 +234,6 @@ ClientStatus Client::onWritable() {
 		n = send(_fd, _wrbuf.data(), _wrbuf.size(), MSG_DONTWAIT);
 		if (n <= 0) return DISCONNECT;
 
-		// _last_activity = std::time(NULL);
 		Logger::info(toString(_last_activity = std::time(NULL)));
 		_wrbuf.erase(_wrbuf.begin(), _wrbuf.begin() + n);
 		return OK;
@@ -243,8 +242,6 @@ ClientStatus Client::onWritable() {
 	if (_file) {
 		if (_file->sendChunk(_fd) == ERROR) return DISCONNECT;
 		Logger::info(toString(_last_activity = std::time(NULL)));
-		// _last_activity = std::time(NULL);
-
 		if (_file->done()) {
 			delete _file;
 			_file = NULL;
@@ -266,5 +263,5 @@ std::string Client::getRequestUri() const {
 	return to_string(_req.method()) + " " + _req.uri().origin();
 }
 bool Client::hasDataToWrite() const {
-	return !_wrbuf.empty() && _file && !_file->done();
+	return !_wrbuf.empty() || (_file && !_file->done());
 }
