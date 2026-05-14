@@ -13,7 +13,7 @@
 #include "Socket.hpp"
 #include "SocketTable.hpp"
 
-#define MAX_EVENTS 128
+#define MAX_EVENTS 1000
 #define MAX_CLIENTS 1000
 #define EPOLL_TIMEOUT_S 5 // 3s
 #define CLI_ACTIVITY_TIMEOUT_S 10 // 10s
