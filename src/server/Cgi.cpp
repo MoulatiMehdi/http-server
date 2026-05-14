@@ -271,6 +271,7 @@ CgiStatus Cgi::onWritable() {
 		return CGI_ERROR;
 	}
 
+	_last_activity = std::time(NULL);
 	if (_reqBodyFile->done()) {
 		delete _reqBodyFile;
 		_reqBodyFile = NULL;
@@ -279,7 +280,6 @@ CgiStatus Cgi::onWritable() {
 		return CGI_DONE;
 	}
 
-	_last_activity = std::time(NULL);
 	return CGI_OK;
 }
 

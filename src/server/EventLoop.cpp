@@ -124,6 +124,7 @@ void EventLoop::processCgi(struct epoll_event &ev) {
 
 		if (cgiFd == cgiOut) handleStatus(client, client->onCgiDone());
 	}
+	client->updateLastActivity();
 }
 
 void EventLoop::handleNewConnections(Socket *sock) {
@@ -170,7 +171,6 @@ bool EventLoop::clientTimedOut(Client *cli) {
 	time_t now = std::time(NULL);
 	time_t passedSec = now - cli->lastActivity();
 	bool timedout = false;
-	Logger::info("Seconds passed: " + toString(passedSec));
 
 	if (cli->hasDataToWrite()) cli->updateLastActivity();
 	else if (passedSec >= CLI_IDLE_TIMEOUT_S) timedout = true;
@@ -250,7 +250,6 @@ void EventLoop::loop() {
 		if (_cliTable.size() >= MAX_CLIENTS) remSockets();
 		else if (_connectionLimit) addSockets();
 		nfds = epoll_wait(_epollfd, events, MAX_EVENTS, EPOLL_TIMEOUT_S * 1000);
-		Logger::info("epoll_wait: " + toString(nfds));
 		for (int n = 0; n < nfds; ++n)
 			handleEvent(events[n]);
 		runMaintenance();
