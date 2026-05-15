@@ -26,7 +26,7 @@ std::string ConfigParser::readFileOrThrow(const std::string& path) {
     std::ostringstream ss;
     ss << file.rdbuf();
 
-    if (file.bad()) // !
+    if (file.bad())
         throw std::runtime_error("Error while reading config file " + path);
 
     return ss.str();
@@ -49,9 +49,7 @@ Config ConfigParser::parseTokens(const std::vector<Token>& tokens) {
         server = parseServerBlock();
         checkMandatoryServerDirectives(server);
         inheritServerRootToLocations(server);
-        cfg.servers.push_back(server); // try catch!
-        // check mandatory directives!
-
+        cfg.servers.push_back(server);
     }
     return cfg;
 }
@@ -74,18 +72,13 @@ Config ConfigParser::setDefaultConfig() {
     return config;
 }
 
-Config ConfigParser::parseFile(const std::string& path) {
-    try {
-        if (path.empty())
-            return setDefaultConfig();
-        std::string ss = readFileOrThrow(path);
-        Tokenizer   tz(ss);
-        std::vector<Token> tokens = tz.tokenize();
-        return parseTokens(tokens);
-    }
-    catch (std::exception& e) {
-        std::cerr << e.what() << std::endl; // rethrow!? cerr instead of cout !
-        throw; // how?
-    }
-}
+Config ConfigParser::parseFile(const std::string& path)
+{
+    if (path.empty())
+        return setDefaultConfig();
 
+    std::string ss = readFileOrThrow(path);
+    Tokenizer   tz(ss);
+    std::vector<Token> tokens = tz.tokenize();
+    return parseTokens(tokens);
+}    

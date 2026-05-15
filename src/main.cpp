@@ -13,7 +13,14 @@ int main(int ac, char **av) {
 
 	signal(SIGPIPE, SIG_IGN);
 	// try catch
-	server.init();
-	server.run();
+    try {
+	    server.init();
+	    server.run();
+    }
+    catch (std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return 1;
+    }
+
 	return 0;
 }
