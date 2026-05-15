@@ -1,5 +1,6 @@
 #include "ConfigParser.hpp"
 #include <cstdlib>
+#include <stdexcept>
 #include "Method.hpp"
 // static
 

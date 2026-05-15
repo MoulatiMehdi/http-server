@@ -1,4 +1,6 @@
 #include "ConfigParser.hpp"
+#include <sstream>
+#include <stdexcept>
 
 
 void ConfigParser::throwError(const std::string& msg) {

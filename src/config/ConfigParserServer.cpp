@@ -1,14 +1,12 @@
 #include "ConfigParser.hpp"
 #include <cstdlib>
+#include <stdexcept>
 
 // static members
-const std::string ConfigParser::serverDirective[] = { "listen", "server_name",
-                                        "root", "index", "client_max_body_size",
-                                        "error_page" };
+const std::string ConfigParser::serverDirective[] = { "listen", "root", "index", "client_max_body_size", "error_page" };
 
 const ConfigParser::serverHandlers ConfigParser::serverEntry[] = {
             &ConfigParser::handleServListen,
-            &ConfigParser::handleServServerName,
             &ConfigParser::handleServRoot,
             &ConfigParser::handleServIndex,
             &ConfigParser::handleServClientMaxBody,

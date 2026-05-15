@@ -3,9 +3,6 @@
 
 # include <vector>
 # include <string>
-# include <fstream>
-# include <sstream>
-# include <iostream>
 # include "Tokenizer.hpp"  // Token, TokenType
 # include "Config.hpp"
 
@@ -42,7 +39,6 @@ private:
 
     // -- Server directives --
     void handleServListen(ServerConfig& server);
-    void handleServServerName(ServerConfig& server);
     void handleServRoot(ServerConfig& server);
     void handleServIndex(ServerConfig& server);
     void handleServClientMaxBody(ServerConfig& server);

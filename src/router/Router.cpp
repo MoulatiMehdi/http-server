@@ -22,8 +22,8 @@ RouteResult Router::resolve(const ServerConfig& server, const HttpRequest& reque
 
     result.server = &server;
     std::string reqPath = request.uri().path();
-    
     result.location = matchLocation(server, reqPath); 
+
     if (!isMethodAllowed(result, request.method()))
         return errorPage(status::METHOD_NOT_ALLOWED, server.error_pages);
 

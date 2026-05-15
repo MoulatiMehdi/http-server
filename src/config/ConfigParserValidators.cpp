@@ -1,7 +1,7 @@
 #include "ConfigParser.hpp"
 #include <cstdlib>
-#include <iostream>
 #include <limits>
+#include <sstream>
 
 void ConfigParser::checkMandatoryServerDirectives(ServerConfig& server) {
     if (server.root.empty())

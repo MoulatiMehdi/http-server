@@ -3,12 +3,14 @@
 #include "Tokenizer.hpp"
 #include "sys/stat.h"
 #include <cstddef>
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <sys/socket.h>
 
 
-bool isRegularFile(const std::string &path) {
+static bool isRegularFile(const std::string &path) {
     struct stat st;
     if (stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode)) {
         return true;
@@ -81,4 +83,4 @@ Config ConfigParser::parseFile(const std::string& path)
     Tokenizer   tz(ss);
     std::vector<Token> tokens = tz.tokenize();
     return parseTokens(tokens);
-}    
+} 

@@ -6,7 +6,7 @@ Tokenizer::Tokenizer(const std::string& input)
 
 void Tokenizer::skipWhiteSpaces() {
     while (_index < _input.size()) {
-        std::size_t start = _input.find_first_not_of(" \t\v\f\r", _index); // \n
+        std::size_t start = _input.find_first_not_of(" \t\v\f\r", _index);
         if (start == std::string::npos)
             return ;
         if (_input[start] == '\n') {

@@ -19,19 +19,6 @@ void ConfigParser::handleServListen(ServerConfig& server) {
     server.listens.push_back(listen);
 }
 
-void ConfigParser::handleServServerName(ServerConfig& server) {
-    advance();
-    if (_tokens[_i].type != TOK_WORD)
-        throwError("server_name: expected at least one hostname");
-    while (_tokens[_i].type == TOK_WORD) {
-        if (!isValidHostname(_tokens[_i].value))
-            throwError("server_name: invalid hostname '" + _tokens[_i].value + "'");
-        server.server_names.push_back(_tokens[_i].value);
-        advance();
-    }
-    expect(TOK_SEMICOLON, "server_name: expected ';' after " + server.server_names.back(), true);
-}
-
 void ConfigParser::handleServRoot(ServerConfig& server) {
     server.root = parseRootValue();
 }
