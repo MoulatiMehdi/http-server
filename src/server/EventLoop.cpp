@@ -162,7 +162,7 @@ bool EventLoop::cgiTimedOut(Client *client) {
 	time_t now = time(NULL);
 	if (client->cgiPending()) {
 		time_t passedSec = now - client->getCgi()->lastActivity();
-		return passedSec > CGI_ACTIVITY_TIMEOUT_MS;
+		return passedSec > CGI_ACTIVITY_TIMEOUT_S;
 	}
 	return false;
 }

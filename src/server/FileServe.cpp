@@ -1,6 +1,7 @@
 #include "FileServe.hpp"
 #include <fcntl.h>
 #include <sys/sendfile.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -50,7 +51,7 @@ int FileServe::sendChunk(int fd) {
 		_tmp_offset = 0;
 	}
 
-	int n = write(fd, _tmp + _tmp_offset, _tmp_len - _tmp_offset);
+	int n = send(fd, _tmp + _tmp_offset, _tmp_len - _tmp_offset, MSG_DONTWAIT);
 	if (n == ERROR) return ERROR;
 	_tmp_offset += n;
 

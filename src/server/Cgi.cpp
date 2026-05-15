@@ -161,7 +161,10 @@ Cgi::~Cgi() {
 		close(_out);
 		_out = -1;
 	}
-
+	if (_reqBodyFile) {
+		delete _reqBodyFile;
+		_reqBodyFile = NULL;
+	}
 	if (_pid > 0) {
 		int status;
 		pid_t ret = waitpid(_pid, &status, WNOHANG);
