@@ -18,7 +18,7 @@ void Socket::configureSocket() {
 	int opt = 1;
 
 	makeNonBlocking(_fd);
-	if (setsockopt(_fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)))
+	if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)))
 		throw std::runtime_error("configureSocket: setsockopt():");
 }
 

@@ -10,11 +10,16 @@ HttpServer::HttpServer(const std::string &path)
 void HttpServer::createSockets(const ServerConfig &servConf) {
 	for (size_t j = 0; j < servConf.listens.size(); ++j) {
 		Socket *s = new Socket(servConf, servConf.listens[j]);
-		s->configureSocket();
-		s->configureAddress();
-		s->bindSocket();
-		s->startListening();
-		_socketTable.add(s);
+		try {
+			s->configureSocket();
+			s->configureAddress();
+			s->bindSocket();
+			s->startListening();
+			_socketTable.add(s);
+		} catch (const std::exception &e) {
+			delete s;
+			throw e;
+		}
 		Logger::info("Socket: [" + toString(s->getFd()) + "] Listeting on: " +
 					 s->getAddr() + ":" + toString(s->getPort()));
 	}
@@ -36,7 +41,7 @@ void HttpServer::init() {
 		}
 	}
 	if (_socketTable.size()) Logger::info("Webserv initialized");
-	else exitError("Webserv failed to initialize: no listening socket"); 
+	else exitError("Webserv failed to initialize: no listening socket");
 }
 
 void HttpServer::run() {
